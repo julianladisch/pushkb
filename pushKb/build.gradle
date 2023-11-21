@@ -12,9 +12,8 @@ plugins {
 	id("io.micronaut.test-resources") version "$micronautGradleVersion"
 	id("io.micronaut.aot") version "$micronautGradleVersion"
 	id("jacoco")
-
-	// FIXME Idk what this is
-	//id("service.k_int.micronaut-multi")
+	id("com.k_int.pushKb.pushKb-bom")
+	id("service.k_int.micronaut-multi")
 	// Per https://guides.micronaut.io/latest/adding-commit-info-gradle-java.html
 	id("com.gorylenko.gradle-git-properties") version "2.4.1"
 }
