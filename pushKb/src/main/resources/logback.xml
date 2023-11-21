@@ -6,7 +6,7 @@
 		</encoder>
 	</appender>
 
-	<logger name="dcb-locate" level="DEBUG"/>
+	<logger name="pushKb" level="DEBUG"/>
 
 	<root level="info">
 		<appender-ref ref="STDOUT"/>

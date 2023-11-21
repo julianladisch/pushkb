@@ -8,9 +8,9 @@ import io.swagger.v3.oas.annotations.info.License;
 
 @OpenAPIDefinition(
 	info = @Info(
-		title = "DCB Locate Interface",
+		title = "PushKb",
 		version = "0.1",
-		description = "A bridge between DCB and Locate",
+		description = "A service to collate data from GoKB and push into FOLIO",
 		license = @License(name = "EBSCO", url = "https://foo.bar"),
 		contact = @Contact(url = "https://www.k-int.com", name = "Ian Ibbotson", email = "ian.ibbotson@k-int.com")
 	)
