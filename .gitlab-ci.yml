@@ -1,0 +1,78 @@
+image: 
+  name: ghcr.io/graalvm/graalvm-ce:ol8-java17
+  # N.B. This pull policy requires the hosted gitlab runner to have if-not-present to be configured in
+  # allowed pull policy in config.toml
+  pull_policy: if-not-present
+
+# Ideally we would specify tags at the root level - sadly this seems not to be supported
+# This should set default tags for all stages that don't override. We use these to force a build
+# onto the k-int runners where we have access to the host docker socket for building containers.
+# This also prevents us consuming gitlab ci minutes as this native build is hefty.
+# tags:
+#   - docker
+#   - docker18
+#   - ki-onprem
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+before_script:
+  - GRADLE_USER_HOME="$(pwd)/.gradle"
+  - export GRADLE_USER_HOME
+
+build:
+  stage: build
+  only:
+    - main
+    - tags
+  tags:
+    - ki-onprem
+  script:
+    - ./gradlew --build-cache assemble
+  cache:
+    key: "$CI_COMMIT_REF_NAME"
+    policy: push
+    paths:
+      - build
+      - .gradle
+
+dockerLogin:
+  stage: build
+  only:
+    - main
+    - tags
+  tags:
+    - ki-onprem
+  image: 
+    name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:latest
+    pull_policy: if-not-present
+  script:
+    - docker login docker.libsdev.k-int.com --username "$NEXUS_USER" --password "$NEXUS_PASS"
+    - cp ~/.docker/config.json ./config.json
+  artifacts:
+    paths:
+      - config.json
+
+build-native-image:
+  stage: deploy
+  only:
+    - main
+    - tags
+  tags:
+    - ki-onprem
+  script: 
+    - mkdir ~/.docker
+    - cp ./config.json ~/.docker/config.json
+    - ./gradlew nativeCompile
+    - ./gradlew dockerPushNative
+    - ./gradlew dockerPush
+  artifacts:
+    paths:
+      - build/native/nativeCompile/pushKb
+  cache:
+    key: "$CI_COMMIT_REF_NAME"
+    policy: pull
+    paths:
+      - build
+      - .gradle
+

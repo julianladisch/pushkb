@@ -1,0 +1,21 @@
+micronaut:
+  security:
+    authentication: bearer
+    token:
+      jwt:
+        generator:
+          access-token:
+            expiration: 600
+        signatures:
+          secret:
+            generator:
+              secret: cGxlYXNlQ2hhbmdlVGhpc1NlY3JldEZvckFOZXdPbmU
+              base64: true
+              jws-algorithm: HS256
+elasticsearch:
+  indexes:
+    instances: locate.instances
+test-resources:
+  containers:
+    elasticsearch:
+      startup-timeout: 60s

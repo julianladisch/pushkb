@@ -1,0 +1,15 @@
+/env
+.*
+!.git*
+!.editorconfig
+src/groovy
+*keystore*
+build/
+bin/
+target/
+out/
+data-store/
+*.db
+*.iml
+*.ipr
+*.iws

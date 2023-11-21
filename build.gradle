@@ -1,0 +1,23 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.k-int.com/content/repositories/releases" }
+	}
+	dependencies {
+		classpath 'com.k_int.gradle:kint-gradle-plugin:2.2.1'
+	}
+}
+
+plugins {
+	id("com.github.johnrengelman.shadow") version "8.1.1"
+	id("org.asciidoctor.jvm.convert") version "3.3.2"
+}
+
+// Apply our custom plugins.
+apply plugin: "com.k_int.gradle.plugin"
+apply plugin: "com.k_int.gradle.conventional-git"
+
+repositories {
+	mavenCentral()
+	maven { url "https://maven.k-int.com/content/repositories/releases" }
+}

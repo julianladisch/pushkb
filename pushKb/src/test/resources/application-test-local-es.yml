@@ -1,0 +1,7 @@
+micronaut:
+  http:
+    services:
+      search:
+        url: "http://localhost:9200"
+elasticsearch:
+  http-hosts: "http://localhost:9200"
