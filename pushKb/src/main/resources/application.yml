@@ -1,0 +1,53 @@
+micronaut:
+  application:
+    name: pushKb
+  router:
+    static-resources:
+      swagger:
+        enabled: true
+        paths: classpath:META-INF/swagger
+        mapping: /openapi/**
+      swagger-ui:
+        enabled: true
+        paths: classpath:META-INF/swagger/views/swagger-ui
+        mapping: /openapi/ui/**
+      redoc:
+        paths: classpath:META-INF/swagger/views/redoc
+        mapping: /openapi/redoc/**
+  security:
+    authentication: idtoken
+    token:
+      jwt:
+        enabled: true
+        signatures.jwks.keycloak:
+          url: ${KEYCLOAK_CERT_URL:""}
+    intercept-url-map:
+      - pattern: "/openapi/**"
+        access:
+          - isAnonymous()
+  data:
+    pageable:
+      max-page-size: 1000
+elasticsearch:
+  indexes:
+    instances: "mobius-si"
+netty:
+  default:
+    allocator:
+      max-order: 3
+endpoints:
+  prometheus:
+    sensitive: false
+  health:
+    enabled: true
+    sensitive: false # non-secured endpoint
+    details-visible: ANONYMOUS # show details for everyone
+    elasticsearch:
+      enabled: false
+      rest:
+        high:
+          level:
+            enabled: false
+  info:
+    enabled: true
+    sensitive: false

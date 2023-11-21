@@ -1,0 +1,217 @@
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+}
+
+plugins {
+	id("org.openrewrite.rewrite") version("latest.release")
+	id("com.github.johnrengelman.shadow") version "8.1.1"
+	// See https://plugins.gradle.org/plugin/io.micronaut.application
+	id("io.micronaut.application") version "$micronautGradleVersion"
+	id("io.micronaut.test-resources") version "$micronautGradleVersion"
+	id("io.micronaut.aot") version "$micronautGradleVersion"
+	id("jacoco")
+
+	// FIXME Idk what this is
+	//id("service.k_int.micronaut-multi")
+	// Per https://guides.micronaut.io/latest/adding-commit-info-gradle-java.html
+	id("com.gorylenko.gradle-git-properties") version "2.4.1"
+}
+
+//version = "0.1"
+group = "pushKb"
+
+repositories {
+	mavenCentral()
+	maven { url "https://maven.indexdata.com" }
+}
+
+dependencies {
+	// This should likely always be first in the annotations list
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	rewrite("org.openrewrite.recipe:rewrite-micronaut:2.1.1")
+
+	annotationProcessor('io.micronaut:micronaut-graal')
+	annotationProcessor("io.micronaut.serde:micronaut-serde-processor")
+	annotationProcessor("io.micronaut:micronaut-http-validation")
+	annotationProcessor("io.micronaut.openapi:micronaut-openapi")
+	annotationProcessor('io.micronaut.security:micronaut-security-annotations')
+	annotationProcessor("io.micronaut.data:micronaut-data-processor")
+	annotationProcessor("io.micronaut.validation:micronaut-validation-processor")
+
+	compileOnly("org.graalvm.nativeimage:svm")
+
+	// Implementation
+	implementation("io.micronaut.validation:micronaut-validation")
+	implementation("io.micronaut.security:micronaut-security-jwt")
+	implementation("io.micronaut:micronaut-http-client")
+	implementation("io.micronaut:micronaut-management")
+	implementation("io.micronaut.cache:micronaut-cache-caffeine")
+	implementation("io.micronaut.reactor:micronaut-reactor")
+	implementation platform('io.projectreactor:reactor-bom')
+	implementation("io.projectreactor.addons:reactor-extra")
+
+	implementation("io.micronaut.reactor:micronaut-reactor-http-client")
+	implementation("io.swagger.core.v3:swagger-annotations")
+	implementation("jakarta.annotation:jakarta.annotation-api")
+
+	implementation("io.micronaut.serde:micronaut-serde-jackson")
+	implementation("io.micronaut.elasticsearch:micronaut-elasticsearch")
+	dependencies {
+		implementation "io.micronaut.elasticsearch:micronaut-elasticsearch"
+		constraints {
+			implementation("org.elasticsearch.client:elasticsearch-rest-high-level-client") {
+				version {
+					strictly '7.10.2'
+				}
+			}
+		}
+	}
+
+	implementation("org.z3950.zing:cql-java:1.13")
+
+	runtimeOnly("ch.qos.logback:logback-classic")
+	runtimeOnly("org.slf4j:log4j-over-slf4j")
+	runtimeOnly("org.yaml:snakeyaml")
+
+	// Tests
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	testImplementation("io.micronaut.test:micronaut-test-junit5")
+	testImplementation('org.mock-server:mockserver-junit-jupiter')
+	testImplementation('org.hamcrest:hamcrest')
+	testImplementation('org.awaitility:awaitility')
+	testImplementation("org.junit.jupiter:junit-jupiter-params")
+	testImplementation('io.projectreactor:reactor-test')
+	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+
+	testImplementation("io.micronaut.testresources:micronaut-test-resources-extensions-core:2.0.0")
+	testImplementation(platform("org.testcontainers:testcontainers-bom"))
+	testImplementation("org.testcontainers:elasticsearch")
+	testImplementation("io.micronaut.testresources:micronaut-test-resources-elasticsearch")
+}
+
+rewrite {
+	activeRecipe("org.openrewrite.java.micronaut.Micronaut3to4Migration")
+}
+
+
+application {
+	mainClass.set("com.k_int.pushKb.Application")
+}
+
+java {
+	sourceCompatibility = JavaVersion.toVersion("17")
+	targetCompatibility = JavaVersion.toVersion("17")
+}
+
+graalvmNative.toolchainDetection = false
+micronaut {
+	runtime("netty")
+	testRuntime("junit5")
+	processing {
+		incremental(true)
+		annotations("com.k_int.pushKb.*")
+	}
+}
+
+tasks {
+	final Map<String, String> labels = [
+		'maintainer': 'Steve Osguthorpe <steve.osguthorpe@k-int.com>',
+		'version'   : project.hasProperty('versionWithMeta') ? project.getProperty('versionWithMeta') : project.getProperty('version')
+	]
+
+	dockerfile {
+		baseImage 'eclipse-temurin:17-alpine'
+		label(labels)
+		environmentVariable 'JAVA_OPTIONS',
+			'-XX:+UseContainerSupport -XX:MinRAMPercentage=50.0 -XX:MaxRAMPercentage=80.0 -XX:InitialRAMPercentage=50.0 -XX:+PrintFlagsFinal'
+		environmentVariable 'JAVA_TOOL_OPTIONS', '$JAVA_OPTIONS $JAVA_TOOL_OPTIONS'
+		entryPoint('java', '-server', '-jar', '/home/app/application.jar')
+	}
+
+	dockerfileNative {
+		label(labels)
+		graalArch.set("x64")
+	}
+
+	boolean isPre = project.hasProperty('versionPreRelease') &&
+		("${project.getProperty('versionPreRelease')}".trim() != "")
+
+	// Build up a list of tags we should apply
+	final Set<String> tags = [
+		'versionMajor',
+		'versionMajorMinor',
+		'version'
+	].findResults {
+		(project.hasProperty(it) && !project.property(it).equals('unspecified')) ? project.property(it).toString().trim() : null
+	}
+
+	// If this is a pre-release (including Snapshots) then add "next" tag. Otherwise, use latest
+	tags << (isPre ? 'next' : 'latest')
+
+	final imageAndRepo = "${System.env.DOCKER_IMAGE ?: project.name}"
+
+	Set<String> imageNames = tags.collect { "${imageAndRepo}:${it}" }
+	Set<String> nativeImageNames = tags.collect { "${imageAndRepo}:native-${it}" }
+
+	dockerBuild {
+		images = imageNames
+	}
+
+	dockerBuildNative {
+		images = nativeImageNames
+	}
+
+	final Set<String> jacocoExcludes = [
+		'**/Application.class',
+	]
+
+	jacocoTestReport {
+		dependsOn test
+
+		reports {
+			xml.required = false
+			csv.required = false
+			html.required = true
+		}
+
+		afterEvaluate {
+			classDirectories.setFrom(files(classDirectories.files.collect {
+				fileTree(dir: it, exclude: jacocoExcludes)
+			}))
+		}
+	}
+	jacocoTestCoverageVerification {
+
+		afterEvaluate {
+			classDirectories.setFrom(files(classDirectories.files.collect {
+				fileTree(dir: it, exclude: jacocoExcludes)
+			}))
+		}
+
+		violationRules {
+			rule {
+				limit {
+					minimum = 0.7 // 70% coverage
+				}
+			}
+		}
+	}
+}
+
+
+/*
+graalvmNative {
+    binaries {
+        main {
+            buildArgs.add('-march=x86-64-v2')
+        }
+    }
+}
+*/
+
