@@ -5,6 +5,7 @@ import java.util.UUID;
 import io.micronaut.core.annotation.Creator;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
+import io.micronaut.data.annotation.AutoPopulated;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.TypeDef;
@@ -28,6 +29,8 @@ public class HelloWorld {
 	// FIXME This cannot be right
 	//@NotNull
 	//@NonNull
+	@Nullable
+  @AutoPopulated
 	@Id
 	@TypeDef( type = DataType.UUID)
 	private UUID id;

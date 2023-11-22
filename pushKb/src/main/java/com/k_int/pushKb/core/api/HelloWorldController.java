@@ -57,8 +57,6 @@ public class HelloWorldController {
   public Mono<HelloWorld> postHello(@Body HelloWorld helloworld) {
 
           if (helloworld.getId() == null) {
-            // FIXME I have no idea if this is allowed
-            helloworld.setId(UUID.randomUUID());
             return Mono.from(helloWorldRepository.save(helloworld));
           }
 
