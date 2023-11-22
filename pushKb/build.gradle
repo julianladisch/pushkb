@@ -55,7 +55,9 @@ dependencies {
 
 	implementation("io.micronaut.reactor:micronaut-reactor-http-client")
 	implementation("io.swagger.core.v3:swagger-annotations")
+	
 	implementation("jakarta.annotation:jakarta.annotation-api")
+	implementation("jakarta.persistence:jakarta.persistence-api")
 
 	implementation("io.micronaut.serde:micronaut-serde-jackson")
 	implementation("io.micronaut.elasticsearch:micronaut-elasticsearch")
@@ -76,9 +78,31 @@ dependencies {
 	runtimeOnly("org.slf4j:log4j-over-slf4j")
 	runtimeOnly("org.yaml:snakeyaml")
 
+	// Data (see dcb-service)
+	implementation("io.micronaut.r2dbc:micronaut-r2dbc-core")
+	implementation("io.micronaut.data:micronaut-data-processor")
+	implementation("io.micronaut.data:micronaut-data-r2dbc")
+	implementation("io.micronaut.data:micronaut-data-jdbc")
+	implementation("io.micronaut.sql:micronaut-jdbc-hikari")
+
+	runtimeOnly("org.postgresql:postgresql")
+	
+	// Without this dependency, testcontainer injection seems not to happen at all.
+	// Wonder if this is because the bean that uses PG is a r2dbc service
+	runtimeOnly("org.postgresql:r2dbc-postgresql")
+
+
+		// testRuntimeOnly("io.micronaut.testresources:micronaut-test-resources-client")
+
+	// Uncommmenting this dependency results in
+	// testresources Micronaut Message: Could not resolve placeholder ${auto.test.resources.r2dbc.datasources.default.options.protocol}
+	//
+	runtimeOnly("io.r2dbc:r2dbc-pool")
+
 	// Tests
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+	testAnnotationProcessor("io.micronaut.data:micronaut-data-processor")
 
 	testImplementation("io.micronaut.test:micronaut-test-junit5")
 	testImplementation('org.mock-server:mockserver-junit-jupiter')
