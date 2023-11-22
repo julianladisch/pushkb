@@ -1,20 +1,15 @@
-version: "3.0"
+version: '3.8'
 services:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.2
-    ports:
-      - "9200:9200"
-      - "9300:9300"
+  db:
+    image: postgres:16.1
+    restart: always
     environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-  opensearch:
-    image: opensearchproject/opensearch:latest
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
     ports:
-      - "9201:9200"
-      - "9301:9300"
-      - "9601:9600"
-    environment:
-      - discovery.type=single-node
-      - "DISABLE_INSTALL_DEMO_CONFIG=true" # Prevents execution of bundled demo script which installs demo certificates and security configurations to OpenSearch
-      - "DISABLE_SECURITY_PLUGIN=true" # Disables Security plugin
+      - '5432:5432'
+    volumes: 
+      - db:/var/lib/postgresql/data
+volumes:
+  db:
+    driver: local
