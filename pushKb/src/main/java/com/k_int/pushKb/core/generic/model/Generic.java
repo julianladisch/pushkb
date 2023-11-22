@@ -1,4 +1,4 @@
-package com.k_int.pushKb.core.model;
+package com.k_int.pushKb.core.generic.model;
 
 import io.micronaut.core.annotation.Creator;
 import io.micronaut.core.annotation.NonNull;

@@ -1,4 +1,4 @@
-package com.k_int.pushKb.core.storage;
+package com.k_int.pushKb.core.generic.storage;
 
 import java.util.UUID;
 
@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.core.model.Generic;
+import com.k_int.pushKb.core.generic.model.Generic;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;

@@ -1,11 +1,10 @@
-package com.k_int.pushKb.core.storage.postgres;
+package com.k_int.pushKb.core.generic.storage.postgres;
 
 import java.util.UUID;
 
+import com.k_int.pushKb.core.generic.model.Generic;
+
 import jakarta.transaction.Transactional;
-
-import com.k_int.pushKb.core.model.Generic;
-
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
