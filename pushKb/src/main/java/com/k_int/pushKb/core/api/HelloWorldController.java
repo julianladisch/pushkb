@@ -11,8 +11,10 @@ import io.micronaut.data.model.Pageable;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -24,25 +26,19 @@ import reactor.core.publisher.Mono;
 
 //@Validated
 // FIXME security needs implementing
-//@Secured(SecurityRule.IS_AUTHENTICATED)
+@Secured(SecurityRule.IS_AUTHENTICATED)
 @Controller("/hello")
 @Tag(name = "Hello World API")
 public class HelloWorldController {
-/* 	private final HelloWorldRepository helloWorldRepository;
+	private final HelloWorldRepository helloWorldRepository;
 
 	public HelloWorldController(
 		HelloWorldRepository helloWorldRepository
   ) {
 		this.helloWorldRepository = helloWorldRepository;
-	} */
+	}
 
-  @Get
-  @Produces(MediaType.TEXT_PLAIN) 
-  public String index() {
-    return "Test";
-  }
-
- /*  @Get("/{?pageable*}")
+  @Get("/{?pageable*}")
   public Mono<Page<HelloWorld>> list(@Parameter(hidden = true) @Valid Pageable pageable) {
     if (pageable == null) {
       pageable = Pageable.from(0, 100)
@@ -55,5 +51,18 @@ public class HelloWorldController {
   @Get("/{id}")
   public Mono<HelloWorld> show(UUID id) {
           return Mono.from(helloWorldRepository.findById(id));
-  } */
+  }
+
+  @Post("/")
+  public Mono<HelloWorld> postHello(@Body HelloWorld helloworld) {
+
+          if (helloworld.getId() == null) {
+            // FIXME I have no idea if this is allowed
+            helloworld.setId(UUID.randomUUID());
+            return Mono.from(helloWorldRepository.save(helloworld));
+          }
+
+          return Mono.from(helloWorldRepository.existsById(helloworld.getId()))
+                  .flatMap(exists -> Mono.fromDirect(exists ? helloWorldRepository.update(helloworld) : helloWorldRepository.save(helloworld)));
+  }
 }

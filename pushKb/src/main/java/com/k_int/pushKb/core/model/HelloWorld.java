@@ -17,7 +17,6 @@ import lombok.Data;
 import lombok.ToString;
 import lombok.NoArgsConstructor;
 
-
 @Builder
 @Data
 @NoArgsConstructor(onConstructor_ = @Creator())
@@ -26,8 +25,9 @@ import lombok.NoArgsConstructor;
 @MappedEntity
 @ToString
 public class HelloWorld {
-	@NotNull
-	@NonNull
+	// FIXME This cannot be right
+	//@NotNull
+	//@NonNull
 	@Id
 	@TypeDef( type = DataType.UUID)
 	private UUID id;
