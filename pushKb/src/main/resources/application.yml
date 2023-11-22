@@ -1,30 +1,33 @@
 micronaut:
+  server:
+    port: 8080
   application:
     name: pushKb
-  router:
-    static-resources:
-      swagger:
-        enabled: true
-        paths: classpath:META-INF/swagger
-        mapping: /openapi/**
-      swagger-ui:
-        enabled: true
-        paths: classpath:META-INF/swagger/views/swagger-ui
-        mapping: /openapi/ui/**
-      redoc:
-        paths: classpath:META-INF/swagger/views/redoc
-        mapping: /openapi/redoc/**
-  security:
-    authentication: idtoken
-    token:
-      jwt:
-        enabled: true
-        signatures.jwks.keycloak:
-          url: ${KEYCLOAK_CERT_URL:""}
-    intercept-url-map:
-      - pattern: "/openapi/**"
-        access:
-          - isAnonymous()
+  #router:
+  #  static-resources:
+  #    swagger:
+  #      enabled: true
+  #      paths: classpath:META-INF/swagger
+  #      mapping: /openapi/**
+  #    swagger-ui:
+  #      enabled: true
+  #      paths: classpath:META-INF/swagger/views/swagger-ui
+  #      mapping: /openapi/ui/**
+  #    redoc:
+  #      paths: classpath:META-INF/swagger/views/redoc
+  #      mapping: /openapi/redoc/**
+  ## FIXME SHOULD FIGURE OUT SECURITY AT SOME PT
+  #security:
+  #  authentication: idtoken
+  #  token:
+  #    jwt:
+  #      enabled: true
+  #      signatures.jwks.keycloak:
+  #        url: ${KEYCLOAK_CERT_URL:""}
+  #  intercept-url-map:
+  #    - pattern: "/openapi/**"
+  #      access:
+  #        - isAnonymous()
   data:
     pageable:
       max-page-size: 1000
@@ -43,3 +46,63 @@ flyway:
 db:
   host: localhost
   port: 5432
+
+
+datasources:
+  default:
+    enabled: true
+    dialect: POSTGRES
+    driverClassName: org.postgresql.Driver
+    schema-generate: NONE
+    db-type: postgresql
+    minimumIdle: 0
+    maximumPoolSize: 2
+    reconnect: true
+    #username: "${db.username:}"
+    #password: "${db.password:}"
+
+r2dbc:
+  datasources:
+    default:
+      enabled: true
+      dialect: POSTGRES
+      # https://micronaut-projects.github.io/micronaut-test-resources/latest/guide/
+      # Specify db-type so test resources knows what to provision
+      # db-type: postgresql
+      db-type: postgres
+      reconnect: true
+      # url: ${DB_URL:`r2dbc:postgresql://localhost:5432/postgres`}
+      # username: ${DB_USER:`postgres`}
+      # password: ${DB_PASSWORD:`pass`}
+      options:
+        driver: pool
+        protocol: postgres
+        poolName: r2dbc
+        maxSize: 20
+        initialSize: 5
+        # maxLifeTime: PT120M
+        # maxLifeTime: PT20M
+        maxIdleTime: PT240S
+        # maxAcquireTime: PT20S
+        validationQuery: "SELECT 1"
+        validationDepth: REMOTE
+      
+      # driver: postgresql
+      #url: "r2dbc:postgresql://${db.host}:${db.port}/${db.database:}"
+      #host: "${db.host:localhost}"
+      #username: "${db.username:}"
+      #password: "${db.password:}"
+      schema-generate: NONE
+
+endpoints:
+  prometheus:
+    sensitive: false
+  health:
+    enabled: true
+    sensitive: false # non-secured endpoint
+    details-visible: ANONYMOUS # show details for everyone
+    ingest:
+      enabled: true
+  info:
+    enabled: true
+    sensitive: false

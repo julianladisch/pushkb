@@ -60,7 +60,7 @@ dependencies {
 	implementation("jakarta.persistence:jakarta.persistence-api")
 
 	implementation("io.micronaut.serde:micronaut-serde-jackson")
-	implementation("io.micronaut.elasticsearch:micronaut-elasticsearch")
+	/* implementation("io.micronaut.elasticsearch:micronaut-elasticsearch")
 	dependencies {
 		implementation "io.micronaut.elasticsearch:micronaut-elasticsearch"
 		constraints {
@@ -70,16 +70,13 @@ dependencies {
 				}
 			}
 		}
-	}
+	} */
 
 	implementation("org.z3950.zing:cql-java:1.13")
 
 	runtimeOnly("ch.qos.logback:logback-classic")
 	runtimeOnly("org.slf4j:log4j-over-slf4j")
 	runtimeOnly("org.yaml:snakeyaml")
-
-	// Flyway database stuffs
-	implementation("io.micronaut.flyway:micronaut-flyway")
 
 	// Data (see dcb-service)
 	implementation("io.micronaut.r2dbc:micronaut-r2dbc-core")
@@ -95,12 +92,14 @@ dependencies {
 	runtimeOnly("org.postgresql:r2dbc-postgresql")
 
 
-		// testRuntimeOnly("io.micronaut.testresources:micronaut-test-resources-client")
+	// testRuntimeOnly("io.micronaut.testresources:micronaut-test-resources-client")
 
 	// Uncommmenting this dependency results in
 	// testresources Micronaut Message: Could not resolve placeholder ${auto.test.resources.r2dbc.datasources.default.options.protocol}
 	//
 	runtimeOnly("io.r2dbc:r2dbc-pool")
+
+	implementation("io.micronaut.flyway:micronaut-flyway")
 
 	// Tests
 	testCompileOnly 'org.projectlombok:lombok'
@@ -117,8 +116,9 @@ dependencies {
 
 	testImplementation("io.micronaut.testresources:micronaut-test-resources-extensions-core:2.0.0")
 	testImplementation(platform("org.testcontainers:testcontainers-bom"))
-	testImplementation("org.testcontainers:elasticsearch")
-	testImplementation("io.micronaut.testresources:micronaut-test-resources-elasticsearch")
+	// Don't need ES (yet?)
+	/* testImplementation("org.testcontainers:elasticsearch")
+	testImplementation("io.micronaut.testresources:micronaut-test-resources-elasticsearch") */
 }
 
 rewrite {
