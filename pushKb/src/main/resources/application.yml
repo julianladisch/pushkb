@@ -28,29 +28,18 @@ micronaut:
   data:
     pageable:
       max-page-size: 1000
-elasticsearch:
-  indexes:
-    instances: "mobius-si"
-netty:
-  default:
-    allocator:
-      max-order: 3
-endpoints:
-  prometheus:
-    sensitive: false
-  health:
-    enabled: true
-    sensitive: false # non-secured endpoint
-    details-visible: ANONYMOUS # show details for everyone
-    elasticsearch:
-      enabled: false
-      rest:
-        high:
-          level:
-            enabled: false
-  info:
-    enabled: true
-    sensitive: false
+flyway:
+  enabled: true
+  datasources:
+    default:
+      enabled: true
+      out-of-order: true
+      # locations:
+      #   - classpath:db/migrations
+      # default-schema: r2dbc-poc
+      # url: ${DB_URL:`r2dbc:postgresql://localhost:5432/postgres`}
+      # username: ${DB_USER:`postgres`}
+      # password: ${DB_PASSWORD:`pass`}
 db:
   host: localhost
   port: 5432

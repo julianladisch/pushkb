@@ -6,7 +6,12 @@
 		</encoder>
 	</appender>
 
-	<logger name="pushKb" level="DEBUG"/>
+	<logger name="com.k_int.pushKb" level="DEBUG"/>
+
+	<!-- flyway -->
+	<logger name="org.flywaydb" level="WARN"/>
+	<logger name="org.flyway" level="WARN"/>
+	<logger name="io.micronaut.flyway" level="WARN"/>
 
 	<root level="info">
 		<appender-ref ref="STDOUT"/>

@@ -78,6 +78,9 @@ dependencies {
 	runtimeOnly("org.slf4j:log4j-over-slf4j")
 	runtimeOnly("org.yaml:snakeyaml")
 
+	// Flyway database stuffs
+	implementation("io.micronaut.flyway:micronaut-flyway")
+
 	// Data (see dcb-service)
 	implementation("io.micronaut.r2dbc:micronaut-r2dbc-core")
 	implementation("io.micronaut.data:micronaut-data-processor")
