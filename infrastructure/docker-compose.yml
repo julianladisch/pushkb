@@ -12,6 +12,7 @@ services:
       - '5432:5432'
     volumes: 
       - db:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
     networks:
       - local-keycloak
 
@@ -25,6 +26,7 @@ services:
       DB_DATABASE: ${POSTGRES_DB}
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_SCHEMA: ${KEYCLOAK_SCHEMA}
     image: jboss/keycloak:${KEYCLOAK_VERSION}
     ports:
       - "28080:8080"
