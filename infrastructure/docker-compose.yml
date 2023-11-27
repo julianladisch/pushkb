@@ -27,7 +27,9 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_SCHEMA: ${KEYCLOAK_SCHEMA}
-    image: jboss/keycloak:${KEYCLOAK_VERSION}
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
     ports:
       - "28080:8080"
     restart: unless-stopped
