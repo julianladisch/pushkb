@@ -1,0 +1,6 @@
+export r2dbc_datasources_default_url="r2dbc:postgresql://localhost:5432/pushKb"
+export r2dbc_datasources_default_username="pushKb"
+export r2dbc_datasources_default_password="pushKb"
+export datasources_default_url="jdbc:postgresql://localhost:5432/pushKb"
+export datasources_default_username="pushKb"
+export datasources_default_password="pushKb"

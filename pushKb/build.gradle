@@ -135,6 +135,12 @@ java {
 	targetCompatibility = JavaVersion.toVersion("17")
 }
 
+run {
+	systemProperties([
+		'micronaut.environments': 'development'
+	])
+}
+
 graalvmNative.toolchainDetection = false
 micronaut {
 	runtime("netty")
