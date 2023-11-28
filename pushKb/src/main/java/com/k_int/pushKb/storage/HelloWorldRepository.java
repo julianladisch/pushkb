@@ -1,6 +1,6 @@
 package com.k_int.pushKb.storage;
 
-import com.k_int.pushKb.core.model.HelloWorld;
+import com.k_int.pushKb.model.HelloWorld;
 
 import java.util.UUID;
 

@@ -1,4 +1,4 @@
-package com.k_int.pushKb.core.model;
+package com.k_int.pushKb.model;
 
 import java.util.UUID;
 

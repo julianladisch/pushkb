@@ -1,8 +1,8 @@
-package com.k_int.pushKb.core.api;
+package com.k_int.pushKb.api;
 
 import java.util.UUID;
 
-import com.k_int.pushKb.core.model.HelloWorld;
+import com.k_int.pushKb.model.HelloWorld;
 import com.k_int.pushKb.storage.HelloWorldRepository;
 
 import io.micronaut.core.annotation.Nullable;

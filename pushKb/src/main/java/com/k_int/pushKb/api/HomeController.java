@@ -1,4 +1,4 @@
-package com.k_int.pushKb.core.api;
+package com.k_int.pushKb.api;
 
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
