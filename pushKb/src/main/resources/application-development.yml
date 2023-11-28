@@ -4,6 +4,8 @@ micronaut:
   application:
     name: pushKb
   security:
+    # FIXME Re-enable this later
+    enabled: false
     authentication: idtoken 
     oauth2:
       clients:
