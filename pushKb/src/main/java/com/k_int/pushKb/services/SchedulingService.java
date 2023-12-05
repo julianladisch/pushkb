@@ -3,8 +3,6 @@ package com.k_int.pushKb.services;
 import io.micronaut.scheduling.annotation.Scheduled;
 import jakarta.inject.Singleton;
 
-import lombok.extern.slf4j.Slf4j;
-
 @Singleton
 public class SchedulingService {
 	private final GoKBFeedService goKBFeedService;

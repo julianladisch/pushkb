@@ -72,9 +72,9 @@ datasources:
     minimumIdle: 0
     maximumPoolSize: 2
     reconnect: true
-    username: "pushKb"
-    password: "pushKb"
-    url: "jdbc:postgresql://localhost:5432/pushKb"
+    username: pushkb
+    password: pushkb
+    url: "jdbc:postgresql://localhost:54321/pushkb"
 
 r2dbc:
   datasources:
@@ -86,9 +86,9 @@ r2dbc:
       # db-type: postgresql
       db-type: postgres
       reconnect: true
-      url: "r2dbc:postgresql://localhost:5432/pushKb"
-      username: pushKb
-      password: pushKb
+      url: "r2dbc:postgresql://localhost:54321/pushkb"
+      username: pushkb
+      password: pushkb
       options:
         driver: pool
         protocol: postgres

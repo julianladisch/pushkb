@@ -5,6 +5,7 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
+import io.micronaut.json.tree.JsonNode;
 import io.micronaut.serde.annotation.Serdeable;
 
 @Serdeable
@@ -20,5 +21,5 @@ public class GokbScrollResponse {
 	int total;
 
 	@ToString.Exclude
-	List<GoKBRecord> records;
+	List<JsonNode> records;
 }
