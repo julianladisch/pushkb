@@ -6,8 +6,13 @@ CREATE TABLE hello_world (
 
 CREATE TABLE source_record (
 	id uuid PRIMARY KEY,
-	source varchar(64),
-	record_type varchar(64),
-	timestamp timestamp,
-	jsonRecord jsonb
+	source VARCHAR(64) NOT NULL,
+	record_type VARCHAR(64) NOT NULL,
+	created TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+	updated TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+	json_record jsonb NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS source_record_source_idx ON source_record (source);
+
+CREATE INDEX IF NOT EXISTS source_record_source_record_type_idx ON source_record (source, record_type);

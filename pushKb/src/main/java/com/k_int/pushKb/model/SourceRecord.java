@@ -6,13 +6,15 @@ import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-
+import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.AutoPopulated;
+import io.micronaut.data.annotation.DateCreated;
+import io.micronaut.data.annotation.DateUpdated;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.serde.annotation.Serdeable;
-
+import jakarta.validation.constraints.NotNull;
 import io.micronaut.data.model.DataType;
 import io.micronaut.json.tree.JsonNode;
 
@@ -27,13 +29,22 @@ public class SourceRecord {
 	@TypeDef(type = DataType.UUID)
 	private UUID id;
 
-	@TypeDef(type = DataType.STRING)
+  @NotNull
+  @NonNull
   SourceCode source;
 
-	@TypeDef(type = DataType.STRING)
+  @NotNull
+  @NonNull
   SourceRecordType recordType;
 
-  Instant timestamp;
+  @DateCreated
+  Instant created;
+  
+  @DateUpdated
+  Instant updated;
 
+  @TypeDef(type = DataType.JSON)
+  @NotNull
+  @NonNull
   JsonNode jsonRecord;
 }
