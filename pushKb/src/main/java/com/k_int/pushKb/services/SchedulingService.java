@@ -14,6 +14,6 @@ public class SchedulingService {
   // FIXME need to work on delay here
   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
-    goKBFeedService.testScheduling();
+    goKBFeedService.fetchGoKBPackages();
 	}
 }
