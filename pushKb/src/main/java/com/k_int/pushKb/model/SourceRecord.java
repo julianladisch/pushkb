@@ -12,6 +12,7 @@ import io.micronaut.data.annotation.DateCreated;
 import io.micronaut.data.annotation.DateUpdated;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
+import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
@@ -29,13 +30,10 @@ public class SourceRecord {
 	@TypeDef(type = DataType.UUID)
 	private UUID id;
 
+  @Relation(value = Relation.Kind.MANY_TO_ONE)
   @NotNull
   @NonNull
-  SourceCode source;
-
-  @NotNull
-  @NonNull
-  SourceRecordType recordType;
+  Source source;
 
   @DateCreated
   Instant created;

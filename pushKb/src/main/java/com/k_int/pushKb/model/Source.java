@@ -2,42 +2,43 @@ package com.k_int.pushKb.model;
 
 import java.util.UUID;
 
-import io.micronaut.core.annotation.Creator;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.ToString;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.annotation.AutoPopulated;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.TypeDef;
-import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.ToString;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Size;
+import io.micronaut.data.model.DataType;
 
-@Builder
-@Data
-@NoArgsConstructor(onConstructor_ = @Creator())
-@AllArgsConstructor
 @Serdeable
+@Data
+@AllArgsConstructor
 @MappedEntity
-@ToString
-public class HelloWorld {
-	// FIXME This cannot be right
-	//@NotNull
-	//@NonNull
-	@Nullable
+@Builder
+public class Source {
   @AutoPopulated
 	@Id
-	@TypeDef( type = DataType.UUID)
+	@TypeDef(type = DataType.UUID)
 	private UUID id;
 
-	@Nullable
-  private String test1;
+  @NotNull
+  @NonNull
+  SourceCode code; // GOKB etc
 
-  @Nullable
-  private String test2;
+  @NotNull
+  @NonNull
+  SourceType sourceType; // Package vs TIPP
+
+  @NotNull
+  @NonNull
+  @ToString.Include
+	@Size(max = 200)
+  String sourceUrl;
 }
