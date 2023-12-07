@@ -59,6 +59,7 @@ public class GoKBFeedService {
 					return Mono.from(gokbApiClient.scrollTipps(scrollResponse.getScrollId(), null)).doOnNext(page -> log.info("LOGDEBUG WHAT IS THING (INTERNAL): {}", page));
 				}
 			})
+			.limitRate(5000, 2500)
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
 			.flatMap( Flux::fromIterable )
 			// Convert this JsonNode into a Source record
