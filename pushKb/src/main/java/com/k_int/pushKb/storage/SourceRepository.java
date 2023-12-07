@@ -42,28 +42,4 @@ public interface SourceRepository extends ReactiveStreamsPageableRepository<Sour
 
   @NonNull
 	Publisher<Source> findAllBySourceType ( SourceType type );
-
-  @NonNull
-  @SingleResult
-  default Publisher<Source> ensureSource( String sourceUrl, SourceCode code, SourceType type ) {
-    return Mono.from(this.existsBySourceUrlAndCodeAndSourceType(sourceUrl, code, type))
-        .flatMap(doesItExist -> {
-          return Mono.from(doesItExist ?
-            this.findBySourceUrlAndCodeAndSourceType(sourceUrl, code, type) :
-            this.buildFromSourceUrlAndCodeAndSourceType(sourceUrl, code, type)
-          );
-        });
-  }
-
-  @NonNull
-  @SingleResult
-  default Publisher<Source> buildFromSourceUrlAndCodeAndSourceType( String sourceUrl, SourceCode code, SourceType type ) {
-    Source src = Source.builder()
-                       .sourceUrl(sourceUrl)
-                       .code(code)
-                       .sourceType(type)
-                       .build();
-
-    return Mono.from(this.save(src));
-  }
 }
