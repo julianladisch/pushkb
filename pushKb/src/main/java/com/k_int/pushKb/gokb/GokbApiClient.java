@@ -37,6 +37,11 @@ public interface GokbApiClient {
 		return scroll(COMPONENT_TYPE_TIPP, scrollId, changedSince != null ? changedSince.truncatedTo(ChronoUnit.SECONDS).toString() : null);
 	}
 
+	@SingleResult
+	public default Publisher<GokbScrollResponse> scrollPackages(@Nullable String scrollId, @Nullable Instant changedSince) {
+		return scroll(COMPONENT_TYPE_PACKAGE, scrollId, changedSince != null ? changedSince.truncatedTo(ChronoUnit.SECONDS).toString() : null);
+	}
+
 	@Get("/scroll")
 	@SingleResult
 	@Retryable

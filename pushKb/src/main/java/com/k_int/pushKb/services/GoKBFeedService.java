@@ -42,13 +42,25 @@ public class GoKBFeedService {
 	}
 
   @ExecuteOn(TaskExecutors.BLOCKING)
-	public void fetchGoKBPackages() {
+	public void fetchGoKBTipps() {
 		log.info("LOGDEBUG RAN AT: {}", Instant.now());
 
-		Mono.from(gokbApiClient.scroll(GokbApiClient.COMPONENT_TYPE_PACKAGE, null, null))
-			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing...
+		Mono.from(gokbApiClient.scrollTipps(null, null))
+			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
+			.expand(scrollResponse -> {
+				log.info("SR HASMORERECORDS: {}", scrollResponse.isHasMoreRecords());
+				if (
+					!scrollResponse.isHasMoreRecords() ||
+					scrollResponse.getScrollId() == null ||
+					scrollResponse.getScrollId().equals("")
+				) {
+					return Mono.empty();
+				} else {
+					return Mono.from(gokbApiClient.scrollTipps(scrollResponse.getScrollId(), null)).doOnNext(page -> log.info("LOGDEBUG WHAT IS THING (INTERNAL): {}", page));
+				}
+			})
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
-			.flatMapMany( Flux::fromIterable )
+			.flatMap( Flux::fromIterable )
 			// Convert this JsonNode into a Source record
 			.flatMap( this::handleSourceRecordJson ) // Map the JsonNode to a source record
 			.flatMap( sourceRecordService::saveRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)
@@ -57,13 +69,18 @@ public class GoKBFeedService {
 			.subscribe(this::handleNode);
 	}
 
+	// FIXME want to bring this out, so we can inspect gokbSR down the line, and use that to trigger scroll again
+	private Publisher<Object> handleScrollResponse(GokbScrollResponse gokbSR) {
+		return Flux.fromIterable(gokbSR.getRecords());
+	}
+
 
 	private Publisher<SourceRecord> handleSourceRecordJson ( @NonNull JsonNode jsonNode ) {
 		// TODO this source is hardcoded rn
 		return Mono.from(sourceService.ensureSource(
 			"https://gokb.org/gokb/api",
 			SourceCode.GOKB,
-			SourceType.PACKAGE
+			SourceType.TIPP
 		)).map(source -> this.buildSourceRecord(jsonNode, source));
 	}
 

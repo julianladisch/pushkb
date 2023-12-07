@@ -28,7 +28,7 @@ public class SchedulingService {
 				.doOnNext(count -> {
 					if (count == 0) {
 						log.info("There are no records in place, fetching");
-						goKBFeedService.fetchGoKBPackages();
+						goKBFeedService.fetchGoKBTipps();
 					} else {
 						log.info("There are records in place, skipping");
 					}
