@@ -44,7 +44,7 @@ public class GoKBFeedService {
   @ExecuteOn(TaskExecutors.BLOCKING)
 	public void fetchGoKBPackages() {
 		log.info("LOGDEBUG RAN AT: {}", Instant.now());
-		
+
 		Mono.from(gokbApiClient.scroll(GokbApiClient.COMPONENT_TYPE_PACKAGE, null, null))
 			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing...
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
