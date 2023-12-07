@@ -41,7 +41,6 @@ public class GoKBFeedService {
 		this.sourceService = sourceService;
 	}
 
-	// Equivalent to the above but with method references.
   @ExecuteOn(TaskExecutors.BLOCKING)
 	public void fetchGoKBPackages() {
 		log.info("LOGDEBUG RAN AT: {}", Instant.now());
