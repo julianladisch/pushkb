@@ -17,7 +17,7 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 
 import jakarta.inject.Singleton;
-
+import jakarta.validation.constraints.Email;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -46,28 +46,35 @@ public class GoKBFeedService {
 		log.info("LOGDEBUG RAN AT: {}", Instant.now());
 
 		Mono.from(gokbApiClient.scrollTipps(null, null))
-			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
+//			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
 			.expand(scrollResponse -> {
-				log.info("SR HASMORERECORDS: {}", scrollResponse.isHasMoreRecords());
-				if (
-					!scrollResponse.isHasMoreRecords() ||
-					scrollResponse.getScrollId() == null ||
-					scrollResponse.getScrollId().equals("")
-				) {
+//				log.info("SR HASMORERECORDS: {}", scrollResponse.isHasMoreRecords());
+				
+				boolean more = scrollResponse.isHasMoreRecords() && scrollResponse.getSize() > 0;
+				
+				if (!more) {
+					log.info( "Finished ingesting" );
 					return Mono.empty();
-				} else {
-					return Mono.from(gokbApiClient.scrollTipps(scrollResponse.getScrollId(), null)).doOnNext(page -> log.info("LOGDEBUG WHAT IS THING (INTERNAL): {}", page));
 				}
+				
+				return Mono.from(gokbApiClient.scrollTipps(scrollResponse.getScrollId(), null))
+					.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
 			})
-			.limitRate(5000, 5000)
+
+			.limitRate(3, 2)
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
-			.flatMap( Flux::fromIterable )
+			.concatMap( Flux::fromIterable )
+			
 			// Convert this JsonNode into a Source record
 			.flatMap( this::handleSourceRecordJson ) // Map the JsonNode to a source record
-			.flatMap( sourceRecordService::saveRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)
+			.flatMap( sourceRecordService::saveRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
+			
+			.buffer( 500 )
+			
+			.doOnNext( chunk -> log.info("Saved 500 records") )
 			
 			// Reference the method instead of inlining it.
-			.subscribe(this::handleNode);
+			.subscribe();
 	}
 
 	// FIXME want to bring this out, so we can inspect gokbSR down the line, and use that to trigger scroll again
@@ -93,6 +100,6 @@ public class GoKBFeedService {
   }
 	
 	protected void handleNode(SourceRecord sr) {
-		log.info( "Saved record {}", sr);
+//		log.info( "Saved record {}", sr);
 	}
 }
