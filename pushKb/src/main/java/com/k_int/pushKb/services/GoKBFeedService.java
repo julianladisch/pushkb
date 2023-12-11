@@ -1,7 +1,7 @@
 package com.k_int.pushKb.services;
 
 import java.time.Instant;
-import java.time.Duration;
+import java.util.Optional;
 
 import org.reactivestreams.Publisher;
 
@@ -16,16 +16,13 @@ import io.micronaut.core.annotation.NonNull;
 import io.micronaut.json.tree.JsonNode;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
-
 import jakarta.inject.Singleton;
-import jakarta.validation.constraints.Email;
 import lombok.extern.slf4j.Slf4j;
-
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
+@ExecuteOn(TaskExecutors.BLOCKING)
 @Singleton
 public class GoKBFeedService {
 	private final GokbApiClient gokbApiClient;
@@ -41,37 +38,71 @@ public class GoKBFeedService {
 		this.sourceRecordService = sourceRecordService;
 		this.sourceService = sourceService;
 	}
+	
+//	protected void nextPageOrEmpty (GokbScrollResponse currentResponse) {
+//		boolean more = currentResponse.isHasMoreRecords() && currentResponse.getSize() > 0;
+//		
+//		if (!more) {
+//			Instant endTime = Instant.now();
+//			log.info( "Finished ingesting at: {}", endTime);
+//			log.info( "Time taken {}", Duration.between(startTime, endTime) );
+//			return Mono.empty();
+//		}
+//		
+//		return Mono.from(gokbApiClient.scrollTipps(scrollResponse.getScrollId(), null))
+//			.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
+//	}
+//	
+//	protected void nextPageOrEmpty (GokbScrollResponse currentResponse) {
+//		boolean more = currentResponse.isHasMoreRecords() && currentResponse.getSize() > 0;
+//		
+//		if (!more) {
+//			Instant endTime = Instant.now();
+//			log.info( "Finished ingesting at: {}", endTime);
+//			log.info( "Time taken {}", Duration.between(startTime, endTime) );
+//			return Mono.empty();
+//		}
+//		
+//		return Mono.from(gokbApiClient.scrollTipps(scrollResponse.getScrollId(), null))
+//			.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
+//	}
 
-  @ExecuteOn(TaskExecutors.BLOCKING)
+	protected Mono<GokbScrollResponse> fetchPage( @NonNull Optional<String> scrollId ) {
+		return Mono.from(gokbApiClient.scrollTipps(scrollId.orElse(null), null));
+	}
+  
+	protected Mono<GokbScrollResponse> fetchPage() {
+		return fetchPage(Optional.empty());
+	}
+  
+  protected Mono<GokbScrollResponse> getNextPage(final @NonNull GokbScrollResponse currentResponse) {
+  	log.info("Generating next page subscription");
+  	boolean more = currentResponse.isHasMoreRecords() && currentResponse.getSize() > 0;
+  	
+  	if (!more) {
+  		Instant endTime = Instant.now();
+  		log.info( "Finished ingesting at: {}", endTime);
+  		return Mono.empty();
+  	}
+  	return fetchPage( Optional.ofNullable(currentResponse.getScrollId()) )
+  		.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
+  }
+	
 	public void fetchGoKBTipps() {
 		Instant startTime = Instant.now();
 		log.info("LOGDEBUG RAN AT: {}", startTime);
 
-		Mono.from(gokbApiClient.scrollTipps(null, null))
+		fetchPage()
 //			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
-			.expand(scrollResponse -> {
-//				log.info("SR HASMORERECORDS: {}", scrollResponse.isHasMoreRecords());
-				
-				boolean more = scrollResponse.isHasMoreRecords() && scrollResponse.getSize() > 0;
-				
-				if (!more) {
-					Instant endTime = Instant.now();
-					log.info( "Finished ingesting at: {}", endTime);
-					log.info( "Time taken {}", Duration.between(startTime, endTime) );
-					return Mono.empty();
-				}
-				
-				return Mono.from(gokbApiClient.scrollTipps(scrollResponse.getScrollId(), null))
-					.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
-			})
+			.expand(this::getNextPage)
 
-			.limitRate(3, 2)
+			.limitRate(2, 1)
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
-			.concatMap( Flux::fromIterable )
+			.flatMapSequential( Flux::fromIterable )
 			
 			// Convert this JsonNode into a Source record
-			.flatMap( this::handleSourceRecordJson ) // Map the JsonNode to a source record
-			.flatMap( sourceRecordService::saveRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
+			.flatMapSequential( this::handleSourceRecordJson ) // Map the JsonNode to a source record
+			.concatMap( sourceRecordService::saveRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
 			
 			.buffer( 500 )
 			
