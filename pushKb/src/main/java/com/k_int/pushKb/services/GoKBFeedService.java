@@ -55,7 +55,9 @@ public class GoKBFeedService {
 				boolean more = scrollResponse.isHasMoreRecords() && scrollResponse.getSize() > 0;
 				
 				if (!more) {
-					log.info( "Finished ingesting" );
+					Instant endTime = Instant.now();
+					log.info( "Finished ingesting at: {}", endTime);
+					log.info( "Time taken {}", Duration.between(startTime, endTime) );
 					return Mono.empty();
 				}
 				
@@ -73,9 +75,10 @@ public class GoKBFeedService {
 			
 			.buffer( 500 )
 			
-			.doOnNext( chunk -> log.info("Saved 500 records") )
-			
-			// Reference the method instead of inlining it.
+			.doOnNext( chunk -> {
+				log.info("Saved {} records", chunk.size());
+			})
+			.doOnError(throwable -> throwable.printStackTrace())
 			.subscribe();
 	}
 
