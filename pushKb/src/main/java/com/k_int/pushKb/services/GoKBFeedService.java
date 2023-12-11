@@ -79,12 +79,6 @@ public class GoKBFeedService {
 			.subscribe();
 	}
 
-	// FIXME want to bring this out, so we can inspect gokbSR down the line, and use that to trigger scroll again
-	private Publisher<Object> handleScrollResponse(GokbScrollResponse gokbSR) {
-		return Flux.fromIterable(gokbSR.getRecords());
-	}
-
-
 	private Publisher<SourceRecord> handleSourceRecordJson ( @NonNull JsonNode jsonNode ) {
 		// TODO this source is hardcoded rn, but should be found from boostrapped data
 		return Mono.from(sourceService.findBySourceUrlAndCodeAndSourceType(
