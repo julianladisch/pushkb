@@ -40,4 +40,10 @@ public class SourceRecordService {
   protected Publisher<SourceRecord> saveOrUpdateRecord ( @NonNull @Valid SourceRecord sr ) {
   	return sourceRecordRepository.saveOrUpdate(sr);
   }
+
+  @Transactional
+  @SingleResult
+  protected Publisher<Long> countRecords () {
+    return sourceRecordRepository.count();
+  }
 }

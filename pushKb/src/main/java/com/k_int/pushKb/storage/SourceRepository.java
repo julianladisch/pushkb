@@ -30,9 +30,22 @@ public interface SourceRepository extends ReactiveStreamsPageableRepository<Sour
   @SingleResult
 	Publisher<Source> findBySourceUrlAndCodeAndSourceType ( String sourceUrl, SourceCode code, SourceType type );
 
+  // Find by relevant data, even from built Source without id.
+  @NonNull
+  @SingleResult
+	default Publisher<Source> findBySourceData ( Source source ) {
+    return findBySourceUrlAndCodeAndSourceType(source.getSourceUrl(), source.getCode(), source.getSourceType());
+  }
+
   @NonNull
   @SingleResult
 	Publisher<Boolean> existsBySourceUrlAndCodeAndSourceType ( String sourceUrl, SourceCode code, SourceType type );
+
+  @NonNull
+  @SingleResult
+	default Publisher<Boolean> existsBySourceData ( Source source ) {
+    return existsBySourceUrlAndCodeAndSourceType(source.getSourceUrl(), source.getCode(), source.getSourceType());
+  }
 
   @NonNull
 	Publisher<Source> findAllByCodeAndSourceType ( SourceCode code, SourceType type );
@@ -42,4 +55,12 @@ public interface SourceRepository extends ReactiveStreamsPageableRepository<Sour
 
   @NonNull
 	Publisher<Source> findAllBySourceType ( SourceType type );
+
+  @SingleResult
+  @NonNull
+  default Publisher<Source> saveOrUpdate(@Valid @NotNull Source src) {
+    return Mono.from(this.existsById(src.getId()))
+               .flatMap( update -> Mono.from(update ? this.update(src) : this.save(src)) )
+    ;
+  }
 }

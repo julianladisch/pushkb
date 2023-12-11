@@ -1,6 +1,7 @@
 package com.k_int.pushKb.services;
 
 import java.time.Instant;
+import java.time.Duration;
 
 import org.reactivestreams.Publisher;
 
@@ -43,31 +44,42 @@ public class GoKBFeedService {
 
   @ExecuteOn(TaskExecutors.BLOCKING)
 	public void fetchGoKBTipps() {
-		log.info("LOGDEBUG RAN AT: {}", Instant.now());
+		Instant startTime = Instant.now();
+		log.info("LOGDEBUG RAN AT: {}", startTime);
 
 		Mono.from(gokbApiClient.scrollTipps(null, null))
 			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
 			.expand(scrollResponse -> {
+				log.info("Current time elapsed: {}", Duration.between(startTime, Instant.now()));
 				log.info("SR HASMORERECORDS: {}", scrollResponse.isHasMoreRecords());
+				log.info("SR SCROLLID: {}", scrollResponse.getScrollId());
+
+				// FIXME Def don't want this here
+				Mono.from(sourceRecordService.countRecords())
+						.doOnNext(count -> log.info("New record count is: {}", count))
+						.subscribe();
+
 				if (
 					!scrollResponse.isHasMoreRecords() ||
 					scrollResponse.getScrollId() == null ||
 					scrollResponse.getScrollId().equals("")
 				) {
+					log.info("Shouldn't be here til the end...");
 					return Mono.empty();
 				} else {
-					return Mono.from(gokbApiClient.scrollTipps(scrollResponse.getScrollId(), null)).doOnNext(page -> log.info("LOGDEBUG WHAT IS THING (INTERNAL): {}", page));
+					return Mono.from(gokbApiClient.scrollTipps(scrollResponse.getScrollId(), null))
+										 .doOnNext(page -> log.info("LOGDEBUG WHAT IS THING (INTERNAL): {}", page));
 				}
 			})
-			.limitRate(5000, 5000)
+			.limitRate(3, 1)
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
 			.flatMap( Flux::fromIterable )
 			// Convert this JsonNode into a Source record
 			.flatMap( this::handleSourceRecordJson ) // Map the JsonNode to a source record
 			.flatMap( sourceRecordService::saveRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)
-			
-			// Reference the method instead of inlining it.
-			.subscribe(this::handleNode);
+			.doOnNext(this::handleNode) // Reference the method instead of inlining it.
+			.then(Mono.fromRunnable(() -> log.info("End of flux"))) // Log ending?
+			.subscribe();
 	}
 
 	// FIXME want to bring this out, so we can inspect gokbSR down the line, and use that to trigger scroll again
@@ -77,8 +89,8 @@ public class GoKBFeedService {
 
 
 	private Publisher<SourceRecord> handleSourceRecordJson ( @NonNull JsonNode jsonNode ) {
-		// TODO this source is hardcoded rn
-		return Mono.from(sourceService.ensureSource(
+		// TODO this source is hardcoded rn, but should be found from boostrapped data
+		return Mono.from(sourceService.findBySourceUrlAndCodeAndSourceType(
 			"https://gokb.org/gokb/api",
 			SourceCode.GOKB,
 			SourceType.TIPP

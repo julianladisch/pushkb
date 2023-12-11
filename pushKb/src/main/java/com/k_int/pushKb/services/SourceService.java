@@ -36,12 +36,25 @@ public class SourceService {
   @NonNull
   @SingleResult
   @Transactional
-  Publisher<Source> ensureSource( String sourceUrl, SourceCode code, SourceType type ) {
-    return Mono.from(sourceRepository.existsBySourceUrlAndCodeAndSourceType(sourceUrl, code, type))
+  public Publisher<Source> ensureSource( String sourceUrl, SourceCode code, SourceType type ) {
+    Source src = Source.builder()
+                       .sourceUrl(sourceUrl)
+                       .code(code)
+                       .sourceType(type)
+                       .build();
+
+    return ensureSource(src);
+  }
+  
+  @NonNull
+  @SingleResult
+  @Transactional
+  public Publisher<Source> ensureSource( Source src ) {
+    return Mono.from(sourceRepository.existsBySourceData(src))
         .flatMap(doesItExist -> {
           return Mono.from(doesItExist ?
-            sourceRepository.findBySourceUrlAndCodeAndSourceType(sourceUrl, code, type) :
-            this.buildFromSourceUrlAndCodeAndSourceType(sourceUrl, code, type)
+            sourceRepository.findBySourceData(src) :
+            sourceRepository.save(src)
           );
         });
   }
@@ -49,13 +62,7 @@ public class SourceService {
   @NonNull
   @SingleResult
   @Transactional
-  Publisher<Source> buildFromSourceUrlAndCodeAndSourceType( String sourceUrl, SourceCode code, SourceType type ) {
-    Source src = Source.builder()
-                       .sourceUrl(sourceUrl)
-                       .code(code)
-                       .sourceType(type)
-                       .build();
-
-    return Mono.from(sourceRepository.save(src));
+  public Publisher<Source> findBySourceUrlAndCodeAndSourceType( String sourceUrl, SourceCode code, SourceType sourceType ) {
+    return sourceRepository.findBySourceUrlAndCodeAndSourceType(sourceUrl, code, sourceType);
   }
 }
