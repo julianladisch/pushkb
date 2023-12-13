@@ -13,8 +13,9 @@ CREATE INDEX IF NOT EXISTS source_source_url_code_source_type_idx ON source (sou
 
 CREATE TABLE source_record (
 	id uuid PRIMARY KEY,
-	source_id uuid ,
+	source_id uuid,
 	CONSTRAINT fk_source FOREIGN KEY (source_id) REFERENCES source(id),
+	source_uuid VARCHAR(64),
 	created TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	updated TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	last_updated_at_source TIMESTAMP WITHOUT TIME ZONE NOT NULL,

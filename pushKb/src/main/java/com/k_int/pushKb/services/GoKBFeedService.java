@@ -67,15 +67,19 @@ public class GoKBFeedService {
 //			.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
 //	}
 
-	protected Mono<GokbScrollResponse> fetchPage( @NonNull Optional<String> scrollId ) {
-		return Mono.from(gokbApiClient.scrollTipps(scrollId.orElse(null), null));
+	protected Mono<GokbScrollResponse> fetchPage( @NonNull Optional<String> scrollId, Optional<Instant> changedSince ) {
+		return Mono.from(gokbApiClient.scrollTipps(scrollId.orElse(null), changedSince.orElse(null)));
 	}
   
-	protected Mono<GokbScrollResponse> fetchPage() {
-		return fetchPage(Optional.empty());
+	protected Mono<GokbScrollResponse> fetchPage(Optional<Instant> changedSince) {
+		return fetchPage(Optional.empty(), changedSince);
+	}
+
+		protected Mono<GokbScrollResponse> fetchPage() {
+		return fetchPage(Optional.empty(), Optional.empty());
 	}
   
-  protected Mono<GokbScrollResponse> getNextPage(final @NonNull GokbScrollResponse currentResponse) {
+  protected Mono<GokbScrollResponse> getNextPage(final @NonNull GokbScrollResponse currentResponse, Optional<Instant> changedSince) {
   	log.info("Generating next page subscription");
   	boolean more = currentResponse.isHasMoreRecords() && currentResponse.getSize() > 0;
   	
@@ -84,17 +88,17 @@ public class GoKBFeedService {
   		log.info( "Finished ingesting at: {}", endTime);
   		return Mono.empty();
   	}
-  	return fetchPage( Optional.ofNullable(currentResponse.getScrollId()) )
+  	return fetchPage( Optional.ofNullable(currentResponse.getScrollId()), changedSince )
   		.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
   }
 	
-	public void fetchGoKBTipps(Source source) {
+	public void fetchGoKBTipps(Source source, Optional<Instant> changedSince) {
 		Instant startTime = Instant.now();
 		log.info("LOGDEBUG RAN AT: {}", startTime);
 
-		fetchPage()
+		fetchPage(changedSince)
 //			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
-			.expand(this::getNextPage)
+			.expand(currResponse -> this.getNextPage(currResponse, changedSince))
 
 			.limitRate(2, 1)
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
@@ -102,7 +106,7 @@ public class GoKBFeedService {
 			
 			// Convert this JsonNode into a Source record
 			.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source) ) // Map the JsonNode to a source record
-			.concatMap( sourceRecordService::saveRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
+			.concatMap( sourceRecordService::saveOrUpdateRecordBySourceUUID )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
 			
 			.buffer( 500 )
 			
@@ -117,6 +121,7 @@ public class GoKBFeedService {
 		return SourceRecord.builder()
 			.jsonRecord(jsonNode)
 			.lastUpdatedAtSource(Instant.parse(jsonNode.get("lastUpdatedDisplay").getStringValue()))
+			.sourceUUID(jsonNode.get("uuid").getStringValue())
 			.source(source)
 			.build();
 	}

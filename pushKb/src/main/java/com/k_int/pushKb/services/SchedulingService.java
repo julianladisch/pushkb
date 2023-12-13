@@ -1,5 +1,12 @@
 package com.k_int.pushKb.services;
 
+
+import java.time.Instant;
+import java.util.Optional;
+
+import org.reactivestreams.Publisher;
+
+import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceType;
 import com.k_int.pushKb.storage.SourceRecordRepository;
@@ -32,23 +39,20 @@ public class SchedulingService {
   // FIXME need to work on delay here
   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
-		Mono.from(sourceRecordRepository.count())
-				.doOnNext(count -> log.info("COUNT OF SOURCE RECORDS: {}", count))
-				.doOnNext(count -> {
-					if (count == 0) {
-						log.info("There are no records in place, fetching");
+		Mono.from(sourceService.findBySourceUrlAndCodeAndSourceType(
+			"https://gokb.org/gokb/api",
+			SourceCode.GOKB,
+			SourceType.TIPP
+		)).flatMap(this::handleSource)
+			.subscribe();
+	}
 
-						// TODO this source is hardcoded rn, but should be found from boostrapped data
-						Mono.from(sourceService.findBySourceUrlAndCodeAndSourceType(
-							"https://gokb.org/gokb/api",
-							SourceCode.GOKB,
-							SourceType.TIPP
-						)).doOnNext(source -> goKBFeedService.fetchGoKBTipps(source))
-							.subscribe();
-					} else {
-						log.info("There are records in place, skipping");
-					}
-				})
-				.subscribe();
+	public Mono<Instant> handleSource(Source source) {
+		return Mono.from(sourceRecordRepository.findMaxLastUpdatedAtSourceBySource(source))
+			// Is it the right thing to do here to use doOnSuccess?
+			.doOnSuccess(maxVal -> {
+				log.info("MAXIMUM TIMESTAMP FOUND: {}", maxVal);
+				goKBFeedService.fetchGoKBTipps(source, Optional.ofNullable(maxVal));
+			});
 	}
 }

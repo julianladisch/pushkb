@@ -30,6 +30,9 @@ public class SourceRecord {
 	@TypeDef(type = DataType.UUID)
 	private UUID id;
 
+  // The UUID of the record on the source
+	String sourceUUID;
+
   @Relation(value = Relation.Kind.MANY_TO_ONE)
   @NotNull
   @NonNull

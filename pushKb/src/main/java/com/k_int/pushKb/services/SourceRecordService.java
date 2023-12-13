@@ -10,7 +10,9 @@ import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Singleton
@@ -32,13 +34,16 @@ public class SourceRecordService {
   	return sourceRecordRepository.save(sr);
   }
 
-    // Must be protected at least to allow AOP annotations.
-  // Adding this method gives us something to hang the transaction from. We also use the @Valid annotation
-  // to validate the source record before we save it.
   @Transactional
   @SingleResult // Use when you use a Publisher representing a single result
   protected Publisher<SourceRecord> saveOrUpdateRecord ( @NonNull @Valid SourceRecord sr ) {
   	return sourceRecordRepository.saveOrUpdate(sr);
+  }
+
+  @Transactional
+  @SingleResult // Use when you use a Publisher representing a single result
+  protected Publisher<SourceRecord> saveOrUpdateRecordBySourceUUID ( @NonNull @Valid SourceRecord sr ) {
+    return sourceRecordRepository.saveOrUpdateBySourceUUID(sr);
   }
 
   @Transactional
