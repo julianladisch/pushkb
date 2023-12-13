@@ -1,20 +1,46 @@
-version: "3.0"
+version: '3.8'
+
 services:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.2
-    ports:
-      - "9200:9200"
-      - "9300:9300"
+  db:
+    image: postgres:16.1
+    restart: always
     environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-  opensearch:
-    image: opensearchproject/opensearch:latest
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "9201:9200"
-      - "9301:9300"
-      - "9601:9600"
+      - '54321:5432'
+    volumes: 
+      - db:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    networks:
+      - local-keycloak
+
+  keycloak:
+    depends_on:
+      - db
+    container_name: local_keycloak
     environment:
-      - discovery.type=single-node
-      - "DISABLE_INSTALL_DEMO_CONFIG=true" # Prevents execution of bundled demo script which installs demo certificates and security configurations to OpenSearch
-      - "DISABLE_SECURITY_PLUGIN=true" # Disables Security plugin
+      DB_VENDOR: postgres
+      DB_ADDR: db
+      DB_DATABASE: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_SCHEMA: ${KEYCLOAK_SCHEMA}
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    entrypoint: ["/opt/keycloak/bin/kc.sh", "start-dev"]
+    ports:
+      - "28080:8080"
+    restart: unless-stopped
+    networks:
+      - local-keycloak
+
+volumes:
+  db:
+    driver: local
+
+networks:
+  local-keycloak:
+
