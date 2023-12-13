@@ -23,7 +23,7 @@ import io.micronaut.json.tree.JsonNode;
 @Data
 @AllArgsConstructor
 @MappedEntity
-@Builder
+@Builder(toBuilder = true)
 public class SourceRecord {
   @AutoPopulated
 	@Id

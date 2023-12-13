@@ -74,15 +74,9 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
     return Mono.from(this.findBySourceAndSourceUUID(sr.getSource(), sr.getSourceUUID()))
       .flatMap( existingRecord -> {
         log.info("Record with sourceUUID({}) already exists, updating", sr.getSourceUUID());
-        SourceRecord newRecord = SourceRecord.builder()
-                                            .id(existingRecord.getId())
-                                            .sourceUUID(sr.getSourceUUID()) // Ensure same sourceUUID
-                                            .source(sr.getSource()) // Ensure same source
-                                            .created(existingRecord.getCreated())
-                                            .updated(existingRecord.getUpdated())
-                                            .lastUpdatedAtSource(existingRecord.getLastUpdatedAtSource())
-                                            .jsonRecord(existingRecord.getJsonRecord())
-                                            .build();
+        SourceRecord newRecord = sr.toBuilder()
+                                   .id(existingRecord.getId()) // Just glue on existing id for save/update.
+                                   .build();
 
         return Mono.from(this.saveOrUpdate(newRecord));
       })
