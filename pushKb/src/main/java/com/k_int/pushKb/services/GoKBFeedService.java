@@ -88,7 +88,7 @@ public class GoKBFeedService {
   		.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
   }
 	
-	public void fetchGoKBTipps() {
+	public void fetchGoKBTipps(Source source) {
 		Instant startTime = Instant.now();
 		log.info("LOGDEBUG RAN AT: {}", startTime);
 
@@ -101,7 +101,7 @@ public class GoKBFeedService {
 			.flatMapSequential( Flux::fromIterable )
 			
 			// Convert this JsonNode into a Source record
-			.flatMapSequential( this::handleSourceRecordJson ) // Map the JsonNode to a source record
+			.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source) ) // Map the JsonNode to a source record
 			.concatMap( sourceRecordService::saveRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
 			
 			.buffer( 500 )
@@ -113,22 +113,14 @@ public class GoKBFeedService {
 			.subscribe();
 	}
 
-	private Publisher<SourceRecord> handleSourceRecordJson ( @NonNull JsonNode jsonNode ) {
-		// TODO this source is hardcoded rn, but should be found from boostrapped data
-		return Mono.from(sourceService.findBySourceUrlAndCodeAndSourceType(
-			"https://gokb.org/gokb/api",
-			SourceCode.GOKB,
-			SourceType.TIPP
-		)).map(source -> this.buildSourceRecord(jsonNode, source));
-	}
-
-  private SourceRecord buildSourceRecord ( @NonNull JsonNode jsonNode, Source source ) {
-  	return SourceRecord.builder()
+	private SourceRecord handleSourceRecordJson ( @NonNull JsonNode jsonNode, Source source ) {
+		return SourceRecord.builder()
 			.jsonRecord(jsonNode)
+			.lastUpdatedAtSource(Instant.parse(jsonNode.get("lastUpdatedDisplay").getStringValue()))
 			.source(source)
 			.build();
-  }
-	
+	}
+
 	protected void handleNode(SourceRecord sr) {
 //		log.info( "Saved record {}", sr);
 	}

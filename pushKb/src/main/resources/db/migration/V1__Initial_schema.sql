@@ -17,6 +17,7 @@ CREATE TABLE source_record (
 	CONSTRAINT fk_source FOREIGN KEY (source_id) REFERENCES source(id),
 	created TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	updated TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+	last_updated_at_source TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	json_record jsonb NOT NULL
 );
 

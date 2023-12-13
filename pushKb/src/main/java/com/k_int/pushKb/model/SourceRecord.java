@@ -41,6 +41,8 @@ public class SourceRecord {
   @DateUpdated
   Instant updated;
 
+  Instant lastUpdatedAtSource;
+
   @TypeDef(type = DataType.JSON)
   @NotNull
   @NonNull

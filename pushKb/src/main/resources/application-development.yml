@@ -1,4 +1,13 @@
 micronaut:
+  netty:
+    event-loops:
+      other:
+        num-threads: 10
+        prefer-native-transport: true
+  http:
+    client:
+      event-loop-group: other
+
   server:
     port: 8080
   application:
