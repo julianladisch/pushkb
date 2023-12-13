@@ -107,7 +107,6 @@ public class GoKBFeedService {
 			// Convert this JsonNode into a Source record
 			.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source) ) // Map the JsonNode to a source record
 			.concatMap( sourceRecordService::saveOrUpdateRecordBySourceUUID )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
-			
 			.buffer( 500 )
 			
 			.doOnNext( chunk -> {

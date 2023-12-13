@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.data.annotation.Join;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
@@ -45,14 +46,15 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
 
   @Nullable
   @SingleResult
+  @Join(value="source", type = Join.Type.FETCH)
   Publisher<SourceRecord> findBySourceAndSourceUUID(@NotNull Source source, @NotNull String sourceUUID);
 
-  @Nullable
+  @NonNull
   @SingleResult
   Publisher<Boolean> existsBySourceUUID(@NotNull String sourceUUID);
 
+  @NonNull
   @SingleResult
-	@NonNull
 	default Publisher<SourceRecord> saveOrUpdate(@Valid @NotNull SourceRecord sr) {
     return Mono.from(this.existsById(sr.getId()))
       .flatMap( update -> {
@@ -66,8 +68,8 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
 	}
 
   // Acts similarly to saveOrUpdate above, but works on the assumption that sourceUUID is the important factor
+ 	@NonNull
   @SingleResult
-	@NonNull
 	default Publisher<SourceRecord> saveOrUpdateBySourceUUID(@Valid @NotNull SourceRecord sr) {
     return Mono.from(this.findBySourceAndSourceUUID(sr.getSource(), sr.getSourceUUID()))
       .flatMap( existingRecord -> {
