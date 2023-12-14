@@ -100,14 +100,14 @@ public class GoKBFeedService {
 //			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
 			.expand(currResponse -> this.getNextPage(currResponse, changedSince))
 
-			.limitRate(2, 1)
+			.limitRate(3, 2)
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
 			.flatMapSequential( Flux::fromIterable )
 			
 			// Convert this JsonNode into a Source record
 			.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source) ) // Map the JsonNode to a source record
 			.concatMap( sourceRecordService::saveOrUpdateRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
-			.buffer( 500 )
+			.buffer( 1000 )
 			
 			.doOnNext( chunk -> {
 				log.info("Saved {} records", chunk.size());
