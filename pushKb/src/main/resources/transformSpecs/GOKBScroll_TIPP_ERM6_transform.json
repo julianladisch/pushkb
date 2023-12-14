@@ -1,0 +1,104 @@
+{
+  "title": "$.name",
+  "platformUrl": "$.hostPlatformUrl",
+  "url": "$.url",
+  "sourceIdentifierNamespace": "GoKB",
+  "sourceIdentifier": "$.uuid",
+  "instanceMedia": "$.publicationType",
+  "instanceMedium": "Electronic",
+  "instancePublicationMedia": "$.tippTitleMedium",
+  "firstAuthor": {
+    "#type": "require",
+    "require": "$.titleFirstAuthor",
+    "value": "$.titleFirstAuthor"
+  },
+  "firstEditor": {
+    "#type": "require",
+    "require": "$.titleFirstEditor",
+    "value": "$.titleFirstEditor"
+  },
+  "platformName": "$.hostPlatformName",
+  "dateMonographPublishedPrint": {
+    "#type": "require",
+    "require": "$.titleDateFirstInPrint",
+    "value": "$.titleDateFirstInPrint"
+  },
+  "dateMonographPublished": {
+    "#type": "require",
+    "require": "$.titleDateFirstOnline",
+    "value": "$.titleDateFirstOnline"
+  },
+  "monographEdition": {
+    "#type": "require",
+    "require": "$.titleEdition.statement",
+    "value": "$.titleEdition.statement"
+  },
+  "monographVolume": {
+    "#type": "require",
+    "require": "$.titleVolumeNumber",
+    "value": "$.titleVolumeNumber"
+  },
+  "accessStart": {
+    "#type": "require",
+    "require": "$.accessStartDate",
+    "value": "$.accessStartDate"
+  },
+  "accessEnd": {
+    "#type": "require",
+    "require": "$.accessEndDate",
+    "value": "$.accessEndDate"
+  },
+  "instanceIdentifiers": {
+    "#type": "for_each",
+    "values": "$.identifiers[?(@.namespace != 'pissn' && @.namespace != 'issn' && @.namespace != 'pisbn')]",
+    "spec": {
+      "namespace": "$.namespace",
+      "value": "$.value"
+    }
+  },
+  "siblingInstanceIdentifiers": {
+    "#type": "for_each",
+    "values": "$.identifiers[?(@.namespace == 'pissn' || @.namespace == 'issn' || @.namespace == 'pisbn')]",
+    "spec": {
+      "namespace": "$.namespace",
+      "value": "$.value"
+    }
+  },
+  "contentItemPackage": {
+    "header": {
+      "packageSource": "PushKB::GOKb",
+      "packageSlug": "$.tippPackageUuid",
+      "packageName": "$.tippPackageName"
+    }
+  },
+  "coverage": {
+    "#type": "require",
+    "require": "$.coverage",
+    "value": {
+      "startIssue": "$.startIssue",
+			"startDate": "$.startDate",
+			"startVolume": "$.startVolume",
+			"endIssue": "$.endIssue",
+			"endDate": "$.endDate",
+			"endVolume": "$.endVolume"
+    }
+  },
+  "coverageDepth": {
+    "#type": "require",
+    "require": {
+      "#type": "require",
+      "require": "$.coverage[0]",
+      "value": "$.coverage"
+    },
+    "value": "$.coverage[0].coverageDepth"
+  },
+  "embargo": {
+    "#type": "require",
+    "require": {
+      "#type": "require",
+      "require": "$.coverage[0]",
+      "value": "$.coverage"
+    },
+    "value": "$.coverage[0].embargo"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "titlePublishers": [],
+  "titleType": "Journal",
+  "tippPackage": "org.gokb.cred.Package:785189",
+  "tippTitleName": "Acta chiropterologica",
+  "lastUpdatedDisplay": "2019-09-05T13:10:24Z",
+  "hostPlatformUrl": "http://www.bioone.org",
+  "uuid": "07362454-ec78-4646-9eff-fd8e8a3330c6",
+  "updater": "tipp",
+  "curatoryGroups": [
+      "HeBIS"
+  ],
+  "dateCreated": "2019-09-05T13:10:24Z",
+  "hostPlatformName": "www.bioone.org",
+  "hostPlatform": "org.gokb.cred.Platform:106318",
+  "prices": [],
+  "titleHistory": [],
+  "coverage": [
+      {
+          "coverageDepth": "Fulltext",
+          "startIssue": "",
+          "endVolume": "",
+          "startVolume": "7",
+          "coverageNote": "",
+          "embargo": "",
+          "endIssue": "",
+          "startDate": "2005-01-01"
+      }
+  ],
+  "componentType": "TitleInstancePackagePlatform",
+  "hostPlatformUuid": "46cb5ee0-2de7-4a51-9909-755aa292fe9e",
+  "tippTitle": "org.gokb.cred.JournalInstance:117564",
+  "identifiers": [],
+  "publicationType": "Serial",
+  "altname": [],
+  "tippPackageUuid": "66c5ebe5-2cba-486b-9b26-e2c6e647a23d",
+  "tippTitleMedium": "Journal",
+  "url": null,
+  "tippTitleUuid": "06b9e531-cef1-4bfc-96f4-853149beecd9",
+  "sortname": null,
+  "name": "Acta chiropterologica",
+  "status": "Current",
+  "tippPackageName": "BioOne: BioOne Current: HeBIS: 2016"
+}
