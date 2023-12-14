@@ -6,8 +6,11 @@ import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+
+import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
+import services.k_int.utils.UUIDUtils;
+
 import io.micronaut.core.annotation.NonNull;
-import io.micronaut.data.annotation.AutoPopulated;
 import io.micronaut.data.annotation.DateCreated;
 import io.micronaut.data.annotation.DateUpdated;
 import io.micronaut.data.annotation.Id;
@@ -25,9 +28,10 @@ import io.micronaut.json.tree.JsonNode;
 @MappedEntity
 @Builder(toBuilder = true)
 public class SourceRecord {
-  @AutoPopulated
 	@Id
 	@TypeDef(type = DataType.UUID)
+  @NotNull
+  @NonNull
 	private UUID id;
 
   // The UUID of the record on the source
@@ -50,4 +54,10 @@ public class SourceRecord {
   @NotNull
   @NonNull
   JsonNode jsonRecord;
+
+  private static final String UUID5_PREFIX = "source_record";
+  public static UUID generateUUID(Source source, String sourceUUID) {
+    final String concat = UUID5_PREFIX + ":" + source.toString() + ":" + sourceUUID;
+    return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
+  }
 }

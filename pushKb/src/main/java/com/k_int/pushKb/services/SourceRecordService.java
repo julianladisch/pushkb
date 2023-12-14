@@ -41,12 +41,6 @@ public class SourceRecordService {
   }
 
   @Transactional
-  @SingleResult // Use when you use a Publisher representing a single result
-  protected Publisher<SourceRecord> saveOrUpdateRecordBySourceUUID ( @NonNull @Valid SourceRecord sr ) {
-    return sourceRecordRepository.saveOrUpdateBySourceUUID(sr);
-  }
-
-  @Transactional
   @SingleResult
   protected Publisher<Long> countRecords () {
     return sourceRecordRepository.count();

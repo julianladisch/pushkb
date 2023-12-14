@@ -15,6 +15,7 @@ import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.annotation.Join;
+import io.micronaut.data.annotation.Query;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
@@ -44,42 +45,17 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   @SingleResult
   Publisher<Boolean> existsById(@Nullable UUID id);
 
-  @Nullable
-  @SingleResult
-  @Join(value="source", type = Join.Type.FETCH)
-  Publisher<SourceRecord> findBySourceAndSourceUUID(@NotNull Source source, @NotNull String sourceUUID);
-
-  @NonNull
-  @SingleResult
-  Publisher<Boolean> existsBySourceUUID(@NotNull String sourceUUID);
-
   @NonNull
   @SingleResult
 	default Publisher<SourceRecord> saveOrUpdate(@Valid @NotNull SourceRecord sr) {
     return Mono.from(this.existsById(sr.getId()))
       .flatMap( update -> {
         if (update) {
-          //log.info("Record with id({}) already exists, updating", sr.getId());
+          log.info("Record with id({}) already exists, updating", sr.getId());
           return Mono.from(this.update(sr));
         }
 
         return Mono.from(this.save(sr));
       });
-	}
-
-  // Acts similarly to saveOrUpdate above, but works on the assumption that sourceUUID is the important factor
- 	@NonNull
-  @SingleResult
-	default Publisher<SourceRecord> saveOrUpdateBySourceUUID(@Valid @NotNull SourceRecord sr) {
-    return Mono.from(this.findBySourceAndSourceUUID(sr.getSource(), sr.getSourceUUID()))
-      .flatMap( existingRecord -> {
-        log.info("Record with sourceUUID({}) already exists, updating", sr.getSourceUUID());
-        SourceRecord newRecord = sr.toBuilder()
-                                   .id(existingRecord.getId()) // Just glue on existing id for save/update.
-                                   .build();
-
-        return Mono.from(this.saveOrUpdate(newRecord));
-      })
-      .switchIfEmpty(Mono.from(this.saveOrUpdate(sr)));
 	}
 }
