@@ -1,10 +1,10 @@
 package com.k_int.pushKb.services;
 
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Optional;
 
 import org.reactivestreams.Publisher;
@@ -12,19 +12,17 @@ import org.reactivestreams.Publisher;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceType;
+import com.k_int.pushKb.proteus.ProteusService;
 import com.k_int.pushKb.storage.SourceRecordRepository;
 
+import io.micronaut.json.tree.JsonNode;
+import io.micronaut.serde.ObjectMapper;
 import io.micronaut.scheduling.annotation.Scheduled;
+
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.k_int.proteus.ComponentSpec;
-import com.k_int.proteus.Context;
-import com.k_int.proteus.Input;
-
 @Singleton
 @Slf4j
 public class SchedulingService {
@@ -35,42 +33,51 @@ public class SchedulingService {
 	// FIXME remove this
 	private final SourceRecordRepository sourceRecordRepository;
 
+	// FIXME remove this too
+	private final ProteusService proteusService;
+	private final ObjectMapper objectMapper;
+
 	public SchedulingService(
 		GoKBFeedService goKBFeedService,
 		SourceRecordRepository sourceRecordRepository,
-		SourceService sourceService
+		SourceService sourceService,
+		ProteusService proteusService,
+		ObjectMapper objectMapper
 	) {
 		this.goKBFeedService = goKBFeedService;
 		this.sourceRecordRepository = sourceRecordRepository;
 		this.sourceService = sourceService;
+		this.proteusService = proteusService;
+		this.objectMapper = objectMapper;
 	}
 
-	// FIXME This is temporary
-	static Object loadJson(String fileName) throws IOException {
-    return new ObjectMapper()
-        .readValue(
-            new FileInputStream(fileName),
-            Object.class
-    );
-	}
 
 	// TESTING
 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testProteus() {
 		log.info("TESTING PROTEUS");
-		try {
-			ComponentSpec<Object> spec = ComponentSpec.loadFile("src/main/resources/transformSpecs/GOKBScroll_TIPP_ERM6_transform.json");
-			Context context = Context.builder().spec(spec).build();
-			Input input = new Input(loadJson("src/main/resources/transformSpecs/input.json"));
+			Mono.from(sourceRecordRepository.findTop2OrderByCreatedDesc())
+				.map(sr -> {
+					try {
+						JsonNode jsonOutput = proteusService.convert(
+							proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json"),
+							sr.getJsonRecord()
+						);
 
-			Object result = context
-					.inputMapper(input)
-					.getComponent()
-					.orElse(null);
-			log.info("OUTPUT: {}", result);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+						return jsonOutput;
+					} catch (Exception e) {
+						e.printStackTrace();
+						return JsonNode.nullNode();
+					}
+				})
+				.doOnNext(jsonOutput -> {
+					try {
+						log.info("JSON OUTPUT: {}", objectMapper.writeValueAsString(jsonOutput));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				})
+				.subscribe();
 	}
 
   // FIXME need to work on delay here
