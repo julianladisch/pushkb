@@ -48,7 +48,6 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
 
   @NonNull
   @Join(value="source")
-  @SingleResult
   Publisher<SourceRecord> findTop2OrderByCreatedDesc();
 
   @NonNull

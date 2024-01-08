@@ -56,7 +56,7 @@ public class SchedulingService {
 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testProteus() {
 		log.info("TESTING PROTEUS");
-			Mono.from(sourceRecordRepository.findTop2OrderByCreatedDesc())
+			Flux.from(sourceRecordRepository.findTop2OrderByCreatedDesc())
 				.map(sr -> {
 					try {
 						JsonNode jsonOutput = proteusService.convert(
@@ -81,7 +81,7 @@ public class SchedulingService {
 	}
 
   // FIXME need to work on delay here
-  /* @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
 		Mono.from(sourceService.findBySourceUrlAndCodeAndSourceType(
 			"https://gokb.org/gokb/api",
@@ -98,24 +98,5 @@ public class SchedulingService {
 				log.info("MAXIMUM TIMESTAMP FOUND: {}", maxVal);
 				goKBFeedService.fetchGoKBTipps(source, Optional.ofNullable(maxVal));
 			});
-	} */
-
-/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
-	public void testingStreams() {
-		ArrayList<Integer> array = new ArrayList<Integer>();
-		for (int a = 10000; a > 0; a--) {
-			array.add(a);
-		}
-
-		Flux.fromIterable(array)
-				.buffer(100)
-				.limitRate(3)
-				.doOnNext(chunk -> log.info("WHAT IS CHUNK? {}", chunk))
-				.doOnNext(chunk -> {
-					if (chunk.contains(356)) {
-						throw new RuntimeException("WHOOPS");
-					}
-				})
-				.subscribe();
 	} */
 }
