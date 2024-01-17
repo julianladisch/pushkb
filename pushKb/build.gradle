@@ -1,6 +1,7 @@
 buildscript {
 	repositories {
 		mavenCentral()
+		maven { url "https://maven.k-int.com/repository/private" }
 	}
 }
 
@@ -24,6 +25,7 @@ group = "pushKb"
 repositories {
 	mavenCentral()
 	maven { url "https://maven.indexdata.com" }
+	maven { url "https://maven.k-int.com/repository/private" }
 }
 
 dependencies {
@@ -101,6 +103,7 @@ dependencies {
 	runtimeOnly("io.r2dbc:r2dbc-pool")
 
 	implementation("io.micronaut.flyway:micronaut-flyway")
+	implementation("com.k-int.proteus:proteus-core")
 
 	// Tests
 	testCompileOnly 'org.projectlombok:lombok'
