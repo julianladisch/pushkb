@@ -1,11 +1,15 @@
 package com.k_int.pushKb.model;
 
-import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.ToString;
+
+import java.util.UUID;
+import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
+import services.k_int.utils.UUIDUtils;
+
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.AutoPopulated;
 import io.micronaut.data.annotation.Id;
@@ -22,7 +26,7 @@ import io.micronaut.data.model.DataType;
 @MappedEntity
 @Builder
 public class Destination {
-  @AutoPopulated
+  @AutoPopulated // Maybe makes sense to use UUID5 longer term
 	@Id
 	@TypeDef(type = DataType.UUID)
 	private UUID id;
@@ -31,11 +35,17 @@ public class Destination {
   @NonNull
   DestinationType destinationType; // FOLIO etc
 
+  // FIXME do we need a name for this?
+/*   @NotNull
+  @NonNull
+  String name; // User defined name for this destination */
+
+  // FIXME This probably isn't enough with tenants/logins etc?
   @NotNull
   @NonNull
   @ToString.Include
 	@Size(max = 200)
   String destinationUrl;
 
-  // TODO Set<DestinationSourceLink> 
+  // TODO Set<DestinationSourceLink> ??
 }

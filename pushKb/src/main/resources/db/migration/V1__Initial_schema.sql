@@ -30,3 +30,13 @@ CREATE INDEX IF NOT EXISTS source_record_last_updated_at_source_idx ON source_re
 
 CREATE INDEX IF NOT EXISTS source_record_created_idx ON source_record (created);
 CREATE INDEX IF NOT EXISTS source_record_updated_idx ON source_record (updated);
+
+CREATE TABLE destination (
+	id uuid PRIMARY KEY,
+	destination_type VARCHAR(64) NOT NULL,
+	destination_url varchar(200)
+);
+
+CREATE INDEX IF NOT EXISTS destination_destination_type_idx ON destination (destination_type);
+CREATE INDEX IF NOT EXISTS destination_destination_url_idx ON destination (destination_url);
+CREATE INDEX IF NOT EXISTS destination_destination_type_destination_url_idx ON destination (destination_url, destination_type);
