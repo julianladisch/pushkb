@@ -53,7 +53,7 @@ public class SchedulingService {
 
 
 	// TESTING
-	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	/* @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testProteus() {
 		log.info("TESTING PROTEUS");
 			Flux.from(sourceRecordRepository.findTop2OrderByCreatedDesc())
@@ -78,10 +78,40 @@ public class SchedulingService {
 					}
 				})
 				.subscribe();
+	} */
+
+	// TO TEST ALGORITHM
+	// Ingest _some_ records
+	// Build a version of algo with a 1% failure rate
+	// Log out each one as "sent"
+	// Save to some destination_record class
+	// -- pointers
+	//        lastSent
+	//        latestSent
+	//        unbrokenMax (Names need work)
+	// -- running boolean?
+
+	// Allow to run on schedule
+	// Logging
+	//     Current pointers from destination_record
+	//     Head of source_records list
+	//     For each record log out id, then either SENT (ID) or ERROR (ID) (10% failure)
+
+	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	public void testSendAlgorithm() {
+		log.info("TESTING PUSH ALGORITHM");
+			Flux.from(sourceRecordRepository.findAllByUpdatedBetweenOrderByUpdatedDesc(
+				Instant.parse("2024-01-16T16:46:53.224492Z"),
+				Instant.parse("2024-01-16T16:46:54.227690Z")
+			))
+				.doOnNext(sr -> {
+						log.info("SOURCE RECORD UPDATED: {}", sr.updated);
+				})
+				.subscribe();
 	}
 
   // FIXME need to work on delay here
-/*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+ /*  @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
 		Mono.from(sourceService.findBySourceUrlAndCodeAndSourceType(
 			"https://gokb.org/gokb/api",
@@ -89,7 +119,7 @@ public class SchedulingService {
 			SourceType.TIPP
 		)).flatMap(this::handleSource)
 			.subscribe();
-	}
+	} */
 
 	public Mono<Instant> handleSource(Source source) {
 		return Mono.from(sourceRecordRepository.findMaxLastUpdatedAtSourceBySource(source))
@@ -98,5 +128,5 @@ public class SchedulingService {
 				log.info("MAXIMUM TIMESTAMP FOUND: {}", maxVal);
 				goKBFeedService.fetchGoKBTipps(source, Optional.ofNullable(maxVal));
 			});
-	} */
+	}
 }

@@ -33,11 +33,10 @@ import reactor.core.publisher.Mono;
 public interface SourceRecordRepository extends ReactiveStreamsPageableRepository<SourceRecord, UUID> {
   Logger log = org.slf4j.LoggerFactory.getLogger(SourceRecordRepository.class);
 
-
-
   @Nullable
   @SingleResult
   Publisher<Instant> findMaxLastUpdatedAtSourceBySource(Source source);
+
 
   @SingleResult
 	Publisher<Void> delete(UUID id);
@@ -49,6 +48,10 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   @NonNull
   @Join(value="source")
   Publisher<SourceRecord> findTop2OrderByCreatedDesc();
+
+  @NonNull
+  @Join(value="source")
+  Publisher<SourceRecord> findAllByUpdatedBetweenOrderByUpdatedDesc(Instant footTimestamp, Instant headTimestamp);
 
   @NonNull
   @SingleResult
