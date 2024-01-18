@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.reactivestreams.Publisher;
 
 import io.micronaut.core.annotation.NonNull;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
@@ -21,23 +22,9 @@ import jakarta.inject.Singleton;
 public interface DestinationRepository extends ReactiveStreamsPageableRepository<Destination, UUID> {
   @NonNull
   @SingleResult
-	Publisher<Destination> findByDestinationUrlAndDestinationType ( String destinationUrl, DestinationType type );
-
-  // Find by relevant data, even from built Source without id.
-  @NonNull
-  @SingleResult
-	default Publisher<Destination> findByDestinationData ( Destination dest ) {
-    return findByDestinationUrlAndDestinationType(dest.getDestinationUrl(), dest.getDestinationType());
-  }
-  
-  @NonNull
-  @SingleResult
-	Publisher<Boolean> existsByDestinationUrlAndDestinationType ( String destinationUrl, DestinationType type );
+  Publisher<Boolean> existsById(@Nullable UUID id);
 
   @NonNull
   @SingleResult
-	default Publisher<Boolean> existsByDestinationData ( Destination dest ) {
-    return existsByDestinationUrlAndDestinationType(dest.getDestinationUrl(), dest.getDestinationType());
-  }
-  
+  Publisher<Destination> findById(@Nullable UUID id); 
 }

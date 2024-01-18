@@ -95,7 +95,7 @@ public class SchedulingService {
 	//     Head of source_records list
 	//     For each record log out id, then either SENT (ID) or ERROR (ID) (10% failure)
 
-	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
 			Flux.from(sourceService.findBySourceUrlAndCodeAndSourceType(
@@ -106,16 +106,16 @@ public class SchedulingService {
 					src,
 					// TODO what happens if we have two records with the same timestamp?
 					// should our pointer include Id (or just be the sourceRecord itself)?
-					//Instant.EPOCH,
-					Instant.parse("2024-01-18T11:51:39.416646Z"),
-					//Instant.now()
-					Instant.parse("2024-01-18T11:51:39.686827Z")
+					Instant.EPOCH,
+					//Instant.parse("2024-01-18T15:02:01.880991Z"),
+					Instant.now()
+					//Instant.parse("2024-01-18T15:02:01.898723Z")
 				)
 			).doOnNext(sr -> {
 				log.info("UPDATED: {}", sr.updated);
 			})
 			.subscribe();
-	}
+	} */
 
   // FIXME need to work on delay here
 /*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")

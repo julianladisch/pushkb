@@ -1,5 +1,7 @@
 package com.k_int.pushKb.services;
 
+import java.util.UUID;
+
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Destination;
@@ -39,19 +41,25 @@ public class DestinationSourceLinkService {
     .flatMap(tuple -> {
       Destination destination = tuple.getT1();
       Source source = tuple.getT2();
-      dsl.setSource(source);
-      dsl.setDestination(destination);
-      dsl.setId(DestinationSourceLink.generateUUID(
+      UUID gen_id = DestinationSourceLink.generateUUID(
         destination,
         source,
         dsl.getTransform()
-      ));
-      return Mono.from(destinationSourceLinkRepository.existsByDSLData(dsl))
-      .flatMap(doesItExist -> {
-        return Mono.from(doesItExist ?
-          destinationSourceLinkRepository.findByDSLData(dsl) :
-          destinationSourceLinkRepository.save(dsl)
-        );
+      );
+
+      // Set up new DSL so we're definitely not passing the one from the parameters
+      DestinationSourceLink new_dsl = dsl.toBuilder()
+                                        .id(gen_id)
+                                        .destination(destination)
+                                        .source(source)
+                                        .build();
+
+      return Mono.from(destinationSourceLinkRepository.existsById(gen_id))
+        .flatMap(doesItExist -> {
+          return Mono.from(doesItExist ?
+            destinationSourceLinkRepository.findById(gen_id) :
+            destinationSourceLinkRepository.save(new_dsl)
+          );
       });
     });
       

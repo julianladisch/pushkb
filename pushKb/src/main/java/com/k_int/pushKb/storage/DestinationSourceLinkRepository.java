@@ -9,7 +9,9 @@ import java.util.UUID;
 import org.reactivestreams.Publisher;
 
 import io.micronaut.core.annotation.NonNull;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.data.annotation.Join;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
@@ -20,33 +22,15 @@ import jakarta.inject.Singleton;
 @Transactional
 @R2dbcRepository(dialect = Dialect.POSTGRES)
 public interface DestinationSourceLinkRepository extends ReactiveStreamsPageableRepository<DestinationSourceLink, UUID> {
+  // Unique up to destination/source/transform
   @NonNull
   @SingleResult
-	Publisher<DestinationSourceLink> findByDestinationAndSourceAndTransform ( Destination destination, Source source, String transform );
-
-  // Find by relevant data.
-  @NonNull
-  @SingleResult
-	default Publisher<DestinationSourceLink> findByDSLData ( DestinationSourceLink dsl ) {
-    return findByDestinationAndSourceAndTransform(
-      dsl.getDestination(),
-      dsl.getSource(),
-      dsl.getTransform()
-    );
-  }
+  Publisher<Boolean> existsById(@Nullable UUID id);
   
+  // Unique up to destination/source/transform
   @NonNull
   @SingleResult
-	Publisher<Boolean> existsByDestinationAndSourceAndTransform ( Destination destination, Source source, String transform );
-
-  @NonNull
-  @SingleResult
-	default Publisher<Boolean> existsByDSLData ( DestinationSourceLink dsl ) {
-    return existsByDestinationAndSourceAndTransform(
-      dsl.getDestination(),
-      dsl.getSource(),
-      dsl.getTransform()
-    );
-  }
-  
+  @Join(value="source")
+  @Join(value="destination")
+  Publisher<DestinationSourceLink> findById(@Nullable UUID id);
 }

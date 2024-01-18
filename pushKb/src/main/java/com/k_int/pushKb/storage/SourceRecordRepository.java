@@ -15,7 +15,6 @@ import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.annotation.Join;
-import io.micronaut.data.annotation.Query;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
@@ -36,7 +35,6 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   @Nullable
   @SingleResult
   Publisher<Instant> findMaxLastUpdatedAtSourceBySource(Source source);
-
 
   @SingleResult
 	Publisher<Void> delete(UUID id);

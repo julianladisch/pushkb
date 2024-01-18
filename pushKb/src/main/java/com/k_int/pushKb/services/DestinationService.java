@@ -1,20 +1,17 @@
 package com.k_int.pushKb.services;
 
+import java.util.UUID;
+
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.DestinationType;
-import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceCode;
-import com.k_int.pushKb.model.SourceType;
-
 import com.k_int.pushKb.storage.DestinationRepository;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
-import jakarta.validation.Valid;
 import reactor.core.publisher.Mono;
 
 @Singleton
@@ -26,13 +23,11 @@ public class DestinationService {
     this.destinationRepository = destinationRepository;
 	}
 
-  // Must be protected at least to allow AOP annotations.
-  // Adding this method gives us something to hang the transaction from. We also use the @Valid annotation
-  // to validate the source record before we save it.
+  @NonNull
+  @SingleResult
   @Transactional
-  @SingleResult // Use when you use a Publisher representing a single result
-  protected Publisher<Destination> saveSource ( @NonNull @Valid Destination d ) {
-  	return destinationRepository.save(d);
+  public Publisher<Destination> findById( UUID id ) {
+    return destinationRepository.findById(id);
   }
 
   @NonNull
@@ -51,19 +46,22 @@ public class DestinationService {
   @SingleResult
   @Transactional
   public Publisher<Destination> ensureDestination( Destination dest ) {
-    return Mono.from(destinationRepository.existsByDestinationData(dest))
+    UUID gen_id = Destination.generateUUID(
+      dest.getDestinationType(),
+      dest.getDestinationUrl()
+    );
+
+    // Set up new Destination so we're definitely not passing the one from the parameters
+    Destination new_dest = dest.toBuilder()
+                               .id(gen_id)
+                               .build();
+
+    return Mono.from(destinationRepository.existsById(gen_id))
         .flatMap(doesItExist -> {
           return Mono.from(doesItExist ?
-            destinationRepository.findByDestinationData(dest) :
-            destinationRepository.save(dest)
+            destinationRepository.findById(gen_id) :
+            destinationRepository.save(new_dest)
           );
         });
-  }
-
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Destination> findByDestinationUrlAndDestinationType( String destinationUrl, DestinationType type ) {
-    return destinationRepository.findByDestinationUrlAndDestinationType(destinationUrl, type);
   }
 }

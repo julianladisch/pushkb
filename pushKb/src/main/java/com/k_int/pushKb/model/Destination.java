@@ -24,9 +24,8 @@ import io.micronaut.data.model.DataType;
 @Data
 @AllArgsConstructor
 @MappedEntity
-@Builder
+@Builder(toBuilder = true)
 public class Destination {
-  @AutoPopulated // Maybe makes sense to use UUID5 longer term
 	@Id
 	@TypeDef(type = DataType.UUID)
 	private UUID id;
@@ -47,4 +46,11 @@ public class Destination {
   String destinationUrl;
 
   // TODO Set<DestinationSourceLink> ??
+
+  // Should be unique up to type/url
+  private static final String UUID5_PREFIX = "destination";
+  public static UUID generateUUID(DestinationType destinationType, String destinationUrl) {
+    final String concat = UUID5_PREFIX + ":" + destinationType.toString() + ":" + destinationUrl;
+    return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
+  }
 }

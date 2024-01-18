@@ -1,5 +1,6 @@
 package com.k_int.pushKb.storage;
 
+import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceType;
@@ -9,6 +10,7 @@ import java.util.UUID;
 import org.reactivestreams.Publisher;
 
 import io.micronaut.core.annotation.NonNull;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
@@ -25,6 +27,14 @@ import reactor.core.publisher.Mono;
 public interface SourceRepository extends ReactiveStreamsPageableRepository<Source, UUID> {
   @NonNull
 	Publisher<Source> findAllBySourceUrl ( String sourceUrl );
+
+  @NonNull
+  @SingleResult
+  Publisher<Boolean> existsById(@Nullable UUID id);
+
+  @NonNull
+  @SingleResult
+  Publisher<Source> findById(@Nullable UUID id);
 
   @NonNull
   @SingleResult
