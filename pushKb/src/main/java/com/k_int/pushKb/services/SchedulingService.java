@@ -29,9 +29,7 @@ public class SchedulingService {
 	private final GoKBFeedService goKBFeedService;
 	// FIXME This probably shouldn't be here
 	private final SourceService sourceService;
-
-	// FIXME remove this
-	private final SourceRecordRepository sourceRecordRepository;
+	private final SourceRecordService sourceRecordService;
 
 	// FIXME remove this too
 	private final ProteusService proteusService;
@@ -39,13 +37,13 @@ public class SchedulingService {
 
 	public SchedulingService(
 		GoKBFeedService goKBFeedService,
-		SourceRecordRepository sourceRecordRepository,
+		SourceRecordService sourceRecordService,
 		SourceService sourceService,
 		ProteusService proteusService,
 		ObjectMapper objectMapper
 	) {
 		this.goKBFeedService = goKBFeedService;
-		this.sourceRecordRepository = sourceRecordRepository;
+		this.sourceRecordService = sourceRecordService;
 		this.sourceService = sourceService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;
@@ -100,18 +98,25 @@ public class SchedulingService {
 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
-			Flux.from(sourceRecordRepository.findAllByUpdatedBetweenOrderByUpdatedDesc(
-				Instant.parse("2024-01-16T16:46:53.224492Z"),
-				Instant.parse("2024-01-16T16:46:54.227690Z")
-			))
-				.doOnNext(sr -> {
-						log.info("SOURCE RECORD UPDATED: {}", sr.updated);
-				})
-				.subscribe();
+			Flux.from(sourceService.findBySourceUrlAndCodeAndSourceType(
+				"https://gokb.org/gokb/api",
+				SourceCode.GOKB,
+				SourceType.TIPP
+			)).flatMap(src -> sourceRecordService.getSourceRecordFeedBySource(
+					src,
+					//Instant.EPOCH,
+					Instant.parse("2024-01-18T10:02:29.217727Z"),
+					//Instant.now()
+					Instant.parse("2024-01-18T10:02:30.642703Z")
+				)
+			).doOnNext(sr -> {
+				log.info("UPDATED: {}", sr.updated);
+			})
+			.subscribe();
 	}
 
   // FIXME need to work on delay here
- /*  @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
 		Mono.from(sourceService.findBySourceUrlAndCodeAndSourceType(
 			"https://gokb.org/gokb/api",
@@ -122,7 +127,7 @@ public class SchedulingService {
 	} */
 
 	public Mono<Instant> handleSource(Source source) {
-		return Mono.from(sourceRecordRepository.findMaxLastUpdatedAtSourceBySource(source))
+		return Mono.from(sourceRecordService.findMaxLastUpdatedAtSourceBySource(source))
 			// Is it the right thing to do here to use doOnSuccess?
 			.doOnSuccess(maxVal -> {
 				log.info("MAXIMUM TIMESTAMP FOUND: {}", maxVal);

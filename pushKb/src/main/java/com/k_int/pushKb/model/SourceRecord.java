@@ -45,9 +45,10 @@ public class SourceRecord {
   @DateCreated
   Instant created;
   
+  // FIXME This probs shouldn't be public -- here for logging rn
   @DateUpdated
-  Instant updated;
-
+  public Instant updated;
+  
   Instant lastUpdatedAtSource;
 
   @TypeDef(type = DataType.JSON)

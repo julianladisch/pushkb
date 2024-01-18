@@ -1,7 +1,10 @@
 package com.k_int.pushKb.services;
 
+import java.time.Instant;
+
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.storage.SourceRecordRepository;
 
@@ -44,5 +47,16 @@ public class SourceRecordService {
   @SingleResult
   protected Publisher<Long> countRecords () {
     return sourceRecordRepository.count();
+  }
+
+  @Transactional
+  protected Publisher<SourceRecord> getSourceRecordFeedBySource (Source source, Instant footTimestamp, Instant headTimestamp) {
+    return sourceRecordRepository.findAllBySourceAndUpdatedBetweenOrderByUpdatedDescAndIdAsc(source, footTimestamp, headTimestamp);
+  }
+
+  @Transactional
+  @SingleResult
+  protected Publisher<Instant> findMaxLastUpdatedAtSourceBySource (Source source) {
+    return sourceRecordRepository.findMaxLastUpdatedAtSourceBySource(source);
   }
 }

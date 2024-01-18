@@ -51,7 +51,7 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
 
   @NonNull
   @Join(value="source")
-  Publisher<SourceRecord> findAllByUpdatedBetweenOrderByUpdatedDesc(Instant footTimestamp, Instant headTimestamp);
+  Publisher<SourceRecord> findAllBySourceAndUpdatedBetweenOrderByUpdatedDescAndIdAsc(Source source, Instant footTimestamp, Instant headTimestamp);
 
   @NonNull
   @SingleResult
