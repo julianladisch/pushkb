@@ -104,10 +104,12 @@ public class SchedulingService {
 				SourceType.TIPP
 			)).flatMap(src -> sourceRecordService.getSourceRecordFeedBySource(
 					src,
+					// TODO what happens if we have two records with the same timestamp?
+					// should our pointer include Id (or just be the sourceRecord itself)?
 					//Instant.EPOCH,
-					Instant.parse("2024-01-18T10:02:29.217727Z"),
+					Instant.parse("2024-01-18T11:51:39.416646Z"),
 					//Instant.now()
-					Instant.parse("2024-01-18T10:02:30.642703Z")
+					Instant.parse("2024-01-18T11:51:39.686827Z")
 				)
 			).doOnNext(sr -> {
 				log.info("UPDATED: {}", sr.updated);

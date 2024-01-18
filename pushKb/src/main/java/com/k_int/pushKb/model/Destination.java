@@ -40,7 +40,6 @@ public class Destination {
   @NonNull
   String name; // User defined name for this destination */
 
-  // FIXME This probably isn't enough with tenants/logins etc?
   @NotNull
   @NonNull
   @ToString.Include

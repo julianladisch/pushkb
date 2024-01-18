@@ -35,7 +35,11 @@ public class DestinationSourceLink {
 
 
   /* This won't be a string.
-   * Strategy will be to find all destination source links by transform and source, then we can send to multiple destinations while only transforming each chunk once
+   * Strategy will be to find all destination source links by transform and source,
+   * then we can send to multiple destinations while only transforming each chunk once.
+   * 
+   * For V1 we won't do that though, as it comes with concerns as things fall out of sync,
+   * we can eat the extra cost of transforming each record n times for now.
    */
   @NotNull
   @NonNull
@@ -91,5 +95,9 @@ public class DestinationSourceLink {
    *
    * This *should* only look like this mid-process, but this tracking
    * will also allow us to cope with failed pushes.
-   *
+   * 
+   * NOTE pointers actually point at "updated" timestamp for those records right now,
+   * not the records themselves. This may need thought. On the one hand if there is a
+   * duplicated timestamp we could have an issue. On the other hand if we point at a record
+   * and that record gets updated, the pointer has jump in the queue, which is not acceptable
    */
