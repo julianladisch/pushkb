@@ -49,4 +49,8 @@ public class Source {
     final String concat = UUID5_PREFIX + ":" + code.toString() + ":" + sourceType.toString() + ":" + sourceUrl;
     return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
   }
+
+  public static UUID generateUUIDFromSource(Source source) {
+    return generateUUID(source.getCode(), source.getSourceType(), source.getSourceUrl());
+  }  
 }

@@ -9,6 +9,8 @@ import java.util.Optional;
 
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.Boostraps.Sources;
+
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceType;
@@ -98,11 +100,8 @@ public class SchedulingService {
 /* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
-			Flux.from(sourceService.findBySourceUrlAndCodeAndSourceType(
-				"https://gokb.org/gokb/api",
-				SourceCode.GOKB,
-				SourceType.TIPP
-			)).flatMap(src -> sourceRecordService.getSourceRecordFeedBySource(
+			Flux.from(sourceService.findById(Source.generateUUIDFromSource(Sources.GOKB_TIPP)))
+				.flatMap(src -> sourceRecordService.getSourceRecordFeedBySource(
 					src,
 					// TODO what happens if we have two records with the same timestamp?
 					// should our pointer include Id (or just be the sourceRecord itself)?
@@ -120,12 +119,9 @@ public class SchedulingService {
   // FIXME need to work on delay here
 /*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
-		Mono.from(sourceService.findBySourceUrlAndCodeAndSourceType(
-			"https://gokb.org/gokb/api",
-			SourceCode.GOKB,
-			SourceType.TIPP
-		)).flatMap(this::handleSource)
-			.subscribe();
+		Mono.from(sourceService.findById(Source.generateUUIDFromSource(Sources.GOKB_TIPP)))
+				.flatMap(this::handleSource)
+				.subscribe();
 	} */
 
 	public Mono<Instant> handleSource(Source source) {
