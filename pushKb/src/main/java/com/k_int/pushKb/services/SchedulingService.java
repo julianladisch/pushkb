@@ -87,7 +87,7 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
-	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
 			// Iterate over all DSLs, maybe want to be smarter about this in future
@@ -99,15 +99,15 @@ public class SchedulingService {
 				.flatMap(pushService::handleSourceRecordsFromDSL)
 				.doOnNext(dsl -> log.info("WHEN DO WE SEE THIS FINAL END? {}", dsl))
 				.subscribe();
-	}
+	} */
 
   // FIXME need to work on delay here
-/*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+  @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
 		Mono.from(sourceService.findById(Source.generateUUIDFromSource(Sources.GOKB_TIPP)))
 				.flatMap(this::handleSource)
 				.subscribe();
-	} */
+	}
 
 	// This should be in its own thing
 	public Mono<Instant> handleSource(Source source) {
