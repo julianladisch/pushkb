@@ -45,8 +45,10 @@ public interface GokbApiClient {
 	@Get("/scroll")
 	@SingleResult
 	@Retryable
+	@Header(name = "user-agent", value = "pushKB")
 	abstract <T> Publisher<GokbScrollResponse> scroll(
 		@NonNull @NotBlank @QueryValue(GokbApiClient.QUERY_PARAM_COMPONENT_TYPE) String type,
 		@Nullable @QueryValue("scrollId") String scrollId,
-		@Nullable @QueryValue("changedSince") String changedSince);
+		@Nullable @QueryValue("changedSince") String changedSince
+	);
 }

@@ -1,7 +1,10 @@
 package com.k_int.pushKb.services;
 
+import java.time.Instant;
+
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.storage.SourceRecordRepository;
 
@@ -10,11 +13,7 @@ import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
 
-@Slf4j
 @Singleton
 public class SourceRecordService {
   private final SourceRecordRepository sourceRecordRepository;
@@ -24,15 +23,6 @@ public class SourceRecordService {
   ) {
     this.sourceRecordRepository = sourceRecordRepository;
 	}
-
-  // Must be protected at least to allow AOP annotations.
-  // Adding this method gives us something to hang the transaction from. We also use the @Valid annotation
-  // to validate the source record before we save it.
-  @Transactional
-  @SingleResult // Use when you use a Publisher representing a single result
-  protected Publisher<SourceRecord> saveRecord ( @NonNull @Valid SourceRecord sr ) {
-  	return sourceRecordRepository.save(sr);
-  }
 
   @Transactional
   @SingleResult // Use when you use a Publisher representing a single result
@@ -44,5 +34,22 @@ public class SourceRecordService {
   @SingleResult
   protected Publisher<Long> countRecords () {
     return sourceRecordRepository.count();
+  }
+
+  @Transactional
+  protected Publisher<SourceRecord> getSourceRecordFeedBySource (Source source, Instant footTimestamp, Instant headTimestamp) {
+    return sourceRecordRepository.findAllBySourceAndUpdatedBetweenOrderByUpdatedDescAndIdAsc(source, footTimestamp, headTimestamp);
+  }
+
+  @Transactional
+  @SingleResult
+  protected Publisher<Instant> findMaxLastUpdatedAtSourceBySource (Source source) {
+    return sourceRecordRepository.findMaxLastUpdatedAtSourceBySource(source);
+  }
+
+  @Transactional
+  @SingleResult
+  protected Publisher<Instant> findMaxUpdatedBySource (Source source) {
+    return sourceRecordRepository.findMaxUpdatedBySource(source);
   }
 }

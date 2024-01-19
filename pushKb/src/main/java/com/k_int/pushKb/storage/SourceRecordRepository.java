@@ -15,7 +15,6 @@ import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.annotation.Join;
-import io.micronaut.data.annotation.Query;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
@@ -33,11 +32,13 @@ import reactor.core.publisher.Mono;
 public interface SourceRecordRepository extends ReactiveStreamsPageableRepository<SourceRecord, UUID> {
   Logger log = org.slf4j.LoggerFactory.getLogger(SourceRecordRepository.class);
 
-
-
   @Nullable
   @SingleResult
   Publisher<Instant> findMaxLastUpdatedAtSourceBySource(Source source);
+
+  @Nullable
+  @SingleResult
+  Publisher<Instant> findMaxUpdatedBySource(Source source);
 
   @SingleResult
 	Publisher<Void> delete(UUID id);
@@ -49,6 +50,10 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   @NonNull
   @Join(value="source")
   Publisher<SourceRecord> findTop2OrderByCreatedDesc();
+
+  @NonNull
+  @Join(value="source")
+  Publisher<SourceRecord> findAllBySourceAndUpdatedBetweenOrderByUpdatedDescAndIdAsc(Source source, Instant footTimestamp, Instant headTimestamp);
 
   @NonNull
   @SingleResult

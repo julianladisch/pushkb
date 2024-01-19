@@ -1,5 +1,7 @@
 package com.k_int.pushKb.services;
 
+import java.util.UUID;
+
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Source;
@@ -12,7 +14,6 @@ import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
-import jakarta.validation.Valid;
 import reactor.core.publisher.Mono;
 
 @Singleton
@@ -24,13 +25,11 @@ public class SourceService {
     this.sourceRepository = sourceRepository;
 	}
 
-  // Must be protected at least to allow AOP annotations.
-  // Adding this method gives us something to hang the transaction from. We also use the @Valid annotation
-  // to validate the source record before we save it.
+  @NonNull
+  @SingleResult
   @Transactional
-  @SingleResult // Use when you use a Publisher representing a single result
-  protected Publisher<Source> saveSource ( @NonNull @Valid Source s ) {
-  	return sourceRepository.save(s);
+  public Publisher<Source> findById( UUID id ) {
+    return sourceRepository.findById(id);
   }
 
   @NonNull
@@ -45,24 +44,28 @@ public class SourceService {
 
     return ensureSource(src);
   }
-  
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Source> ensureSource( Source src ) {
-    return Mono.from(sourceRepository.existsBySourceData(src))
-        .flatMap(doesItExist -> {
-          return Mono.from(doesItExist ?
-            sourceRepository.findBySourceData(src) :
-            sourceRepository.save(src)
-          );
-        });
-  }
 
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<Source> findBySourceUrlAndCodeAndSourceType( String sourceUrl, SourceCode code, SourceType sourceType ) {
-    return sourceRepository.findBySourceUrlAndCodeAndSourceType(sourceUrl, code, sourceType);
+  public Publisher<Source> ensureSource( Source src ) {
+    UUID gen_id = Source.generateUUID(
+      src.getCode(),
+      src.getSourceType(),
+      src.getSourceUrl()
+    );
+
+    // Set up new Source so we're definitely not passing the one from the parameters
+    Source new_source = src.toBuilder()
+                           .id(gen_id)
+                           .build();
+
+    return Mono.from(sourceRepository.existsById(gen_id))
+        .flatMap(doesItExist -> {
+          return Mono.from(doesItExist ?
+            sourceRepository.findById(gen_id) :
+            sourceRepository.save(new_source)
+          );
+        });
   }
 }

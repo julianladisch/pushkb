@@ -1,63 +1,56 @@
 package com.k_int.pushKb.model;
 
-import java.time.Instant;
-import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.ToString;
 
+import java.util.UUID;
 import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 import services.k_int.utils.UUIDUtils;
 
 import io.micronaut.core.annotation.NonNull;
-import io.micronaut.data.annotation.DateCreated;
-import io.micronaut.data.annotation.DateUpdated;
+import io.micronaut.data.annotation.AutoPopulated;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
-import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import io.micronaut.data.model.DataType;
-import io.micronaut.json.tree.JsonNode;
 
 @Serdeable
 @Data
 @AllArgsConstructor
 @MappedEntity
 @Builder(toBuilder = true)
-public class SourceRecord {
+public class Destination {
 	@Id
 	@TypeDef(type = DataType.UUID)
-  @NotNull
-  @NonNull
 	private UUID id;
 
-  // The UUID of the record on the source
-	String sourceUUID;
-
-  @Relation(value = Relation.Kind.MANY_TO_ONE)
   @NotNull
   @NonNull
-  Source source;
+  DestinationType destinationType; // FOLIO etc
 
-  @DateCreated
-  Instant created;
-  
-  @DateUpdated
-  Instant updated;
-  
-  Instant lastUpdatedAtSource;
+  // FIXME do we need a name for this?
+/*   @NotNull
+  @NonNull
+  String name; // User defined name for this destination */
 
-  @TypeDef(type = DataType.JSON)
   @NotNull
   @NonNull
-  JsonNode jsonRecord;
+  @ToString.Include
+	@Size(max = 200)
+  String destinationUrl;
 
-  private static final String UUID5_PREFIX = "source_record";
-  public static UUID generateUUID(Source source, String sourceUUID) {
-    final String concat = UUID5_PREFIX + ":" + source.toString() + ":" + sourceUUID;
+  // TODO Set<DestinationSourceLink> ??
+
+  // Should be unique up to type/url
+  private static final String UUID5_PREFIX = "destination";
+  public static UUID generateUUID(DestinationType destinationType, String destinationUrl) {
+    final String concat = UUID5_PREFIX + ":" + destinationType.toString() + ":" + destinationUrl;
     return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
   }
 }
