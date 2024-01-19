@@ -33,4 +33,14 @@ public interface DestinationSourceLinkRepository extends ReactiveStreamsPageable
   @Join(value="source")
   @Join(value="destination")
   Publisher<DestinationSourceLink> findById(@Nullable UUID id);
+
+  @NonNull
+  @Join(value="source")
+  @Join(value="destination")
+  Publisher<DestinationSourceLink> findBySourceAndDestination(Source source, Destination destination);
+
+  @NonNull
+  @Join(value="source")
+  @Join(value="destination")
+  Publisher<DestinationSourceLink> listOrderBySourceAndDestinationAndId();
 }

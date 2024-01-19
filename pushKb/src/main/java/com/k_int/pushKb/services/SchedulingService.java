@@ -10,9 +10,10 @@ import java.util.Optional;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.Boostraps.Sources;
-
+import com.k_int.pushKb.model.DestinationSourceLink;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceCode;
+import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.model.SourceType;
 import com.k_int.pushKb.proteus.ProteusService;
 import com.k_int.pushKb.storage.SourceRecordRepository;
@@ -32,6 +33,8 @@ public class SchedulingService {
 	// FIXME This probably shouldn't be here
 	private final SourceService sourceService;
 	private final SourceRecordService sourceRecordService;
+	private final DestinationSourceLinkService destinationSourceLinkService;
+	private final PushService pushService;
 
 	// FIXME remove this too
 	private final ProteusService proteusService;
@@ -41,12 +44,16 @@ public class SchedulingService {
 		GoKBFeedService goKBFeedService,
 		SourceRecordService sourceRecordService,
 		SourceService sourceService,
+		DestinationSourceLinkService destinationSourceLinkService,
+		PushService pushService,
 		ProteusService proteusService,
 		ObjectMapper objectMapper
 	) {
 		this.goKBFeedService = goKBFeedService;
 		this.sourceRecordService = sourceRecordService;
 		this.sourceService = sourceService;
+		this.destinationSourceLinkService = destinationSourceLinkService;
+		this.pushService = pushService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;
 	}
@@ -80,41 +87,19 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
-	// TO TEST ALGORITHM
-	// Ingest _some_ records
-	// Build a version of algo with a 1% failure rate
-	// Log out each one as "sent"
-	// Save to some destination_record class
-	// -- pointers
-	//        lastSent
-	//        latestSent
-	//        unbrokenMax (Names need work)
-	// -- running boolean?
-
-	// Allow to run on schedule
-	// Logging
-	//     Current pointers from destination_record
-	//     Head of source_records list
-	//     For each record log out id, then either SENT (ID) or ERROR (ID) (10% failure)
-
-/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
-			Flux.from(sourceService.findById(Source.generateUUIDFromSource(Sources.GOKB_TIPP)))
-				.flatMap(src -> sourceRecordService.getSourceRecordFeedBySource(
-					src,
-					// TODO what happens if we have two records with the same timestamp?
-					// should our pointer include Id (or just be the sourceRecord itself)?
-					Instant.EPOCH,
-					//Instant.parse("2024-01-18T15:02:01.880991Z"),
-					Instant.now()
-					//Instant.parse("2024-01-18T15:02:01.898723Z")
-				)
-			).doOnNext(sr -> {
-				log.info("UPDATED: {}", sr.updated);
-			})
-			.subscribe();
-	} */
+			// Iterate over all DSLs, maybe want to be smarter about this in future
+			// TODO we will need two Fluxes happening one after the other... one to fill any holes,
+			// then one from head -> top of sent stack
+
+			Flux.from(destinationSourceLinkService.getDestinationSourceLinkFeed())
+				// Run first Flux -- shouldn't return til last ?
+				.flatMap(pushService::handleSourceRecordsFromDSL)
+				.doOnNext(dsl -> log.info("WHEN DO WE SEE THIS FINAL END? {}", dsl))
+				.subscribe();
+	}
 
   // FIXME need to work on delay here
 /*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
@@ -124,6 +109,7 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
+	// This should be in its own thing
 	public Mono<Instant> handleSource(Source source) {
 		return Mono.from(sourceRecordService.findMaxLastUpdatedAtSourceBySource(source))
 			// Is it the right thing to do here to use doOnSuccess?

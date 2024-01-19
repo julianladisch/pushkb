@@ -60,11 +60,13 @@ public class DestinationSourceLink {
    * (and pointer from head of source_record stack) in order to keep track of the "gap"
    * that forms while sending records in chunks.
    */
-  Instant destinationHeadPointer; // Tracks the "head" from the destination's point of view
-  Instant lastSentPointer; // Tracks the last successfully sent instant
-  Instant footPointer; // Tracks the point beyond which ALL records have been sent
+  @Builder.Default
+  Instant destinationHeadPointer = Instant.EPOCH; // Tracks the "head" from the destination's point of view
+  @Builder.Default
+  Instant lastSentPointer = Instant.EPOCH; // Tracks the last successfully sent instant
+  @Builder.Default
+  Instant footPointer = Instant.EPOCH; // Tracks the point beyond which ALL records have been sent
  
-
   // Generate id from destination/source/transform (Should be unique to those 3)
   private static final String UUID5_PREFIX = "destination_source_link";
   public static UUID generateUUID(Destination destination, Source source, String transform) {

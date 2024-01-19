@@ -46,4 +46,10 @@ public class SourceRecordService {
   protected Publisher<Instant> findMaxLastUpdatedAtSourceBySource (Source source) {
     return sourceRecordRepository.findMaxLastUpdatedAtSourceBySource(source);
   }
+
+  @Transactional
+  @SingleResult
+  protected Publisher<Instant> findMaxUpdatedBySource (Source source) {
+    return sourceRecordRepository.findMaxUpdatedBySource(source);
+  }
 }

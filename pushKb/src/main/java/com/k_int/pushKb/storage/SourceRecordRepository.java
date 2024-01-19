@@ -36,6 +36,10 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   @SingleResult
   Publisher<Instant> findMaxLastUpdatedAtSourceBySource(Source source);
 
+  @Nullable
+  @SingleResult
+  Publisher<Instant> findMaxUpdatedBySource(Source source);
+
   @SingleResult
 	Publisher<Void> delete(UUID id);
 

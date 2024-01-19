@@ -45,9 +45,8 @@ public class SourceRecord {
   @DateCreated
   Instant created;
   
-  // FIXME This probs shouldn't be public -- here for logging rn
   @DateUpdated
-  public Instant updated;
+  Instant updated;
   
   Instant lastUpdatedAtSource;
 

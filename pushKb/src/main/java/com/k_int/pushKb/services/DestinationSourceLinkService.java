@@ -1,5 +1,6 @@
 package com.k_int.pushKb.services;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
@@ -7,10 +8,13 @@ import org.reactivestreams.Publisher;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.DestinationSourceLink;
 import com.k_int.pushKb.model.Source;
+import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.storage.DestinationSourceLinkRepository;
 
 import io.micronaut.core.annotation.NonNull;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.data.annotation.Join;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import reactor.core.publisher.Mono;
@@ -62,15 +66,19 @@ public class DestinationSourceLinkService {
           );
       });
     });
-      
-    /* 
-    
-    return Mono.from(destinationSourceLinkRepository.existsByDSLData(dsl))
-        .flatMap(doesItExist -> {
-          return Mono.from(doesItExist ?
-            destinationSourceLinkRepository.findByDSLData(dsl) :
-            destinationSourceLinkRepository.save(dsl)
-          );
-        }); */
+  }
+
+  // Not sure if raw feed is the way to go here, but let's get it working first
+  @Transactional
+  protected Publisher<DestinationSourceLink> getDestinationSourceLinkFeed () {
+    return destinationSourceLinkRepository.listOrderBySourceAndDestinationAndId();
+  }
+
+  @NonNull
+  @SingleResult
+  @Join(value="source")
+  @Join(value="destination")
+  Publisher<DestinationSourceLink> update(DestinationSourceLink dsl) {
+    return destinationSourceLinkRepository.update(dsl);
   }
 }
