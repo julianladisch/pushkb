@@ -72,7 +72,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 			.flatMap(src -> {
 				try {
 					Source source = (Source) src.get(Boostraps.Sources.class);
-					log.info("Bootstrapping source: {}", source);
+					//log.info("Bootstrapping source: {}", source);
 					return Mono.from(sourceService.ensureSource(source));
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -87,7 +87,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 			.flatMap(dest -> {
 				try {
 					Destination destination = (Destination) dest.get(Boostraps.Destinations.class);
-					log.info("Bootstrapping destination: {}", destination);
+					//log.info("Bootstrapping destination: {}", destination);
 					return Mono.from(destinationService.ensureDestination(destination));
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -102,7 +102,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 			.flatMap(dsl -> {
 				try {
 					DestinationSourceLink destinationSourceLink = (DestinationSourceLink) dsl.get(Boostraps.DestinationSourceLinks.class);
-					log.info("Bootstrapping destination source link: {}", destinationSourceLink);
+					//log.info("Bootstrapping destination source link: {}", destinationSourceLink);
 					return Mono.from(destinationSourceLinkService.ensureDestinationSourceLink(destinationSourceLink));
 				} catch (Exception e) {
 					e.printStackTrace();
