@@ -1,11 +1,17 @@
 package com.k_int.pushKb.services;
 
 import java.time.Instant;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 import com.k_int.pushKb.model.DestinationSourceLink;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.proteus.ProteusService;
 
+import io.micronaut.json.tree.JsonNode;
 import io.micronaut.serde.ObjectMapper;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -80,7 +86,7 @@ public class PushService {
     if (dsl.getDestinationHeadPointer().compareTo(dsl.getFootPointer()) != 0) {
       upperBound = dsl.getLastSentPointer();
     }
-    
+    log.info("UPPER BOUND: {}", upperBound);
     return Flux.from(sourceRecordService.getSourceRecordFeedBySource(
 			dsl.getSource(),
 			// TODO what happens if we have two records with the same timestamp?
@@ -90,15 +96,49 @@ public class PushService {
 			//Instant.now()
 			upperBound
 		))
-		.flatMap(sr -> {
+    .buffer(100)
+		.flatMap(srArray -> {
+      // We need to build the JsonNode "records" field and then apply to output
+      ArrayList<JsonNode> recordsList = new ArrayList<JsonNode>();
+
+      // TODO can we parallelise the transformation of these 100 records?
+      for(SourceRecord sr : srArray) {
+        try {
+          recordsList.add(proteusService.convert(
+            proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json"),
+            sr.getJsonRecord()
+          ));
+        } catch (Exception e) {
+          e.printStackTrace();
+          // FIXME
+          // Is this the right way to error?
+          return Mono.error(e);
+        }
+      }
+
+      // Set up output
+      // FIXME this isn't how we'll manage sessions and chunks
+      JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
+        new AbstractMap.SimpleEntry<String, JsonNode>("sessionId", JsonNode.createStringNode("test-session-1")),
+        new AbstractMap.SimpleEntry<String, JsonNode>("chunkId", JsonNode.createStringNode("chunk1")),
+        new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
+      ));
+
+      log.info("pushKBJsonOutput: {}", pushKBJsonOutput);
+      /* TODO
+       * Convert list of SRs into single JSON output
+       */
       /*
        * Idk if this is useful, but this is how to set up our own tuple. Could be useful for passing info downstream
        * Tuple2<SourceRecord, DestinationSourceLink> output = Tuples.of(sr, dsl);
        */
 
-      // This is the "send" analogue
-      // FIXME these logs are not helpful wording yet
+      // We check the very bottom sourceRecord, as that's where the pointer will move
+      // FIXME THE POINTER LOGIC DOES NOT WORK HERE, IT'LL IGNORE THE LAST CHUNK BECAUSE THE LAST RECORD WILL BE THE FOOTPOINTER
+      // WE NEED TO CHANGE OUT "BETWEEN" FOR MANUAL QUERY
+      SourceRecord sr = srArray.get(srArray.size() - 1);
       
+      // FIXME these logs are not helpful wording yet
       // If sr is below to footPointer of DSL then we don't send it and something went wrong
       if (sr.getUpdated().compareTo(dsl.getFootPointer()) < 0) {
         log.info("SHOULDN'T SEE THIS... This record was updated before the foot pointer of this DSL, ignoring");
@@ -126,7 +166,20 @@ public class PushService {
       }
       // At this point we need to send this record
 
-      // TODO actual send logic
+      // TODO Replace with actual send logic
+      try {
+        log.info("SENDING JSON OUTPUT: {}", objectMapper.writeValueAsString(pushKBJsonOutput));
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+
+      // Fixme forget this random bit
+      Random random = new Random();
+      // 10% failure rate
+      if (random.nextDouble() <= 0.1) {
+        return Mono.error(new Exception("SOMETHING WENT WRONG HERE"));
+      }
+
       log.info("SENT RECORD: {}", sr.getId());
       // ASSUMING right now it's successful, so sr.getUpdated() is new relevant data
       
@@ -146,6 +199,7 @@ public class PushService {
      */
     .last() // This will contain the DSL as it stands after the LAST record in the stack
     .flatMap(lastDsl -> {
+      log.info("We still got here after exception though");
       // FIXME is it ok to update from this new "version" of DSL instead of the passed one?
       /* If previous footPointer is updated
        * then the between logic will return a list NOT containing
