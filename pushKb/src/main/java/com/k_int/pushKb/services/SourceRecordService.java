@@ -38,7 +38,7 @@ public class SourceRecordService {
 
   @Transactional
   protected Publisher<SourceRecord> getSourceRecordFeedBySource (Source source, Instant footTimestamp, Instant headTimestamp) {
-    return sourceRecordRepository.findAllBySourceAndUpdatedBetweenOrderByUpdatedDescAndIdAsc(source, footTimestamp, headTimestamp);
+    return sourceRecordRepository.findAllBySourceAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(source, footTimestamp, headTimestamp);
   }
 
   @Transactional

@@ -63,7 +63,8 @@ public class PushService {
     // We potentially need to run this twice, once to zip up hole,
     //once to bring in line with latest changes
     return Mono.from(handleSourceRecordsFromDSLSingleRun(dsl))
-      .doOnNext(dest -> log.info("WHEN DO WE SEE THIS? {}", dest))
+      // At this point, we should ALWAYS have "zipped up" the gap in records, next check if any new ones exist ahead of DHP
+      //.doOnNext(dest -> log.info("WHEN DO WE SEE THIS? {}", dest))
 				// Go lookup head of stream (DSL source should never have changed...)
       .zipWith(Mono.from(sourceRecordService.findMaxUpdatedBySource(dsl.getSource())))
       .flatMap(tuple -> {
@@ -71,6 +72,7 @@ public class PushService {
         Instant sourceRecordHead = tuple.getT2();
         if (sourceRecordHead.compareTo(lastDsl.getDestinationHeadPointer()) > 0) {
           // There are fresh records ahead of the footPointer, rerun from lastDSL
+          // ATM we do this specifically as a second run, we could recurse this, but honestly running once an hour should be fine
           log.info("Fresh records exist ahead of destinationHeadPointer, bringing in line");
           return handleSourceRecordsFromDSLSingleRun(lastDsl);
         }
@@ -81,12 +83,18 @@ public class PushService {
   }
 
   public Mono<DestinationSourceLink> handleSourceRecordsFromDSLSingleRun(DestinationSourceLink dsl) {
+    log.info("handleSourceRecordsFromDSLSingleRun called with {}", dsl);
     Instant lowerBound = dsl.getFootPointer();
     Instant upperBound = Instant.now();
+
     if (dsl.getDestinationHeadPointer().compareTo(dsl.getFootPointer()) != 0) {
+      // If the DHP is NOT equal to FP, then we are in the "gap", continue from LSP
       upperBound = dsl.getLastSentPointer();
-    }
-    log.info("UPPER BOUND: {}", upperBound);
+    } // Otherwise, use head of stack with Instant.now()
+
+    /* log.info("UPPER BOUND: {}", upperBound);
+    log.info("LOWER BOUND: {}", lowerBound); */
+
     return Flux.from(sourceRecordService.getSourceRecordFeedBySource(
 			dsl.getSource(),
 			// TODO what happens if we have two records with the same timestamp?
@@ -98,6 +106,8 @@ public class PushService {
 		))
     .buffer(100)
 		.flatMap(srArray -> {
+      //log.info("SR ARRAY: {}", srArray);
+
       // We need to build the JsonNode "records" field and then apply to output
       ArrayList<JsonNode> recordsList = new ArrayList<JsonNode>();
 
@@ -134,36 +144,14 @@ public class PushService {
        */
 
       // We check the very bottom sourceRecord, as that's where the pointer will move
-      // FIXME THE POINTER LOGIC DOES NOT WORK HERE, IT'LL IGNORE THE LAST CHUNK BECAUSE THE LAST RECORD WILL BE THE FOOTPOINTER
-      // WE NEED TO CHANGE OUT "BETWEEN" FOR MANUAL QUERY
+      SourceRecord firstSr = srArray.get(0);
       SourceRecord sr = srArray.get(srArray.size() - 1);
       
       // FIXME these logs are not helpful wording yet
-      // If sr is below to footPointer of DSL then we don't send it and something went wrong
-      if (sr.getUpdated().compareTo(dsl.getFootPointer()) < 0) {
-        log.info("SHOULDN'T SEE THIS... This record was updated before the foot pointer of this DSL, ignoring");
 
-        // Return DSL as is
-        return Flux.just(dsl);
-      }
-      
-      if (sr.getUpdated().compareTo(dsl.getFootPointer()) == 0) {
-        log.info("This record represents the footPointer of this DSL, bringing footPointer forward");
-        // If footPointer matches lastSent, then destinationHeadPointer should be new footPointer
-        
-
-        dsl.setLastSentPointer(sr.getUpdated());
-        // This may not be necessary thanks to the last() implementation -- fine for now
-        dsl.setFootPointer(dsl.getDestinationHeadPointer());
-        return destinationSourceLinkService.update(dsl);
-      }
-
-      // If sr is equal to destinationHeadPointer of DSL then we don't send it
-      if (sr.getUpdated().compareTo(dsl.getDestinationHeadPointer()) == 0) {
-        log.info("This record matches the destinationHeadPointer of this DSL, ignoring");
-        // Return DSL as is
-        return Flux.just(dsl);
-      }
+  
+      // For now, assume repository has properly fetched everything it needs to
+      // TODO check what happens if this run is empty
       // At this point we need to send this record
 
       // TODO Replace with actual send logic
@@ -174,20 +162,22 @@ public class PushService {
       }
 
       // Fixme forget this random bit
-      Random random = new Random();
+/*       Random random = new Random();
       // 10% failure rate
       if (random.nextDouble() <= 0.1) {
         return Mono.error(new Exception("SOMETHING WENT WRONG HERE"));
       }
-
+ */
       log.info("SENT RECORD: {}", sr.getId());
       // ASSUMING right now it's successful, so sr.getUpdated() is new relevant data
       
-      // The last thing "successfully sent" was this timestamp
+      // The last thing "successfully sent" was the last timestamp
       dsl.setLastSentPointer(sr.getUpdated());
-      if (sr.getUpdated().compareTo(dsl.getDestinationHeadPointer()) > 0) {
+
+      // Now compare the earliest thing sent in this chunk to the DHP
+      if (firstSr.getUpdated().compareTo(dsl.getDestinationHeadPointer()) > 0) {
         // We have a new head pointer
-        dsl.setDestinationHeadPointer(sr.getUpdated());
+        dsl.setDestinationHeadPointer(firstSr.getUpdated());
       }
 
 			return destinationSourceLinkService.update(dsl);
@@ -197,7 +187,8 @@ public class PushService {
      * instead working back from DestinationHeadPointer or head of record stack?
      * TODO does last trigger if there's an error?
      */
-    .last() // This will contain the DSL as it stands after the LAST record in the stack
+    .takeLast(1) // This will contain the DSL as it stands after the LAST record in the stack
+    .next() // This should be a passive version of last(), where if stream is empty we don't get a crash
     .flatMap(lastDsl -> {
       log.info("We still got here after exception though");
       // FIXME is it ok to update from this new "version" of DSL instead of the passed one?
@@ -208,7 +199,7 @@ public class PushService {
        * If we have reached the end of the list successfully then the destinationHeadPointer
        * should be the new footPointer. ASSUMES THAT THE BETWEEN WORKS AS EXPECTED
        */
-
+      // Is this if necessary? DHP should always be ahead of FP
       if (lastDsl.getDestinationHeadPointer().compareTo(dsl.getFootPointer()) > 0 ) {
         // We reached the end but never moved footPointer
         lastDsl.setFootPointer(lastDsl.getDestinationHeadPointer());

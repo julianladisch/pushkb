@@ -8,6 +8,11 @@
 
 	<logger name="com.k_int.pushKb" level="DEBUG"/>
 
+	<!-- SQL - uncomment for very verbose logs -->
+	<!--
+		<logger name="io.micronaut.data.query" level="TRACE"/>
+	-->
+
 	<!-- flyway -->
 	<logger name="org.flywaydb" level="WARN"/>
 	<logger name="org.flyway" level="WARN"/>

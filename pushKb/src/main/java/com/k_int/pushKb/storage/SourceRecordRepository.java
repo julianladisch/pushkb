@@ -15,6 +15,8 @@ import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.annotation.Join;
+import io.micronaut.data.annotation.Query;
+import io.micronaut.data.annotation.Join.Type;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
@@ -51,9 +53,36 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   @Join(value="source")
   Publisher<SourceRecord> findTop2OrderByCreatedDesc();
 
-  @NonNull
+  // Between is inclusive of end
+/*   @NonNull
   @Join(value="source")
   Publisher<SourceRecord> findAllBySourceAndUpdatedBetweenOrderByUpdatedDescAndIdAsc(Source source, Instant footTimestamp, Instant headTimestamp);
+ */
+
+  @NonNull
+  @Join(value="source")
+  Publisher<SourceRecord> findAllBySourceAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(Source source, Instant footTimestamp, Instant headTimestamp);
+
+  // Finds values STRICTLY between foot and head timestamps
+  // Having to manually input these fields is a dealbreaker for me, using automagical Query above instead
+
+/* @Join(value = "source", alias="s_")
+  @Query(value = """
+    SELECT
+      sr.*,
+      s_.code AS s_code,
+      s_.source_url as s_source_url,
+      s_.source_type as s_source_type
+    FROM source_record AS sr
+    LEFT JOIN source AS s_ ON s_.id = sr.source_id
+      WHERE
+        sr.source_id = :source AND
+        sr.updated > :footTimestamp AND
+        sr.updated < :headTimestamp
+    ORDER BY sr.updated DESC, sr.id ASC;
+    """, nativeQuery = true)
+	Publisher<SourceRecord> getSourceRecordFeedBySource(Source source, Instant footTimestamp, Instant headTimestamp); */
+
 
   @NonNull
   @SingleResult
