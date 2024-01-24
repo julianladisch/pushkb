@@ -15,9 +15,6 @@ import com.k_int.proteus.ComponentSpec;
 import com.k_int.proteus.Config;
 import com.k_int.proteus.Context;
 import com.k_int.proteus.Input;
-import com.k_int.pushKb.services.GoKBFeedService;
-import com.k_int.pushKb.services.SourceService;
-import com.k_int.pushKb.storage.SourceRecordRepository;
 
 @Slf4j
 @Singleton

@@ -10,14 +10,19 @@ import java.util.Optional;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.Boostraps.Sources;
+import com.k_int.pushKb.folio.FOLIOApiService;
+import com.k_int.pushKb.folio.FOLIOLowLevelApiClient;
 import com.k_int.pushKb.model.DestinationSourceLink;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.model.SourceType;
+
 import com.k_int.pushKb.proteus.ProteusService;
+
 import com.k_int.pushKb.storage.SourceRecordRepository;
 
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.json.tree.JsonNode;
 import io.micronaut.serde.ObjectMapper;
 import io.micronaut.scheduling.annotation.Scheduled;
@@ -40,6 +45,9 @@ public class SchedulingService {
 	private final ProteusService proteusService;
 	private final ObjectMapper objectMapper;
 
+	// Not sure about this
+	private final HttpClient httpClient;
+
 	public SchedulingService(
 		GoKBFeedService goKBFeedService,
 		SourceRecordService sourceRecordService,
@@ -47,7 +55,8 @@ public class SchedulingService {
 		DestinationSourceLinkService destinationSourceLinkService,
 		PushService pushService,
 		ProteusService proteusService,
-		ObjectMapper objectMapper
+		ObjectMapper objectMapper,
+		HttpClient httpClient //TODO Keep an eye on this
 	) {
 		this.goKBFeedService = goKBFeedService;
 		this.sourceRecordService = sourceRecordService;
@@ -56,6 +65,7 @@ public class SchedulingService {
 		this.pushService = pushService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;
+		this.httpClient = httpClient;
 	}
 
 
@@ -101,12 +111,21 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
-  // FIXME need to work on delay here
+/*   // FIXME need to work on delay here
   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
 		Mono.from(sourceService.findById(Source.generateUUIDFromSource(Sources.GOKB_TIPP)))
 				.flatMap(this::handleSource)
 				.subscribe();
+	} */
+
+	// FETCHING FROM FOLIO---?
+	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	public void scheduledTask() {
+		FOLIOLowLevelApiClient folioClient = new FOLIOLowLevelApiClient(httpClient, "http://localhost:8080");
+		Mono.from(folioClient.getChunks())
+			.doOnNext(thing -> log.info("WHAT IS THING: {}", thing))
+			.subscribe();
 	}
 
 	// This should be in its own thing
