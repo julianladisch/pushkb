@@ -32,7 +32,7 @@ services:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
     entrypoint: ["/opt/keycloak/bin/kc.sh", "start-dev"]
     ports:
-      - "28080:8080"
+      - "28080:8060"
     restart: unless-stopped
     networks:
       - local-keycloak
