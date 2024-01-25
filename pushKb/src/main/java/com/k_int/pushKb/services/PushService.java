@@ -92,8 +92,8 @@ public class PushService {
       upperBound = dsl.getLastSentPointer();
     } // Otherwise, use head of stack with Instant.now()
 
-    /* log.info("UPPER BOUND: {}", upperBound);
-    log.info("LOWER BOUND: {}", lowerBound); */
+    log.info("UPPER BOUND: {}", upperBound);
+    log.info("LOWER BOUND: {}", lowerBound);
 
     return Flux.from(sourceRecordService.getSourceRecordFeedBySource(
 			dsl.getSource(),

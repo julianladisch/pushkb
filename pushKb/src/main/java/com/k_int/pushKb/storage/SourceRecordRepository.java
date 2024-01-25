@@ -1,7 +1,6 @@
 package com.k_int.pushKb.storage;
 
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.model.SourceType;
 
@@ -36,11 +35,11 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
 
   @Nullable
   @SingleResult
-  Publisher<Instant> findMaxLastUpdatedAtSourceBySource(Source source);
+  Publisher<Instant> findMaxLastUpdatedAtSourceBySourceId(UUID sourceId);
 
   @Nullable
   @SingleResult
-  Publisher<Instant> findMaxUpdatedBySource(Source source);
+  Publisher<Instant> findMaxUpdatedBySourceId(UUID sourceId);
 
   @SingleResult
 	Publisher<Void> delete(UUID id);
@@ -50,7 +49,6 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   Publisher<Boolean> existsById(@Nullable UUID id);
 
   @NonNull
-  @Join(value="source")
   Publisher<SourceRecord> findTop2OrderByCreatedDesc();
 
   // Between is inclusive of end
@@ -60,8 +58,7 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
  */
 
   @NonNull
-  @Join(value="source")
-  Publisher<SourceRecord> findAllBySourceAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(Source source, Instant footTimestamp, Instant headTimestamp);
+  Publisher<SourceRecord> findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(UUID sourceId, Instant footTimestamp, Instant headTimestamp);
 
   // Finds values STRICTLY between foot and head timestamps
   // Having to manually input these fields is a dealbreaker for me, using automagical Query above instead

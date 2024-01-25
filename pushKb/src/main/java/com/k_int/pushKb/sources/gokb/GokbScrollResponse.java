@@ -1,4 +1,4 @@
-package com.k_int.pushKb.gokb;
+package com.k_int.pushKb.sources.gokb;
 
 import java.util.List;
 

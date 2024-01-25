@@ -10,11 +10,10 @@ import java.util.Optional;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.Boostraps.Sources;
-import com.k_int.pushKb.folio.FOLIOApiService;
-import com.k_int.pushKb.folio.FOLIOLowLevelApiClient;
+// FIXME AAAAAAAAAAAAAAAAAAAAAAA
+//import com.k_int.pushKb.destinations.folio.FolioLowLevelApiClient;
 import com.k_int.pushKb.model.DestinationSourceLink;
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.model.SourceType;
 
@@ -114,19 +113,20 @@ public class SchedulingService {
 /*   // FIXME need to work on delay here
   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
+		// FIXME This won't work anymore, grab all implementors of Source and then use
 		Mono.from(sourceService.findById(Source.generateUUIDFromSource(Sources.GOKB_TIPP)))
 				.flatMap(this::handleSource)
 				.subscribe();
 	} */
 
 	// FETCHING FROM FOLIO---?
-	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
-		FOLIOLowLevelApiClient folioClient = new FOLIOLowLevelApiClient(httpClient, "http://localhost:8080");
+		FOLIOLowLevelApiClient folioClient = new FOLIOLowLevelApiClient();
 		Mono.from(folioClient.getChunks())
 			.doOnNext(thing -> log.info("WHAT IS THING: {}", thing))
 			.subscribe();
-	}
+	} */
 
 	// This should be in its own thing
 	public Mono<Instant> handleSource(Source source) {

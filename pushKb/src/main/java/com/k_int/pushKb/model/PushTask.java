@@ -1,57 +1,40 @@
 package com.k_int.pushKb.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Singular;
+import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.time.Instant;
 import java.util.UUID;
-import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
-import services.k_int.utils.UUIDUtils;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
-import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import services.k_int.utils.UUIDUtils;
 
-
-
+// Class to model the actual destination -> source tasks that will need to happen
 @Serdeable
 @Data
 @AllArgsConstructor
 @MappedEntity
 @Builder(toBuilder = true)
-public class DestinationSourceLink {
+public class PushTask {
   @Id
 	@TypeDef(type = DataType.UUID)
   @NotNull
   @NonNull
 	private UUID id;
 
+  UUID sourceId;
+  Class<? extends Source> sourceType;
 
-  /* This won't be a string.
-   * Strategy will be to find all destination source links by transform and source,
-   * then we can send to multiple destinations while only transforming each chunk once.
-   * 
-   * For V1 we won't do that though, as it comes with concerns as things fall out of sync,
-   * we can eat the extra cost of transforming each record n times for now.
-   */
-  @NotNull
-  @NonNull
-  String transform;
-
-  @NotNull
-  @NonNull
-  Destination destination;
-
-  @NotNull
-  @NonNull
-  Source source;
+  UUID destinationId;
+  Class<? extends Destination> destinationType;
 
   /* This record will hold pointers indicating which source_records have been successfully sent.
    * The algorithm will iterate backwards through these, so we need 3 pointers
@@ -64,11 +47,11 @@ public class DestinationSourceLink {
   Instant lastSentPointer = Instant.EPOCH; // Tracks the last successfully sent instant
   @Builder.Default
   Instant footPointer = Instant.EPOCH; // Tracks the point beyond which ALL records have been sent
- 
-  // Generate id from destination/source/transform (Should be unique to those 3)
-  private static final String UUID5_PREFIX = "destination_source_link";
-  public static UUID generateUUID(Destination destination, Source source, String transform) {
-    final String concat = UUID5_PREFIX + ":" + destination.toString() + ":" + source.toString() + ":" + transform;
+
+    // Generate id from destination/source (Should be unique to those 2)
+  private static final String UUID5_PREFIX = "push_task";
+  public static UUID generateUUID(UUID sourceId, UUID destinationId) {
+    final String concat = UUID5_PREFIX + ":" + sourceId.toString() + ":" + destinationId.toString();
     return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
   }
 }

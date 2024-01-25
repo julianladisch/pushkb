@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.destinations.folio.FolioDestination;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.DestinationSourceLink;
 import com.k_int.pushKb.model.Source;
@@ -34,14 +35,18 @@ public class DestinationSourceLinkService {
     this.sourceService = sourceService;
 	}
   
-  @NonNull
+/*   @NonNull
   @SingleResult
   @Transactional
   public Publisher<DestinationSourceLink> ensureDestinationSourceLink( DestinationSourceLink dsl ) {
     // Firstly we need to ensure service and destination from passed data
     // TODO do we want ensureDSL to have power to create sources and destinations?
-    return Mono.from(destinationService.ensureDestination(dsl.getDestination()))
-    .zipWith(Mono.from(sourceService.ensureSource(dsl.getSource())))
+    Mono<Destination> mono = Mono.empty();
+    if (dsl.getDestination() instanceof FolioDestination) {
+      mono = Mono.from(destinationService.ensureDestination((FolioDestination) dsl.getDestination()));
+    }
+    
+    mono.zipWith(Mono.from(sourceService.ensureSource(dsl.getSource())))
     .flatMap(tuple -> {
       Destination destination = tuple.getT1();
       Source source = tuple.getT2();
@@ -66,7 +71,7 @@ public class DestinationSourceLinkService {
           );
       });
     });
-  }
+  } */
 
   // Not sure if raw feed is the way to go here, but let's get it working first
   @Transactional

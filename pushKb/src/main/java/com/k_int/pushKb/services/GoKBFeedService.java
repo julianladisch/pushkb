@@ -5,12 +5,11 @@ import java.util.Optional;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.gokb.GokbApiClient;
-import com.k_int.pushKb.gokb.GokbScrollResponse;
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.model.SourceType;
+import com.k_int.pushKb.sources.gokb.GokbApiClient;
+import com.k_int.pushKb.sources.gokb.GokbScrollResponse;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.json.tree.JsonNode;
@@ -123,7 +122,7 @@ public class GoKBFeedService {
 			.jsonRecord(jsonNode)
 			.lastUpdatedAtSource(Instant.parse(jsonNode.get("lastUpdatedDisplay").getStringValue()))
 			.sourceUUID(sourceUUID)
-			.source(source)
+			.sourceId(source.getId())
 			.build();
 	}
 

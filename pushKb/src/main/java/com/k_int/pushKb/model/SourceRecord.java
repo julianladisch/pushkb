@@ -37,10 +37,12 @@ public class SourceRecord {
   // The UUID of the record on the source
 	String sourceUUID;
 
-  @Relation(value = Relation.Kind.MANY_TO_ONE)
+  // Link to the source in the DB (implementor of source)
+  //@Relation(value = Relation.Kind.MANY_TO_ONE)
   @NotNull
   @NonNull
-  Source source;
+  UUID sourceId;
+  Class<? extends Source> sourceType;
 
   @DateCreated
   Instant created;

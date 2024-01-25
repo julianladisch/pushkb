@@ -38,18 +38,19 @@ public class SourceRecordService {
 
   @Transactional
   protected Publisher<SourceRecord> getSourceRecordFeedBySource (Source source, Instant footTimestamp, Instant headTimestamp) {
-    return sourceRecordRepository.findAllBySourceAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(source, footTimestamp, headTimestamp);
+    return sourceRecordRepository.findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(source.getId(), footTimestamp, headTimestamp);
   }
 
   @Transactional
   @SingleResult
   protected Publisher<Instant> findMaxLastUpdatedAtSourceBySource (Source source) {
-    return sourceRecordRepository.findMaxLastUpdatedAtSourceBySource(source);
+    return sourceRecordRepository.findMaxLastUpdatedAtSourceBySourceId(source.getId());
   }
+  // FIXME should probably change these methods to use UUID as well? Maybe not, see where the wind takes you
 
   @Transactional
   @SingleResult
   protected Publisher<Instant> findMaxUpdatedBySource (Source source) {
-    return sourceRecordRepository.findMaxUpdatedBySource(source);
+    return sourceRecordRepository.findMaxUpdatedBySourceId(source.getId());
   }
 }

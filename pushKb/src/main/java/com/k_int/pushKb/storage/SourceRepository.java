@@ -2,7 +2,6 @@ package com.k_int.pushKb.storage;
 
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceType;
 
 import java.util.UUID;
@@ -21,12 +20,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Mono;
 
-@Singleton
-@Transactional
-@R2dbcRepository(dialect = Dialect.POSTGRES)
-public interface SourceRepository extends ReactiveStreamsPageableRepository<Source, UUID> {
+public interface SourceRepository<T extends Source> extends ReactiveStreamsPageableRepository<T, UUID> {
   @NonNull
-	Publisher<Source> findAllBySourceUrl ( String sourceUrl );
+	Publisher<T> findAllBySourceUrl ( String sourceUrl );
 
   @NonNull
   @SingleResult
@@ -34,41 +30,35 @@ public interface SourceRepository extends ReactiveStreamsPageableRepository<Sour
 
   @NonNull
   @SingleResult
-  Publisher<Source> findById(@Nullable UUID id);
+  Publisher<T> findById(@Nullable UUID id);
 
   @NonNull
   @SingleResult
-	Publisher<Source> findBySourceUrlAndCodeAndSourceType ( String sourceUrl, SourceCode code, SourceType type );
+	Publisher<T> findBySourceUrlAndSourceType ( String sourceUrl, SourceType type );
 
   // Find by relevant data, even from built Source without id.
   @NonNull
   @SingleResult
-	default Publisher<Source> findBySourceData ( Source source ) {
-    return findBySourceUrlAndCodeAndSourceType(source.getSourceUrl(), source.getCode(), source.getSourceType());
+	default Publisher<T> findBySourceData ( T source ) {
+    return findBySourceUrlAndSourceType(source.getSourceUrl(), source.getSourceType());
   }
 
   @NonNull
   @SingleResult
-	Publisher<Boolean> existsBySourceUrlAndCodeAndSourceType ( String sourceUrl, SourceCode code, SourceType type );
+	Publisher<Boolean> existsBySourceUrlAndSourceType ( String sourceUrl, SourceType type );
 
   @NonNull
   @SingleResult
-	default Publisher<Boolean> existsBySourceData ( Source source ) {
-    return existsBySourceUrlAndCodeAndSourceType(source.getSourceUrl(), source.getCode(), source.getSourceType());
+	default Publisher<Boolean> existsBySourceData ( T source ) {
+    return existsBySourceUrlAndSourceType(source.getSourceUrl(), source.getSourceType());
   }
 
   @NonNull
-	Publisher<Source> findAllByCodeAndSourceType ( SourceCode code, SourceType type );
-
-  @NonNull
-	Publisher<Source> findAllByCode ( SourceCode code );
-
-  @NonNull
-	Publisher<Source> findAllBySourceType ( SourceType type );
+	Publisher<T> findAllBySourceType ( SourceType type );
 
   @SingleResult
   @NonNull
-  default Publisher<Source> saveOrUpdate(@Valid @NotNull Source src) {
+  default Publisher<T> saveOrUpdate(@Valid @NotNull T src) {
     return Mono.from(this.existsById(src.getId()))
                .flatMap( update -> Mono.from(update ? this.update(src) : this.save(src)) )
     ;

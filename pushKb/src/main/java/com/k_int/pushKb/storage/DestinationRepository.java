@@ -1,7 +1,6 @@
 package com.k_int.pushKb.storage;
 
 import com.k_int.pushKb.model.Destination;
-import com.k_int.pushKb.model.DestinationType;
 
 import java.util.UUID;
 
@@ -16,15 +15,12 @@ import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 
-@Singleton
-@Transactional
-@R2dbcRepository(dialect = Dialect.POSTGRES)
-public interface DestinationRepository extends ReactiveStreamsPageableRepository<Destination, UUID> {
+public interface DestinationRepository<T extends Destination> extends ReactiveStreamsPageableRepository<T, UUID> {
   @NonNull
   @SingleResult
   Publisher<Boolean> existsById(@Nullable UUID id);
 
   @NonNull
   @SingleResult
-  Publisher<Destination> findById(@Nullable UUID id); 
+  Publisher<T> findById(@Nullable UUID id); 
 }
