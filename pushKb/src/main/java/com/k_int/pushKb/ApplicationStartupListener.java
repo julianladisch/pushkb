@@ -34,22 +34,21 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class ApplicationStartupListener implements ApplicationEventListener<StartupEvent> {
 	private final Environment environment;
+	private final DestinationService destinationService;
 /*   private final SourceService sourceService;
 	private final DestinationSourceLinkService destinationSourceLinkService; */
  
-	private final BeanContext beanContext;
-
   private static final String BOOSTRAP_SOURCE_VAR = "BOOTSTRAP_SOURCES";
   private static final String BOOSTRAP_DESTINATION_VAR = "BOOSTRAP_DESTINATIONS";
 
 	public ApplicationStartupListener(
     Environment environment,
+		DestinationService destinationService
 		/* SourceService sourceService,
 		DestinationSourceLinkService destinationSourceLinkService, */
-		BeanContext beanContext
   ) {
 		this.environment = environment;
-		this.beanContext = beanContext;
+		this.destinationService = destinationService;
 
 		/* this.sourceService = sourceService;
 		this.destinationSourceLinkService = destinationSourceLinkService; */
@@ -89,40 +88,25 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 			});
 	} */
 
-	//private Publisher<Destination> bootstrapDestinations() {
-	private Publisher<String> bootstrapDestinations() {
+	private Publisher<Destination> bootstrapDestinations() {
 		log.debug("bootstrapDestinations");
 		// Fetch all Destination Services
 		// FIXME is this being raw an issue?
-		Collection<BeanRegistration<DestinationService>> destinationServices = beanContext.getBeanRegistrations(DestinationService.class);
-		for (BeanRegistration<DestinationService> ds : destinationServices) {
-			ds.getBean();
-		}
-		
-		log.info("SHOW ME BEAN CONTEXT: {}");
-
-		return Flux.just("start").doOnNext(nxt -> log.info("Next up: {}", nxt));
-	
-		/* return Flux.fromArray(Boostraps.Destinations.class.getFields())
+		return Flux.fromArray(Boostraps.Destinations.class.getFields())
 			.flatMap(dest -> {
 				try {
 					Destination destination = (Destination) dest.get(Boostraps.Destinations.class);
-					if (destination instanceof FolioDestination) {
-						log.info("THIS WORKED!!");
-						return Mono.from(destinationService.ensureDestination((FolioDestination) destination));
-					}
-
-					// Not a recognised implementation
-					log.info("Did not recognise implementation of Destination, skipping: {}", destination);
-					return Mono.empty();
-					
+					Class<? extends Destination> clazz = destination.getClass();
+					log.info("DESTINATION CLASS: {}", clazz);
+					//return Mono.empty();
+					return Mono.from(destinationService.ensureDestination(clazz.cast(destination), clazz));
 					//log.info("Bootstrapping destination: {}", destination);
 					
 				} catch (Exception e) {
 					e.printStackTrace();
 					return Mono.empty();
 				}
-			}); */
+			});
 	}
 /* 
 	private Publisher<DestinationSourceLink> bootstrapDestinationSourceLinks() {
