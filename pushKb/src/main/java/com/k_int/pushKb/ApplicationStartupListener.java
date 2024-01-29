@@ -2,14 +2,12 @@ package com.k_int.pushKb;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.destinations.folio.FolioDestination;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.services.DestinationService;
 import com.k_int.pushKb.services.PushTaskService;
 import com.k_int.pushKb.services.SourceService;
-import com.k_int.pushKb.sources.gokb.GokbSource;
 
 import io.micronaut.context.env.Environment;
 import io.micronaut.context.event.ApplicationEventListener;
@@ -62,17 +60,11 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 
 	private Publisher<Source> bootstrapSources() {
 		log.debug("bootstrapSources");
-		return Flux.fromIterable(Boostraps.sources.keySet())
-			.flatMap(srcKey -> {
+		return Flux.fromIterable(Boostraps.sources.values())
+			.flatMap(src -> {
 				try {
-					Source src = Boostraps.sources.get(srcKey);
-
-					if (src instanceof GokbSource) {
-						GokbSource gokbSrc = (GokbSource) src;
-						return Mono.from(sourceService.ensureSource(gokbSrc, GokbSource.class));
-					} 
-
-					return Mono.empty();
+					return sourceService.ensureSource(src, src.getClass());
+					
 				} catch (Exception e) {
 					e.printStackTrace();
 					return Mono.empty();
@@ -82,17 +74,12 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 
 	private Publisher<Destination> bootstrapDestinations() {
 		log.debug("bootstrapDestinations");
-		return Flux.fromIterable(Boostraps.destinations.keySet())
-			.flatMap(destKey -> {
+		
+		return Flux.fromIterable(Boostraps.destinations.values())
+			.flatMap(dest -> {
 				try {
-					Destination destination = Boostraps.destinations.get(destKey);
-
-					if (destination instanceof FolioDestination) {
-						FolioDestination folioDestination = (FolioDestination) destination;
-						return Mono.from(destinationService.ensureDestination(folioDestination, FolioDestination.class));
-					} 
-
-					return Mono.empty();
+					return destinationService.ensureDestination(dest, dest.getClass());
+					
 				} catch (Exception e) {
 					e.printStackTrace();
 					return Mono.empty();

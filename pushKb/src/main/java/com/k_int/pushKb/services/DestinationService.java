@@ -24,28 +24,28 @@ public class DestinationService {
   }
 
   @SuppressWarnings("unchecked")
-  protected <T extends Destination> DestinationRepository<T> getRepositoryForDestinationType( Class<T> destinationType ) {
-    return (DestinationRepository<T>) beanContext.getBean( Argument.of(DestinationRepository.class, destinationType) ); // Use argument specify core type plus any generic...
+  protected <T extends Destination> DestinationRepository<Destination> getRepositoryForDestinationType( Class<T> destinationType ) {
+    return (DestinationRepository<Destination>) beanContext.getBean( Argument.of(DestinationRepository.class, destinationType) ); // Use argument specify core type plus any generic...
   }
 
   @NonNull
   @SingleResult
   @Transactional
-  public <T extends Destination> Publisher<T> findById( UUID id, Class<T> type ) {
+  public Publisher<? extends Destination> findById( UUID id, Class<? extends Destination> type ) {
     return getRepositoryForDestinationType(type).findById(id);
   }
 
   @NonNull
   @SingleResult
   @Transactional
-  public <T extends Destination> Publisher<Boolean> existsById( UUID id, Class<T> type ) {
+  public Publisher<Boolean> existsById( UUID id, Class<? extends Destination> type ) {
     return getRepositoryForDestinationType(type).existsById(id);
   }
 
   @NonNull
   @SingleResult
   @Transactional
-  public <T extends Destination> Publisher<T> ensureDestination( T dest, Class<T> type ) {
+  public Publisher<? extends Destination> ensureDestination( Destination dest, Class<? extends Destination> type ) {
     return getRepositoryForDestinationType(type).ensureDestination(dest);
   }
 }

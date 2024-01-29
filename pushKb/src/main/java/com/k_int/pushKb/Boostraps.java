@@ -31,7 +31,7 @@ public interface Boostraps {
     )
   );
 
-  public static final Map<String, Destination> destinations = Map.ofEntries(
+  public static final Map<String, ? extends Destination> destinations = Map.ofEntries(
     new SimpleEntry<String, Destination>(
       "LOCAL_RANCHER_FOLIO",
       FolioDestination.builder()
