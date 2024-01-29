@@ -92,17 +92,17 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 	private Publisher<Destination> bootstrapDestinations() {
 		log.debug("bootstrapDestinations");
 		// Fetch all Destination Services
-		// FIXME is this being raw an issue?
 		return Flux.fromIterable(Boostraps.destinations.keySet())
 			.flatMap(destKey -> {
 				try {
 					Destination destination = Boostraps.destinations.get(destKey);
-					//Class<? extends Destination> clazz = destination.getClass();
-					//log.info("DESTINATION CLASS: {}", clazz);
-					//return Mono.empty();
-					return Mono.from(destinationService.ensureDestination(destination, destination.getClass()));
-					//log.info("Bootstrapping destination: {}", destination);
-					
+
+					if (destination instanceof FolioDestination) {
+						FolioDestination folioDestination = (FolioDestination) destination;
+						return Mono.from(destinationService.ensureDestination(folioDestination, FolioDestination.class));
+					} 
+
+					return Mono.empty();
 				} catch (Exception e) {
 					e.printStackTrace();
 					return Mono.empty();
