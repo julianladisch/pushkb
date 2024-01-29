@@ -47,4 +47,8 @@ public class FolioDestination implements Destination {
     final String concat = UUID5_PREFIX + ":" + tenant + ":" + destinationUrl;
     return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
   }
+
+  public static UUID generateUUIDFromDestination(FolioDestination destination) {
+    return generateUUID(destination.getTenant(), destination.getDestinationUrl());
+  }
 }

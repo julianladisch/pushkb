@@ -30,11 +30,16 @@ public class PushTask {
   @NonNull
 	private UUID id;
 
-  UUID sourceId;
-  Class<? extends Source> sourceType;
+  // TODO we will eventually need to model transform "properly"
+  @NotNull
+  @NonNull
+  private String transform;
 
-  UUID destinationId;
-  Class<? extends Destination> destinationType;
+  private UUID sourceId;
+  private Class<? extends Source> sourceType;
+
+  private UUID destinationId;
+  private Class<? extends Destination> destinationType;
 
   /* This record will hold pointers indicating which source_records have been successfully sent.
    * The algorithm will iterate backwards through these, so we need 3 pointers
@@ -53,6 +58,10 @@ public class PushTask {
   public static UUID generateUUID(UUID sourceId, UUID destinationId) {
     final String concat = UUID5_PREFIX + ":" + sourceId.toString() + ":" + destinationId.toString();
     return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
+  }
+
+  public static UUID generateUUIDFromPushTask(PushTask pt) {
+    return generateUUID(pt.getSourceId(), pt.getDestinationId());
   }
 }
 

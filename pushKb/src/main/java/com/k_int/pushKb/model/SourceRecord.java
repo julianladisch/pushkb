@@ -15,7 +15,6 @@ import io.micronaut.data.annotation.DateCreated;
 import io.micronaut.data.annotation.DateUpdated;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
-import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
@@ -38,7 +37,6 @@ public class SourceRecord {
 	String sourceUUID;
 
   // Link to the source in the DB (implementor of source)
-  //@Relation(value = Relation.Kind.MANY_TO_ONE)
   @NotNull
   @NonNull
   UUID sourceId;

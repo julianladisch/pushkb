@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public interface Source {
   public UUID getId();
-  public SourceType getSourceType();
+
+  // A source currently must have a URL
   public String getSourceUrl();
 }

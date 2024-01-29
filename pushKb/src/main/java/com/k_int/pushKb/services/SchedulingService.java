@@ -13,10 +13,8 @@ import org.reactivestreams.Publisher;
 import com.k_int.pushKb.Boostraps;
 // FIXME AAAAAAAAAAAAAAAAAAAAAAA
 //import com.k_int.pushKb.destinations.folio.FolioLowLevelApiClient;
-import com.k_int.pushKb.model.DestinationSourceLink;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
-import com.k_int.pushKb.model.SourceType;
 
 import com.k_int.pushKb.proteus.ProteusService;
 
@@ -38,8 +36,9 @@ public class SchedulingService {
 	// FIXME This probably shouldn't be here
 	private final SourceService sourceService;
 	private final SourceRecordService sourceRecordService;
-	private final DestinationSourceLinkService destinationSourceLinkService;
 	private final PushService pushService;
+
+	// FIXME DSL needs to be changed over to PushTask... good luck future Ethan
 
 	// FIXME remove this too
 	private final ProteusService proteusService;
@@ -52,7 +51,6 @@ public class SchedulingService {
 		GoKBFeedService goKBFeedService,
 		SourceRecordService sourceRecordService,
 		SourceService sourceService,
-		DestinationSourceLinkService destinationSourceLinkService,
 		PushService pushService,
 		ProteusService proteusService,
 		ObjectMapper objectMapper,
@@ -61,7 +59,6 @@ public class SchedulingService {
 		this.goKBFeedService = goKBFeedService;
 		this.sourceRecordService = sourceRecordService;
 		this.sourceService = sourceService;
-		this.destinationSourceLinkService = destinationSourceLinkService;
 		this.pushService = pushService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;

@@ -4,7 +4,7 @@ CREATE TABLE push_task (
 	destination_id uuid,
   destination_type VARCHAR(255) NOT NULL,
 	source_id uuid,
-  source_type VARCHAR(255) NOT NULL,
+  source_type VARCHAR(255) NOT NULL, -- SourceType here is a CLASS not to be confused with GokbSourceType on GokbSource
 	destination_head_pointer TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	last_sent_pointer TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	foot_pointer TIMESTAMP WITHOUT TIME ZONE NOT NULL

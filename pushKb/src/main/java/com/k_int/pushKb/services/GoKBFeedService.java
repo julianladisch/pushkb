@@ -7,7 +7,6 @@ import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
-import com.k_int.pushKb.model.SourceType;
 import com.k_int.pushKb.sources.gokb.GokbApiClient;
 import com.k_int.pushKb.sources.gokb.GokbScrollResponse;
 

@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import com.k_int.pushKb.model.DestinationSourceLink;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.proteus.ProteusService;
 
@@ -25,20 +24,19 @@ import reactor.util.function.Tuples;
 @Slf4j
 public class PushService {
 	private final SourceRecordService sourceRecordService;
-	private final DestinationSourceLinkService destinationSourceLinkService;
 
 	// FIXME This will need incorporating later
 	private final ProteusService proteusService;
 	private final ObjectMapper objectMapper;
 
+  // FIXME DSL needs to be changed over to PushTask... good luck future Ethan
+
 	public PushService(
 		SourceRecordService sourceRecordService,
-		DestinationSourceLinkService destinationSourceLinkService,
 		ProteusService proteusService,
     ObjectMapper objectMapper
 	) {
 		this.sourceRecordService = sourceRecordService;
-		this.destinationSourceLinkService = destinationSourceLinkService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;
 	}
@@ -59,7 +57,7 @@ public class PushService {
 	//     Current pointers from destination_record
 	//     Head of source_records list
 	//     For each record log out id, then either SENT (ID) or ERROR (ID) (10% failure)
-  public Mono<DestinationSourceLink> handleSourceRecordsFromDSL(DestinationSourceLink dsl) {
+/*   public Mono<DestinationSourceLink> handleSourceRecordsFromDSL(DestinationSourceLink dsl) {
     // We potentially need to run this twice, once to zip up hole,
     //once to bring in line with latest changes
     return Mono.from(handleSourceRecordsFromDSLSingleRun(dsl))
@@ -141,7 +139,7 @@ public class PushService {
       /*
        * Idk if this is useful, but this is how to set up our own tuple. Could be useful for passing info downstream
        * Tuple2<SourceRecord, DestinationSourceLink> output = Tuples.of(sr, dsl);
-       */
+       * /
 
       // We check the very bottom sourceRecord, as that's where the pointer will move
       SourceRecord firstSr = srArray.get(0);
@@ -167,7 +165,7 @@ public class PushService {
       if (random.nextDouble() <= 0.1) {
         return Mono.error(new Exception("SOMETHING WENT WRONG HERE"));
       }
- */
+ * /
       log.info("SENT RECORD: {}", sr.getId());
       // ASSUMING right now it's successful, so sr.getUpdated() is new relevant data
       
@@ -186,7 +184,7 @@ public class PushService {
      * TODO alternative -- can we break out of a Flux and not use Between? Would simplify logic
      * instead working back from DestinationHeadPointer or head of record stack?
      * TODO does last trigger if there's an error?
-     */
+     * /
     .takeLast(1) // This will contain the DSL as it stands after the LAST record in the stack
     .next() // This should be a passive version of last(), where if stream is empty we don't get a crash
     .flatMap(lastDsl -> {
@@ -198,7 +196,7 @@ public class PushService {
        * 
        * If we have reached the end of the list successfully then the destinationHeadPointer
        * should be the new footPointer. ASSUMES THAT THE BETWEEN WORKS AS EXPECTED
-       */
+       * /
       // Is this if necessary? DHP should always be ahead of FP
       if (lastDsl.getDestinationHeadPointer().compareTo(dsl.getFootPointer()) > 0 ) {
         // We reached the end but never moved footPointer
@@ -212,7 +210,7 @@ public class PushService {
        * TODO
        * DOWNSTREAM will need to inspect the changed DSL and make decisions
        * about continuing/moving on based on pointers and head of record stack
-       */
+       * /
     });
-  }
+  } */
 }

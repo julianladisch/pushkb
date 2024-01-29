@@ -5,7 +5,7 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 import java.util.UUID;
 
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceType;
+import com.k_int.pushKb.model.GokbSourceType;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,7 +33,7 @@ public class GokbSource implements Source {
 
   @NotNull
   @NonNull
-  SourceType sourceType; // Package vs TIPP
+  GokbSourceType gokbSourceType; // Package vs TIPP
 
   @NotNull
   @NonNull
@@ -43,12 +43,12 @@ public class GokbSource implements Source {
 
   // Should be unique up to code/type/url
   private static final String UUID5_PREFIX = "gokb_source";
-  public static UUID generateUUID(SourceType sourceType, String sourceUrl) {
-    final String concat = UUID5_PREFIX + ":" + ":" + sourceType.toString() + ":" + sourceUrl;
+  public static UUID generateUUID(GokbSourceType gokbSourceType, String sourceUrl) {
+    final String concat = UUID5_PREFIX + ":" + ":" + gokbSourceType.toString() + ":" + sourceUrl;
     return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
   }
 
   public static UUID generateUUIDFromSource(GokbSource source) {
-    return generateUUID(source.getSourceType(), source.getSourceUrl());
+    return generateUUID(source.getGokbSourceType(), source.getSourceUrl());
   }  
 }
