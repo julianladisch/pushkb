@@ -46,7 +46,6 @@ public class DestinationService {
   @SingleResult
   @Transactional
   public <T extends Destination> Publisher<T> ensureDestination( T dest, Class<T> type ) {
-  //public <T extends Destination> Publisher<T> ensureDestination( T dest ) {
     return getRepositoryForDestinationType(type).ensureDestination(dest);
   }
 }

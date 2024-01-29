@@ -5,66 +5,45 @@ import java.util.UUID;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceType;
-
 import com.k_int.pushKb.storage.SourceRepository;
 
+import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.core.type.Argument;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
-import reactor.core.publisher.Mono;
 
 @Singleton
 public class SourceService {
-  private final SourceRepository sourceRepository;
-	public SourceService(
-    SourceRepository sourceRepository
-  ) {
-    this.sourceRepository = sourceRepository;
-	}
-
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Source> findById( UUID id ) {
-    return sourceRepository.findById(id);
+  private final BeanContext beanContext;
+  public SourceService ( BeanContext beanContext ) {
+    this.beanContext = beanContext;
   }
-/* 
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Source> ensureSource( String sourceUrl, SourceCode code, SourceType type ) {
-    Source src = Source.builder()
-                       .sourceUrl(sourceUrl)
-                       .code(code)
-                       .sourceType(type)
-                       .build();
 
-    return ensureSource(src);
+  @SuppressWarnings("unchecked")
+  protected <T extends Source> SourceRepository<T> getRepositoryForSourceType( Class<T> sourceType ) {
+    return (SourceRepository<T>) beanContext.getBean( Argument.of(SourceRepository.class, sourceType) ); // Use argument specify core type plus any generic...
   }
 
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<Source> ensureSource( Source src ) {
-    UUID gen_id = Source.generateUUID(
-      src.getCode(),
-      src.getSourceType(),
-      src.getSourceUrl()
-    );
+  public <T extends Source> Publisher<T> findById( UUID id, Class<T> type ) {
+    return getRepositoryForSourceType(type).findById(id);
+  }
 
-    // Set up new Source so we're definitely not passing the one from the parameters
-    Source new_source = src.toBuilder()
-                           .id(gen_id)
-                           .build();
+  @NonNull
+  @SingleResult
+  @Transactional
+  public <T extends Source> Publisher<Boolean> existsById( UUID id, Class<T> type ) {
+    return getRepositoryForSourceType(type).existsById(id);
+  }
 
-    return Mono.from(sourceRepository.existsById(gen_id))
-        .flatMap(doesItExist -> {
-          return Mono.from(doesItExist ?
-            sourceRepository.findById(gen_id) :
-            sourceRepository.save(new_source)
-          );
-        });
-  } */
+  @NonNull
+  @SingleResult
+  @Transactional
+  public <T extends Source> Publisher<T> ensureSource( T src, Class<T> type ) {
+    return getRepositoryForSourceType(type).ensureSource(src);
+  }
 }

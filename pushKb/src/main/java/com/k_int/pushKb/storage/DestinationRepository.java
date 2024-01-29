@@ -12,8 +12,15 @@ import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
 
 public interface DestinationRepository<T extends Destination> extends ReactiveStreamsPageableRepository<T, UUID> {
+  @NonNull
+  @SingleResult
   Publisher<Boolean> existsById(@Nullable UUID id);
+
+  @NonNull
+  @SingleResult
   Publisher<T> findById(@Nullable UUID id);
 
+  @NonNull
+  @SingleResult
   Publisher<T> ensureDestination(T dest);
 }

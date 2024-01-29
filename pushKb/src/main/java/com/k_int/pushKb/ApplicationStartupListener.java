@@ -16,6 +16,7 @@ import com.k_int.pushKb.model.SourceType;
 import com.k_int.pushKb.services.DestinationService;
 import com.k_int.pushKb.services.DestinationSourceLinkService;
 import com.k_int.pushKb.services.SourceService;
+import com.k_int.pushKb.sources.gokb.GokbSource;
 import com.k_int.pushKb.storage.SourceRepository;
 import com.k_int.pushKb.storage.DestinationRepository;
 
@@ -36,20 +37,21 @@ import reactor.core.publisher.Mono;
 public class ApplicationStartupListener implements ApplicationEventListener<StartupEvent> {
 	private final Environment environment;
 	private final DestinationService destinationService;
-/*   private final SourceService sourceService;
-	private final DestinationSourceLinkService destinationSourceLinkService; */
+  private final SourceService sourceService;
+	/* private final DestinationSourceLinkService destinationSourceLinkService; */
  
   private static final String BOOSTRAP_SOURCE_VAR = "BOOTSTRAP_SOURCES";
   private static final String BOOSTRAP_DESTINATION_VAR = "BOOSTRAP_DESTINATIONS";
 
 	public ApplicationStartupListener(
     Environment environment,
-		DestinationService destinationService
-		/* SourceService sourceService,
-		DestinationSourceLinkService destinationSourceLinkService, */
-  ) {
+		DestinationService destinationService,
+		SourceService sourceService
+/* 		DestinationSourceLinkService destinationSourceLinkService,
+ */  ) {
 		this.environment = environment;
 		this.destinationService = destinationService;
+		this.sourceService = sourceService;
 
 		/* this.sourceService = sourceService;
 		this.destinationSourceLinkService = destinationSourceLinkService; */
@@ -63,31 +65,36 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 				.orElse("false").equalsIgnoreCase("true")) { */
 
 		// FIXME what is happening???
-		Flux.from(bootstrapDestinations())
 			
-			/* Flux.from(bootstrapSources())
+			Flux.from(bootstrapSources())
 				.thenMany(Flux.from(bootstrapDestinations()))
-				//.thenMany(Flux.from(bootstrapDestinationSourceLinks())) // FIXME PushTasks back in later */
+				//.thenMany(Flux.from(bootstrapDestinationSourceLinks())) // FIXME PushTasks back in later
 			.subscribe();
 		//}
 
 		log.info("Exit onApplicationEvent");
 	}
 
-/* 	private Publisher<Source> bootstrapSources() {
+	private Publisher<Source> bootstrapSources() {
 		log.debug("bootstrapSources");
-		return Flux.fromArray(Boostraps.Sources.class.getFields())
-			.flatMap(src -> {
+		// Fetch all Destination Services
+		return Flux.fromIterable(Boostraps.sources.keySet())
+			.flatMap(srcKey -> {
 				try {
-					Source source = (Source) src.get(Boostraps.Sources.class);
-					//log.info("Bootstrapping source: {}", source);
-					return Mono.from(sourceService.ensureSource(source));
+					Source src = Boostraps.sources.get(srcKey);
+
+					if (src instanceof GokbSource) {
+						GokbSource gokbSrc = (GokbSource) src;
+						return Mono.from(sourceService.ensureSource(gokbSrc, GokbSource.class));
+					} 
+
+					return Mono.empty();
 				} catch (Exception e) {
 					e.printStackTrace();
 					return Mono.empty();
 				}
 			});
-	} */
+	}
 
 	private Publisher<Destination> bootstrapDestinations() {
 		log.debug("bootstrapDestinations");

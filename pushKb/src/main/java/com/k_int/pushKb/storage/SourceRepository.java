@@ -1,6 +1,5 @@
 package com.k_int.pushKb.storage;
 
-import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceType;
 
@@ -11,11 +10,7 @@ import org.reactivestreams.Publisher;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
-import io.micronaut.data.model.query.builder.sql.Dialect;
-import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
-import io.micronaut.transaction.annotation.Transactional;
-import jakarta.inject.Singleton;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Mono;
@@ -23,14 +18,6 @@ import reactor.core.publisher.Mono;
 public interface SourceRepository<T extends Source> extends ReactiveStreamsPageableRepository<T, UUID> {
   @NonNull
 	Publisher<T> findAllBySourceUrl ( String sourceUrl );
-
-  @NonNull
-  @SingleResult
-  Publisher<Boolean> existsById(@Nullable UUID id);
-
-  @NonNull
-  @SingleResult
-  Publisher<T> findById(@Nullable UUID id);
 
   @NonNull
   @SingleResult
@@ -60,7 +47,16 @@ public interface SourceRepository<T extends Source> extends ReactiveStreamsPagea
   @NonNull
   default Publisher<T> saveOrUpdate(@Valid @NotNull T src) {
     return Mono.from(this.existsById(src.getId()))
-               .flatMap( update -> Mono.from(update ? this.update(src) : this.save(src)) )
-    ;
+               .flatMap( update -> Mono.from(update ? this.update(src) : this.save(src)) );
   }
+
+  @NonNull
+  @SingleResult
+  Publisher<Boolean> existsById(@Nullable UUID id);
+  Publisher<T> findById(@Nullable UUID id);
+
+  // If we weren't using UUID5 for each Source type, we could instead have a default implementation here
+  @NonNull
+  @SingleResult
+  Publisher<T> ensureSource( T src );
 }
