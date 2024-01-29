@@ -2,6 +2,7 @@ package com.k_int.pushKb;
 
 import java.util.Collection;
 import java.util.List;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 
 import org.reactivestreams.Publisher;
@@ -92,14 +93,14 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		log.debug("bootstrapDestinations");
 		// Fetch all Destination Services
 		// FIXME is this being raw an issue?
-		return Flux.fromArray(Boostraps.Destinations.class.getFields())
-			.flatMap(dest -> {
+		return Flux.fromIterable(Boostraps.destinations.keySet())
+			.flatMap(destKey -> {
 				try {
-					Destination destination = (Destination) dest.get(Boostraps.Destinations.class);
-					Class<? extends Destination> clazz = destination.getClass();
-					log.info("DESTINATION CLASS: {}", clazz);
+					Destination destination = Boostraps.destinations.get(destKey);
+					//Class<? extends Destination> clazz = destination.getClass();
+					//log.info("DESTINATION CLASS: {}", clazz);
 					//return Mono.empty();
-					return Mono.from(destinationService.ensureDestination(clazz.cast(destination), clazz));
+					return Mono.from(destinationService.ensureDestination(destination, destination.getClass()));
 					//log.info("Bootstrapping destination: {}", destination);
 					
 				} catch (Exception e) {
