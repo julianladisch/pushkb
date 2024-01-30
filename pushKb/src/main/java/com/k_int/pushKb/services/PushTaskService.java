@@ -45,7 +45,7 @@ public class PushTaskService {
 
   // FIXME Not sure if raw feed is the way to go here, but let's get it working first
   @Transactional
-  protected Publisher<PushTask> getPushTaskFeed () {
+  public Publisher<PushTask> getPushTaskFeed () {
     return pushTaskRepository.listOrderBySourceIdAndDestinationIdAndId();
   }
 }
