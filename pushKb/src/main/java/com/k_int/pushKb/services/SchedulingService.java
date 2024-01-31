@@ -122,7 +122,7 @@ public class SchedulingService {
 			GokbSource.generateUUIDFromSource((GokbSource) Boostraps.sources.get("GOKB_TIPP")),
 			GokbSource.class
 		))
-			.flatMap(this::handleSource)
+			.flatMapMany(sourceService::triggerIngestForSource)
 			.subscribe();
 	}
 
@@ -134,14 +134,4 @@ public class SchedulingService {
 			.doOnNext(thing -> log.info("WHAT IS THING: {}", thing))
 			.subscribe();
 	} */
-
-	// This should be in its own thing
-	public Mono<Instant> handleSource(Source source) {
-		return Mono.from(sourceRecordService.findMaxLastUpdatedAtSourceBySource(source))
-			// Is it the right thing to do here to use doOnSuccess?
-			.doOnSuccess(maxVal -> {
-				log.info("MAXIMUM TIMESTAMP FOUND: {}", maxVal);
-				goKBFeedService.fetchGoKBTipps(source, Optional.ofNullable(maxVal));
-			});
-	}
 }
