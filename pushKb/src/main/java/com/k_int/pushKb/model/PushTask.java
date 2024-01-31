@@ -5,8 +5,7 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.k_int.pushKb.converters.DestinationClassAttributeConverter;
-import com.k_int.pushKb.converters.SourceClassAttributeConverter;
+import com.k_int.pushKb.converters.ClassAttributeConverter;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.Id;
@@ -39,11 +38,11 @@ public class PushTask {
   private String transform;
 
   private UUID sourceId;
-  @TypeDef(type = DataType.STRING, converter = SourceClassAttributeConverter.class)
+  @TypeDef(type = DataType.STRING, converter = ClassAttributeConverter.class)
   private Class<? extends Source> sourceType;
 
   private UUID destinationId;
-  @TypeDef(type = DataType.STRING, converter = DestinationClassAttributeConverter.class)
+  @TypeDef(type = DataType.STRING, converter = ClassAttributeConverter.class)
   private Class<? extends Destination> destinationType;
 
   /* This record will hold pointers indicating which source_records have been successfully sent.
