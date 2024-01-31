@@ -12,6 +12,7 @@ import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
+import jakarta.validation.Valid;
 import reactor.core.publisher.Mono;
 
 @Singleton
@@ -47,5 +48,10 @@ public class PushTaskService {
   @Transactional
   public Publisher<PushTask> getPushTaskFeed () {
     return pushTaskRepository.listOrderBySourceIdAndDestinationIdAndId();
+  }
+
+  @Transactional
+  public Publisher<PushTask> update (@Valid PushTask pt) {
+    return pushTaskRepository.update(pt);
   }
 }

@@ -32,6 +32,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class SchedulingService {
 	private final SourceService sourceService;
+	private final PushTaskService pushTaskService;
 	private final PushService pushService;
 
 	// FIXME DSL needs to be changed over to PushTask... good luck future Ethan
@@ -48,6 +49,7 @@ public class SchedulingService {
 	public SchedulingService(
 		SourceRecordService sourceRecordService,
 		SourceService sourceService,
+		PushTaskService pushTaskService,
 		PushService pushService,
 		ProteusService proteusService,
 		ObjectMapper objectMapper,
@@ -55,12 +57,12 @@ public class SchedulingService {
 	) {
 		this.sourceRecordService = sourceRecordService;
 		this.sourceService = sourceService;
+		this.pushTaskService = pushTaskService;
 		this.pushService = pushService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;
 		this.httpClient = httpClient;
 	}
-
 
 	// TESTING
 /* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
@@ -90,22 +92,22 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
-/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
 			// Iterate over all DSLs, maybe want to be smarter about this in future
 			// TODO we will need two Fluxes happening one after the other... one to fill any holes,
 			// then one from head -> top of sent stack
 
-			Flux.from(destinationSourceLinkService.getDestinationSourceLinkFeed())
+			Flux.from(pushTaskService.getPushTaskFeed())
 				// Run first Flux -- shouldn't return til last ?
-				.flatMap(pushService::handleSourceRecordsFromDSL)
+				.flatMap(pushService::runPushTask)
 				.doOnNext(dsl -> log.info("WHEN DO WE SEE THIS FINAL END? {}", dsl))
 				.subscribe();
-	} */
+	}
 
   // FIXME need to work on delay here
-  @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
 			// Fetch all source implementers from sourceService
 			Flux.from(sourceService.getSourceImplementors())
@@ -113,7 +115,7 @@ public class SchedulingService {
 			.flatMap(sourceService::list)
 			// For each source, trigger an ingest of all records
 			.flatMap(sourceService::triggerIngestForSource)
-			.subscribe();
+			.subscribe(); */
 
 		// Example grabbing bootstrapped TIPP Source directly, not necessary now
 /* 		Mono.from(sourceService.findById(
@@ -121,8 +123,8 @@ public class SchedulingService {
 			GokbSource.class
 		))
 			.flatMapMany(sourceService::triggerIngestForSource)
-			.subscribe(); */
-	}
+			.subscribe(); 
+	}*/
 
 	// FETCHING FROM FOLIO---?
 /* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")

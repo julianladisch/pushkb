@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.proteus.ProteusService;
 
@@ -23,20 +24,24 @@ import reactor.util.function.Tuples;
 @Singleton
 @Slf4j
 public class PushService {
+  private final SourceService sourceService;
 	private final SourceRecordService sourceRecordService;
+  private final PushTaskService pushTaskService;
 
 	// FIXME This will need incorporating later
 	private final ProteusService proteusService;
 	private final ObjectMapper objectMapper;
 
-  // FIXME DSL needs to be changed over to PushTask... good luck future Ethan
-
 	public PushService(
+    SourceService sourceService,
 		SourceRecordService sourceRecordService,
+    PushTaskService pushTaskService,
 		ProteusService proteusService,
     ObjectMapper objectMapper
 	) {
+    this.sourceService = sourceService;
 		this.sourceRecordService = sourceRecordService;
+    this.pushTaskService = pushTaskService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;
 	}
@@ -57,46 +62,50 @@ public class PushService {
 	//     Current pointers from destination_record
 	//     Head of source_records list
 	//     For each record log out id, then either SENT (ID) or ERROR (ID) (10% failure)
-/*   public Mono<DestinationSourceLink> handleSourceRecordsFromDSL(DestinationSourceLink dsl) {
+
+  public Mono<PushTask> runPushTask(PushTask pt) {
     // We potentially need to run this twice, once to zip up hole,
     //once to bring in line with latest changes
-    return Mono.from(handleSourceRecordsFromDSLSingleRun(dsl))
+    return Mono.from(runPushTaskSingle(pt))
       // At this point, we should ALWAYS have "zipped up" the gap in records, next check if any new ones exist ahead of DHP
       //.doOnNext(dest -> log.info("WHEN DO WE SEE THIS? {}", dest))
-				// Go lookup head of stream (DSL source should never have changed...)
-      .zipWith(Mono.from(sourceRecordService.findMaxUpdatedBySource(dsl.getSource())))
+				// Go lookup head of stream (PT sourceid should never have changed...)
+      .zipWith(
+        // Grab sourceId from pt, and then use that to grab Instant head of source feed
+        // Again we assume that id is unique acrosss sourceTypes
+        Mono.from(sourceRecordService.findMaxUpdatedBySourceId(pt.getSourceId()))
+      )
       .flatMap(tuple -> {
-        DestinationSourceLink lastDsl = tuple.getT1();
+        PushTask lastPt = tuple.getT1();
         Instant sourceRecordHead = tuple.getT2();
-        if (sourceRecordHead.compareTo(lastDsl.getDestinationHeadPointer()) > 0) {
-          // There are fresh records ahead of the footPointer, rerun from lastDSL
+        if (sourceRecordHead.compareTo(lastPt.getDestinationHeadPointer()) > 0) {
+          // There are fresh records ahead of the footPointer, rerun from lastPT
           // ATM we do this specifically as a second run, we could recurse this, but honestly running once an hour should be fine
           log.info("Fresh records exist ahead of destinationHeadPointer, bringing in line");
-          return handleSourceRecordsFromDSLSingleRun(lastDsl);
+          return runPushTaskSingle(lastPt);
         }
 
         // No need to rerun, just 
-        return Mono.just(dsl);
+        return Mono.just(pt);
       });
   }
 
-  public Mono<DestinationSourceLink> handleSourceRecordsFromDSLSingleRun(DestinationSourceLink dsl) {
-    log.info("handleSourceRecordsFromDSLSingleRun called with {}", dsl);
-    Instant lowerBound = dsl.getFootPointer();
+  public Mono<PushTask> runPushTaskSingle(PushTask pt) {
+    log.info("runPushTaskSingle called with {}", pt);
+    Instant lowerBound = pt.getFootPointer();
     Instant upperBound = Instant.now();
 
-    if (dsl.getDestinationHeadPointer().compareTo(dsl.getFootPointer()) != 0) {
+    if (pt.getDestinationHeadPointer().compareTo(pt.getFootPointer()) != 0) {
       // If the DHP is NOT equal to FP, then we are in the "gap", continue from LSP
-      upperBound = dsl.getLastSentPointer();
+      upperBound = pt.getLastSentPointer();
     } // Otherwise, use head of stack with Instant.now()
 
     log.info("UPPER BOUND: {}", upperBound);
     log.info("LOWER BOUND: {}", lowerBound);
 
-    return Flux.from(sourceRecordService.getSourceRecordFeedBySource(
-			dsl.getSource(),
-			// TODO what happens if we have two records with the same timestamp?
-			// should our pointer include Id (or just be the sourceRecord itself)?
+    return Flux.from(sourceRecordService.getSourceRecordFeedBySourceId(
+			pt.getSourceId(),
+			// TODO what happens if we have two records with the same timestamp? - Unlikely but possible I guess
 			//Instant.EPOCH,
 			lowerBound,
 			//Instant.now()
@@ -138,8 +147,8 @@ public class PushService {
        */
       /*
        * Idk if this is useful, but this is how to set up our own tuple. Could be useful for passing info downstream
-       * Tuple2<SourceRecord, DestinationSourceLink> output = Tuples.of(sr, dsl);
-       * /
+       * Tuple2<SourceRecord, PushTask> output = Tuples.of(sr, pt);
+       */
 
       // We check the very bottom sourceRecord, as that's where the pointer will move
       SourceRecord firstSr = srArray.get(0);
@@ -165,52 +174,49 @@ public class PushService {
       if (random.nextDouble() <= 0.1) {
         return Mono.error(new Exception("SOMETHING WENT WRONG HERE"));
       }
- * /
+ */
       log.info("SENT RECORD: {}", sr.getId());
       // ASSUMING right now it's successful, so sr.getUpdated() is new relevant data
       
       // The last thing "successfully sent" was the last timestamp
-      dsl.setLastSentPointer(sr.getUpdated());
+      pt.setLastSentPointer(sr.getUpdated());
 
       // Now compare the earliest thing sent in this chunk to the DHP
-      if (firstSr.getUpdated().compareTo(dsl.getDestinationHeadPointer()) > 0) {
+      if (firstSr.getUpdated().compareTo(pt.getDestinationHeadPointer()) > 0) {
         // We have a new head pointer
-        dsl.setDestinationHeadPointer(firstSr.getUpdated());
+        pt.setDestinationHeadPointer(firstSr.getUpdated());
       }
 
-			return destinationSourceLinkService.update(dsl);
+			return pushTaskService.update(pt);
 		})
     /*
-     * TODO alternative -- can we break out of a Flux and not use Between? Would simplify logic
-     * instead working back from DestinationHeadPointer or head of record stack?
      * TODO does last trigger if there's an error?
-     * /
-    .takeLast(1) // This will contain the DSL as it stands after the LAST record in the stack
+     */
+    .takeLast(1) // This will contain the PT as it stands after the LAST record in the stack
     .next() // This should be a passive version of last(), where if stream is empty we don't get a crash
-    .flatMap(lastDsl -> {
+    .flatMap(lastPt -> {
       log.info("We still got here after exception though");
-      // FIXME is it ok to update from this new "version" of DSL instead of the passed one?
       /* If previous footPointer is updated
        * then the between logic will return a list NOT containing
        * a record equal to or below FootPointer.
        * 
        * If we have reached the end of the list successfully then the destinationHeadPointer
        * should be the new footPointer. ASSUMES THAT THE BETWEEN WORKS AS EXPECTED
-       * /
+       */
       // Is this if necessary? DHP should always be ahead of FP
-      if (lastDsl.getDestinationHeadPointer().compareTo(dsl.getFootPointer()) > 0 ) {
+      if (lastPt.getDestinationHeadPointer().compareTo(pt.getFootPointer()) > 0 ) {
         // We reached the end but never moved footPointer
-        lastDsl.setFootPointer(lastDsl.getDestinationHeadPointer());
-        return Mono.from(destinationSourceLinkService.update(lastDsl)); 
+        lastPt.setFootPointer(lastPt.getDestinationHeadPointer());
+        return Mono.from(pushTaskService.update(lastPt)); 
       }
 
-      // If nothing changed, just return DSL as is
-      return Mono.just(lastDsl);
+      // If nothing changed, just return PT as is
+      return Mono.just(lastPt);
       /* 
        * TODO
-       * DOWNSTREAM will need to inspect the changed DSL and make decisions
+       * DOWNSTREAM will need to inspect the changed PT and make decisions
        * about continuing/moving on based on pointers and head of record stack
-       * /
+       */
     });
-  } */
+  }
 }

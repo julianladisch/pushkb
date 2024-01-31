@@ -1,6 +1,7 @@
 package com.k_int.pushKb.services;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
@@ -38,7 +39,14 @@ public class SourceRecordService {
 
   @Transactional
   protected Publisher<SourceRecord> getSourceRecordFeedBySource (Source source, Instant footTimestamp, Instant headTimestamp) {
-    return sourceRecordRepository.findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(source.getId(), footTimestamp, headTimestamp);
+    return getSourceRecordFeedBySourceId(source.getId(), footTimestamp, headTimestamp);
+  }
+
+  // THIS ASSUMES THAT SOURCES OF TWO DIFFERENT TYPES WILL NOT SHARE AN ID...
+  // BE VERY CAREFUL WITH UUID5
+  @Transactional
+  protected Publisher<SourceRecord> getSourceRecordFeedBySourceId (UUID sourceId, Instant footTimestamp, Instant headTimestamp) {
+    return sourceRecordRepository.findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(sourceId, footTimestamp, headTimestamp);
   }
 
   @Transactional
@@ -51,6 +59,12 @@ public class SourceRecordService {
   @Transactional
   @SingleResult
   public Publisher<Instant> findMaxUpdatedBySource (Source source) {
-    return sourceRecordRepository.findMaxUpdatedBySourceId(source.getId());
+    return findMaxUpdatedBySourceId(source.getId());
+  }
+
+  @Transactional
+  @SingleResult
+  public Publisher<Instant> findMaxUpdatedBySourceId (UUID sourceId) {
+    return sourceRecordRepository.findMaxUpdatedBySourceId(sourceId);
   }
 }
