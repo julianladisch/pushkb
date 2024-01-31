@@ -17,11 +17,8 @@ import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
 
 import com.k_int.pushKb.proteus.ProteusService;
-import com.k_int.pushKb.sources.gokb.GoKBFeedService;
-import com.k_int.pushKb.sources.gokb.GokbSource;
-import com.k_int.pushKb.storage.SourceRecordRepository;
+import com.k_int.pushKb.sources.gokb.GokbFeedService;
 
-import io.micronaut.context.BeanContext;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.json.tree.JsonNode;
 import io.micronaut.serde.ObjectMapper;
@@ -34,15 +31,14 @@ import reactor.core.publisher.Mono;
 @Singleton
 @Slf4j
 public class SchedulingService {
-	private final GoKBFeedService goKBFeedService;
-	// FIXME This probably shouldn't be here
 	private final SourceService sourceService;
-	private final SourceRecordService sourceRecordService;
 	private final PushService pushService;
 
 	// FIXME DSL needs to be changed over to PushTask... good luck future Ethan
 
 	// FIXME remove this too
+	// SRS not needed long term, here for example usage with Proteus
+	private final SourceRecordService sourceRecordService;
 	private final ProteusService proteusService;
 	private final ObjectMapper objectMapper;
 
@@ -50,7 +46,6 @@ public class SchedulingService {
 	private final HttpClient httpClient;
 
 	public SchedulingService(
-		GoKBFeedService goKBFeedService,
 		SourceRecordService sourceRecordService,
 		SourceService sourceService,
 		PushService pushService,
@@ -58,7 +53,6 @@ public class SchedulingService {
 		ObjectMapper objectMapper,
 		HttpClient httpClient //TODO Keep an eye on this
 	) {
-		this.goKBFeedService = goKBFeedService;
 		this.sourceRecordService = sourceRecordService;
 		this.sourceService = sourceService;
 		this.pushService = pushService;
@@ -113,17 +107,21 @@ public class SchedulingService {
   // FIXME need to work on delay here
   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
-		// TODO For now we're specifically grabbing Bootstrapped Gokb source.
-		// We need to instead get all sources, via BeanContext?
-/* 		sourceService.findSourceImplementors(); // FIXME THIS ISN'T PERMANENT. */
+			// Fetch all source implementers from sourceService
+			Flux.from(sourceService.getSourceImplementors())
+			// For each class implementing Source, list all actual Sources in DB
+			.flatMap(sourceService::list)
+			// For each source, trigger an ingest of all records
+			.flatMap(sourceService::triggerIngestForSource)
+			.subscribe();
 
-		// SourceRecord by source will need tweaking too
-		Mono.from(sourceService.findById(
+		// Example grabbing bootstrapped TIPP Source directly, not necessary now
+/* 		Mono.from(sourceService.findById(
 			GokbSource.generateUUIDFromSource((GokbSource) Boostraps.sources.get("GOKB_TIPP")),
 			GokbSource.class
 		))
 			.flatMapMany(sourceService::triggerIngestForSource)
-			.subscribe();
+			.subscribe(); */
 	}
 
 	// FETCHING FROM FOLIO---?

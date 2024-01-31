@@ -7,5 +7,5 @@ import reactor.core.publisher.Flux;
 
 // Use generic here for ability to fetch the feed service later (??)
 public interface SourceFeedService<T extends Source> {
-  Flux<SourceRecord> fetchSourceRecords(Source source);
+  Flux<SourceRecord> fetchSourceRecords(T source);
 }

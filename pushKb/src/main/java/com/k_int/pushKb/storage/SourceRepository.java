@@ -31,4 +31,7 @@ public interface SourceRepository<T extends Source> extends ReactiveStreamsPagea
   @NonNull
   @SingleResult
   Publisher<T> ensureSource( T src );
+
+  @NonNull
+  Publisher<T> list();
 }

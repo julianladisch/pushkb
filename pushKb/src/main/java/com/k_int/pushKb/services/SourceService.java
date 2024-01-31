@@ -52,6 +52,12 @@ public class SourceService {
   }
 
   @NonNull
+  @Transactional
+  public Publisher<? extends Source> list(Class<? extends Source> type ) {
+    return getRepositoryForSourceType(type).list();
+  }
+
+  @NonNull
   @SingleResult
   @Transactional
   public Publisher<? extends Source> ensureSource( Source src, Class<? extends Source> type ) {
