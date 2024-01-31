@@ -9,17 +9,19 @@ import java.util.Optional;
 
 import org.reactivestreams.Publisher;
 
-// FIXME this isn't quite right yet
 import com.k_int.pushKb.Boostraps;
-// FIXME AAAAAAAAAAAAAAAAAAAAAAA
+
+// FIXME IDK What I'm doing here yet
 //import com.k_int.pushKb.destinations.folio.FolioLowLevelApiClient;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
 
 import com.k_int.pushKb.proteus.ProteusService;
-
+import com.k_int.pushKb.sources.gokb.GoKBFeedService;
+import com.k_int.pushKb.sources.gokb.GokbSource;
 import com.k_int.pushKb.storage.SourceRecordRepository;
 
+import io.micronaut.context.BeanContext;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.json.tree.JsonNode;
 import io.micronaut.serde.ObjectMapper;
@@ -67,10 +69,10 @@ public class SchedulingService {
 
 
 	// TESTING
-	/* @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testProteus() {
 		log.info("TESTING PROTEUS");
-			Flux.from(sourceRecordRepository.findTop2OrderByCreatedDesc())
+			Flux.from(sourceRecordService.findTop2OrderByCreatedDesc())
 				.map(sr -> {
 					try {
 						JsonNode jsonOutput = proteusService.convert(
@@ -108,14 +110,21 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
-/*   // FIXME need to work on delay here
+  // FIXME need to work on delay here
   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
-		// FIXME This won't work anymore, grab all implementors of Source and then use
-		Mono.from(sourceService.findById(Source.generateUUIDFromSource(Sources.GOKB_TIPP)))
-				.flatMap(this::handleSource)
-				.subscribe();
-	} */
+		// TODO For now we're specifically grabbing Bootstrapped Gokb source.
+		// We need to instead get all sources, via BeanContext?
+/* 		sourceService.findSourceImplementors(); // FIXME THIS ISN'T PERMANENT. */
+
+		// SourceRecord by source will need tweaking too
+		Mono.from(sourceService.findById(
+			GokbSource.generateUUIDFromSource((GokbSource) Boostraps.sources.get("GOKB_TIPP")),
+			GokbSource.class
+		))
+			.flatMap(this::handleSource)
+			.subscribe();
+	}
 
 	// FETCHING FROM FOLIO---?
 /* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")

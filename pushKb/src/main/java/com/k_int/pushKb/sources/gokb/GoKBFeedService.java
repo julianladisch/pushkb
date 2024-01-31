@@ -1,4 +1,4 @@
-package com.k_int.pushKb.services;
+package com.k_int.pushKb.sources.gokb;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -7,8 +7,8 @@ import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
-import com.k_int.pushKb.sources.gokb.GokbApiClient;
-import com.k_int.pushKb.sources.gokb.GokbScrollResponse;
+import com.k_int.pushKb.services.SourceRecordService;
+import com.k_int.pushKb.services.SourceService;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.json.tree.JsonNode;
@@ -116,13 +116,17 @@ public class GoKBFeedService {
 
 	private SourceRecord handleSourceRecordJson ( @NonNull JsonNode jsonNode, Source source ) {
 		String sourceUUID = jsonNode.get("uuid").getStringValue();
-		return SourceRecord.builder()
-			.id(SourceRecord.generateUUID(source, sourceUUID))
-			.jsonRecord(jsonNode)
-			.lastUpdatedAtSource(Instant.parse(jsonNode.get("lastUpdatedDisplay").getStringValue()))
-			.sourceUUID(sourceUUID)
-			.sourceId(source.getId())
-			.build();
+		SourceRecord sr = SourceRecord.builder()
+		.jsonRecord(jsonNode)
+		.lastUpdatedAtSource(Instant.parse(jsonNode.get("lastUpdatedDisplay").getStringValue()))
+		.sourceUUID(sourceUUID)
+		.sourceType(GokbSource.class)
+		.sourceId(source.getId())
+		.build();
+
+		sr.setId(SourceRecord.generateUUIDFromSourceRecord(sr));
+		
+		return sr;
 	}
 
 	protected void handleNode(SourceRecord sr) {

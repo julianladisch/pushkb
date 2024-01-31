@@ -14,7 +14,7 @@ import com.k_int.pushKb.sources.gokb.GokbSource;
 
 public interface Boostraps {
 
-  public static final Map<String, Source> sources = Map.ofEntries(
+  public static final Map<String, ? extends Source> sources = Map.ofEntries(
     new SimpleEntry<String, GokbSource>(
       "GOKB_PACKAGE",
       GokbSource.builder()

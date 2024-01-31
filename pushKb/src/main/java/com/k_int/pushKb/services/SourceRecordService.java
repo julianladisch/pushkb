@@ -26,7 +26,7 @@ public class SourceRecordService {
 
   @Transactional
   @SingleResult // Use when you use a Publisher representing a single result
-  protected Publisher<SourceRecord> saveOrUpdateRecord ( @NonNull @Valid SourceRecord sr ) {
+  public Publisher<SourceRecord> saveOrUpdateRecord ( @NonNull @Valid SourceRecord sr ) {
   	return sourceRecordRepository.saveOrUpdate(sr);
   }
 
