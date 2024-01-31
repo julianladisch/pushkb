@@ -21,6 +21,8 @@ import reactor.function.TupleUtils;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
+import com.k_int.proteus.ComponentSpec;
+
 @Singleton
 @Slf4j
 public class PushService {
@@ -103,6 +105,10 @@ public class PushService {
     log.info("UPPER BOUND: {}", upperBound);
     log.info("LOWER BOUND: {}", lowerBound);
 
+
+    // FIXME this needs to come from the PT transform model somehow
+    ComponentSpec<Object> proteusSpec = proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json");
+
     return Flux.from(sourceRecordService.getSourceRecordFeedBySourceId(
 			pt.getSourceId(),
 			// TODO what happens if we have two records with the same timestamp? - Unlikely but possible I guess
@@ -121,8 +127,11 @@ public class PushService {
       // TODO can we parallelise the transformation of these 100 records?
       for(SourceRecord sr : srArray) {
         try {
+          // Am not convinced that converting one by one is the way to go,
+          // perhaps a standard proteusSpec for converting an array of records
+          // which can reference a spec we feed in? 
           recordsList.add(proteusService.convert(
-            proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json"),
+            proteusSpec,
             sr.getJsonRecord()
           ));
         } catch (Exception e) {

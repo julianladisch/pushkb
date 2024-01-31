@@ -41,11 +41,11 @@ public class ProteusService {
     return ComponentSpec.loadFile(TRANSFORM_SPEC_PATH + "/" + specName);
   }
 
-  public JsonNode convert(ComponentSpec spec, Object inputJson) {
+  public JsonNode convert(ComponentSpec<Object> spec, Object inputJson) {
     Context context = Context
       .builder()
       .spec(spec)
-      .config(this.config)
+      .config(ProteusService.config)
       .build();
     Input internal = new Input(inputJson);
 
@@ -55,7 +55,7 @@ public class ProteusService {
       .orElse(null));
   }
 
-  public JsonNode convert(ComponentSpec spec, JsonNode inputJson) {
+  public JsonNode convert(ComponentSpec<Object> spec, JsonNode inputJson) {
     Object objectJson = null;
     try {
       objectJson = objectMapper.readValue(objectMapper.writeValueAsBytes(inputJson), Object.class);
