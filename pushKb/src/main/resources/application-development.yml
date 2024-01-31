@@ -8,6 +8,7 @@ micronaut:
     client:
       event-loop-group: other
       read-timeout: 30
+      max-content-length: 2147483647 # This strikes me as a bit dangerous, but 10MB causes issues from GOKB for some reason
 
   server:
     port: 8060
