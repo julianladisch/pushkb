@@ -42,6 +42,15 @@ public class FolioDestination implements Destination {
 
   private final String tenant;
 
+  @NotNull
+  @NonNull
+  @Size(max = 200)
+  private final String loginUser;
+  @NotNull
+  @NonNull
+  @Size(max = 200)
+  private final String loginPassword;
+
   private static final String UUID5_PREFIX = "folio_destination";
   public static UUID generateUUID(String tenant, String destinationUrl) {
     final String concat = UUID5_PREFIX + ":" + tenant + ":" + destinationUrl;

@@ -1,5 +1,7 @@
 package com.k_int.pushKb.services;
 
+import static java.util.Collections.checkedSortedMap;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
@@ -10,14 +12,13 @@ import java.util.Optional;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.Boostraps;
-
-// FIXME IDK What I'm doing here yet
-//import com.k_int.pushKb.destinations.folio.FolioLowLevelApiClient;
+import com.k_int.pushKb.destinations.folio.FolioDestination;
+import com.k_int.pushKb.destinations.folio.FolioDestinationApiClient;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
 
+// FIXME think this will be removed once I'm done debugging Proteus usage -- future task though
 import com.k_int.pushKb.proteus.ProteusService;
-import com.k_int.pushKb.sources.gokb.GokbFeedService;
 
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.json.tree.JsonNode;
@@ -35,7 +36,8 @@ public class SchedulingService {
 	private final PushTaskService pushTaskService;
 	private final PushService pushService;
 
-	// FIXME DSL needs to be changed over to PushTask... good luck future Ethan
+	// TODO Are we using this in the end?
+	private final DestinationService destinationService;
 
 	// FIXME remove this too
 	// SRS not needed long term, here for example usage with Proteus
@@ -51,6 +53,7 @@ public class SchedulingService {
 		SourceService sourceService,
 		PushTaskService pushTaskService,
 		PushService pushService,
+		DestinationService destinationService,
 		ProteusService proteusService,
 		ObjectMapper objectMapper,
 		HttpClient httpClient //TODO Keep an eye on this
@@ -59,6 +62,7 @@ public class SchedulingService {
 		this.sourceService = sourceService;
 		this.pushTaskService = pushTaskService;
 		this.pushService = pushService;
+		this.destinationService = destinationService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;
 		this.httpClient = httpClient;
@@ -92,19 +96,15 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
-	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
-			// Iterate over all DSLs, maybe want to be smarter about this in future
-			// TODO we will need two Fluxes happening one after the other... one to fill any holes,
-			// then one from head -> top of sent stack
-
+			// Iterate over all PushTasks, maybe want to be smarter about this in future
 			Flux.from(pushTaskService.getPushTaskFeed())
-				// Run first Flux -- shouldn't return til last ?
 				.flatMap(pushService::runPushTask)
-				.doOnNext(dsl -> log.info("WHEN DO WE SEE THIS FINAL END? {}", dsl))
+				.doOnNext(pt -> log.info("WHEN DO WE SEE THIS FINAL END? {}", pt))
 				.subscribe();
-	}
+	} */
 
   // FIXME need to work on delay here
 /*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
@@ -127,11 +127,23 @@ public class SchedulingService {
 	}*/
 
 	// FETCHING FROM FOLIO---?
-/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
-		FOLIOLowLevelApiClient folioClient = new FOLIOLowLevelApiClient();
-		Mono.from(folioClient.getChunks())
-			.doOnNext(thing -> log.info("WHAT IS THING: {}", thing))
-			.subscribe();
-	} */
+		// For now, grab our FolioDestination from Bootstraps directly
+		Mono.from(destinationService.findById(
+			/* FolioDestination.generateUUIDFromDestination(
+				(FolioDestination) Boostraps.destinations.get("LOCAL_RANCHER_FOLIO")
+			), */
+			FolioDestination.generateUUIDFromDestination(
+				(FolioDestination) Boostraps.destinations.get("SNAPSHOT")
+			),
+			FolioDestination.class
+		)).flatMapMany(dest -> {
+			FolioDestination folioDest = (FolioDestination) dest;
+			FolioDestinationApiClient folioClient = new FolioDestinationApiClient(httpClient, folioDest);
+			return folioClient.getAgreements();
+		})
+		.doOnNext(resp -> log.info("WHAT IS RESP? {}", resp))
+		.subscribe();;
+	}
 }
