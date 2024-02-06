@@ -1,4 +1,4 @@
-package com.k_int.pushKb.destinations.folio;
+package com.k_int.pushKb.interactions.folio;
 
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.core.type.Argument;
@@ -11,6 +11,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.http.cookie.Cookie;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static io.micronaut.http.HttpHeaders.ACCEPT;
 import static io.micronaut.http.HttpHeaders.USER_AGENT;
@@ -43,44 +45,59 @@ import static io.micronaut.http.HttpMethod.PUT;
 import static io.micronaut.http.MediaType.APPLICATION_JSON;
 
 
-// DCB splits this into "generic" api client and then specific...
-// Might be worth having a FOLIO client so we could then implement
-// Destination/Source clients separately if we wished
-public class FolioDestinationApiClient {
+public class FolioApiClient {
 	private final static String X_OKAPI_TENANT = "X-Okapi-Tenant";
 	private final static String FOLIO_ACCESS_TOKEN = "folioAccessToken";
 	private final static String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
 
+	private final static String LOGIN_URI = "/bl-users/login-with-expiry";
+
 	private final HttpClient client;
 	private final URI rootUri;
-	private final FolioDestination destination;
+	private final String loginUser;
+	private final String loginPassword;
+	private final String tenant;
 
 	// Keep a current token for login etc
 	private CookieToken currentToken;
 
 	// Logging
-	static final Logger log = LoggerFactory.getLogger(FolioDestinationApiClient.class);
+	static final Logger log = LoggerFactory.getLogger(FolioApiClient.class);
 
-	public FolioDestinationApiClient(
+	public FolioApiClient(
 		HttpClient client,
-		FolioDestination destination
+		String destinationUrl,
+		String tenant,
+		String loginUser,
+		String loginPassword
 	) {  
 			this.client = client;
-			this.destination = destination;
+			this.tenant = tenant;
+			this.loginUser = loginUser;
+			this.loginPassword = loginPassword;
 
-			rootUri = UriBuilder.of(destination.getDestinationUrl())
+			rootUri = UriBuilder.of(destinationUrl)
 							.build();
 	}
 
-	// LOGIN/TOKEN STUFF
 	// FIXME we need error handling -- See HostLmsSierraApiClient for examples
-/* 	private <T> Mono<T> handleResponseErrors(final Mono<T> current) {
-		// We used to do
-		// .transform(this::handle404AsEmpty)
-		// Immediately after current, but some downstream chains rely upon the 404 so
-		// for now we use .transform directly in the caller
-		return current.doOnError(sierraResponseErrorMatcher::isUnauthorised, _t -> clearToken());
-	} */
+	// Is it ok to assume we always pass request in? I want to be able to do special casde handling for login.
+	private <T> Mono<T> handleResponseErrors(final Mono<T> current, MutableHttpRequest<?> request) {
+		return current.doOnError(HttpClientResponseException.class, e -> {
+
+			// Not sure exactly why == operator doesn't work here
+			if (request.getPath().equals(LOGIN_URI)) {
+				// LOGIN SPECIFIC ERROR HANDLING
+				log.info("This is a login failure");
+			}
+
+			HttpResponse<?> errorResponse = e.getResponse();
+			log.info("ERROR CODE: {}", errorResponse.getStatus());
+			log.info("ERROR BODY: {}", errorResponse.getBody());
+
+		}).onErrorComplete(); // FIXME not sure if completing is the right thing to do.
+	}
+
 
 	private void clearToken() {
 		log.debug("Clearing token to trigger re-authentication");
@@ -99,20 +116,21 @@ public class FolioDestinationApiClient {
 		return Mono.just(UriBuilder.of(path).build()).map(this::resolve)
 				.map(resolvedUri -> HttpRequest.<T>create(method, resolvedUri.toString())
 					.accept(APPLICATION_JSON)
-					.header(X_OKAPI_TENANT, destination.getTenant())
+					.header(X_OKAPI_TENANT, tenant)
 				);
+	}
+
+	private <T> Mono<HttpResponse<T>> doExchange(MutableHttpRequest<?> request, Class<T> type) {
+		return Mono.from(client.exchange(request, Argument.of(type))).transform(mono -> this.handleResponseErrors(mono, request));
 	}
 
 	private <T> Mono<T> doRetrieve(MutableHttpRequest<?> request, Argument<T> argumentType) {
 		return doRetrieve(request, argumentType, true);
 	}
 
-	private <T> Mono<HttpResponse<T>> doExchange(MutableHttpRequest<?> request, Class<T> type) {
-		return Mono.from(client.exchange(request, Argument.of(type)));
-	}
-
 	private <T> Mono<T> doRetrieve(MutableHttpRequest<?> request, Argument<T> argumentType, boolean mapErrors) {
-		return Mono.from(client.retrieve(request, argumentType));
+		var response =  Mono.from(client.retrieve(request, argumentType));
+		return mapErrors ? response.transform(mono -> this.handleResponseErrors(mono, request)) : response;
 	}
 
 	private URI resolve(URI relativeURI) {
@@ -140,14 +158,14 @@ public class FolioDestinationApiClient {
 	@SingleResult
 	public Mono<CookieToken> login() {
 		// FIXME There has to be a better way than this...
-		String loginBody = "{\"username\":\"" + destination.getLoginUser() + "\",\"password\":\""+ destination.getLoginPassword() + "\"}";
-		//String loginBody = "{\"username\":\"" + destination.getLoginUser() + "\",\"password\":\"wrong-password\"}";
-		return postRequest("/bl-users/login-with-expiry")
+		String loginBody = "{\"username\":\"" + loginUser + "\",\"password\":\""+ loginPassword + "\"}";
+		//String loginBody = "{\"username\":\"" + loginUser + "\",\"password\":\"wrong-password\"}";
+		return postRequest(LOGIN_URI)
 				.map(req -> {
 					return req.body(loginBody);
 				})
 				// FIXME needs error handling for bad login creds
-				.flatMap(req -> doExchange(req, Object.class))
+				.flatMap(req -> doExchange(req, String.class)) // Actual response doesn't matter, all Auth is in cookie headers
 				.map(resp -> {
 					// Get hold of cookie from resp
 					return new CookieToken(resp.getCookie(FOLIO_ACCESS_TOKEN).get());
@@ -172,7 +190,7 @@ public class FolioDestinationApiClient {
 	@SingleResult
 	@Retryable
 	public Publisher<String> getAgreements() {
-		return get("/erm/sas", Argument.of(String.class), uri -> {
+		return get("/erm/sass", Argument.of(String.class), uri -> {
 			uri.queryParam("stats", true);
 		});
 	}

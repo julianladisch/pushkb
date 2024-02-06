@@ -35,7 +35,7 @@ public interface Boostraps {
     new SimpleEntry<String, Destination>(
       "LOCAL_RANCHER_FOLIO",
       FolioDestination.builder()
-        .destinationUrl("http://localhost:9130")
+        .destinationUrl("http://localhost:30100")
         .tenant("test1")
         // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
         .loginUser("dummyUser")
@@ -46,6 +46,16 @@ public interface Boostraps {
       "SNAPSHOT",
       FolioDestination.builder()
         .destinationUrl("https://folio-snapshot-okapi.dev.folio.org")
+        .tenant("diku")
+        // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
+        .loginUser("dummyUser")
+        .loginPassword("dummyPass")
+        .build()
+    ),
+    new SimpleEntry<String, Destination>(
+      "SNAPSHOT2",
+      FolioDestination.builder()
+        .destinationUrl("https://folio-snapshot-2-okapi.dev.folio.org")
         .tenant("diku")
         // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
         .loginUser("dummyUser")

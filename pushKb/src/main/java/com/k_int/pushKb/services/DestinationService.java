@@ -4,8 +4,10 @@ import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.model.Error;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.storage.DestinationRepository;
+import com.k_int.pushKb.storage.ErrorRepository;
 
 import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
@@ -14,7 +16,7 @@ import io.micronaut.core.type.Argument;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 
-// This is the place to do any generic destinations stuff, with specific work being handled by the repositories
+// This is the place to do any generic destination MODEL stuff, with specific model work being handled by the repositories
 @Singleton
 public class DestinationService {
   private final BeanContext beanContext;
@@ -28,24 +30,35 @@ public class DestinationService {
     return (DestinationRepository<Destination>) beanContext.getBean( Argument.of(DestinationRepository.class, destinationType) ); // Use argument specify core type plus any generic...
   }
 
+  @SuppressWarnings("unchecked")
+  protected <T extends Destination> DestinationApiService<Destination> getApiServiceForDestinationType( Class<T> destinationType) {
+    return (DestinationApiService<Destination>) beanContext.getBean( Argument.of(DestinationApiService.class, destinationType) ); // Use argument specify core type plus any generic...
+  }
+
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<? extends Destination> findById( UUID id, Class<? extends Destination> type ) {
+  public Publisher<? extends Destination> findById(Class<? extends Destination> type, UUID id ) {
     return getRepositoryForDestinationType(type).findById(id);
   }
 
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<Boolean> existsById( UUID id, Class<? extends Destination> type ) {
+  public Publisher<Boolean> existsById( Class<? extends Destination> type, UUID id  ) {
     return getRepositoryForDestinationType(type).existsById(id);
   }
 
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<? extends Destination> ensureDestination( Destination dest, Class<? extends Destination> type ) {
-    return getRepositoryForDestinationType(type).ensureDestination(dest);
+  // FIXME double check this ensure works as expected
+  public Publisher<? extends Destination> ensureDestination(Destination dest ) {
+    return getRepositoryForDestinationType(dest.getClass()).ensureDestination(dest);
+  }
+
+  // FIXME this is just a test rn
+  public void testMethod(Destination dest) {
+    getApiServiceForDestinationType(dest.getClass()).testMethod(dest);
   }
 }

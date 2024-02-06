@@ -13,7 +13,7 @@ import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.Boostraps;
 import com.k_int.pushKb.destinations.folio.FolioDestination;
-import com.k_int.pushKb.destinations.folio.FolioDestinationApiClient;
+import com.k_int.pushKb.destinations.folio.FolioDestinationApiService;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
 
@@ -131,19 +131,17 @@ public class SchedulingService {
 	public void scheduledTask() {
 		// For now, grab our FolioDestination from Bootstraps directly
 		Mono.from(destinationService.findById(
-			/* FolioDestination.generateUUIDFromDestination(
-				(FolioDestination) Boostraps.destinations.get("LOCAL_RANCHER_FOLIO")
-			), */
+			FolioDestination.class,
 			FolioDestination.generateUUIDFromDestination(
-				(FolioDestination) Boostraps.destinations.get("SNAPSHOT")
-			),
-			FolioDestination.class
-		)).flatMapMany(dest -> {
-			FolioDestination folioDest = (FolioDestination) dest;
-			FolioDestinationApiClient folioClient = new FolioDestinationApiClient(httpClient, folioDest);
-			return folioClient.getAgreements();
+				(FolioDestination) Boostraps.destinations.get("LOCAL_RANCHER_FOLIO")
+			)
+			/* FolioDestination.generateUUIDFromDestination(
+				(FolioDestination) Boostraps.destinations.get("SNAPSHOT2")
+			) */
+		)).doOnNext(dest -> {
+			// This is a void method rn
+			destinationService.testMethod(dest);
 		})
-		.doOnNext(resp -> log.info("WHAT IS RESP? {}", resp))
-		.subscribe();;
+		.subscribe();
 	}
 }

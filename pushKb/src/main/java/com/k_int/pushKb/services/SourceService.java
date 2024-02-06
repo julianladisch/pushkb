@@ -40,14 +40,14 @@ public class SourceService {
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<? extends Source> findById( UUID id, Class<? extends Source> type ) {
+  public Publisher<? extends Source> findById( Class<? extends Source> type, UUID id ) {
     return getRepositoryForSourceType(type).findById(id);
   }
 
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<Boolean> existsById( UUID id, Class<? extends Source> type ) {
+  public Publisher<Boolean> existsById( Class<? extends Source> type, UUID id ) {
     return getRepositoryForSourceType(type).existsById(id);
   }
 
@@ -60,8 +60,8 @@ public class SourceService {
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<? extends Source> ensureSource( Source src, Class<? extends Source> type ) {
-    return getRepositoryForSourceType(type).ensureSource(src);
+  public Publisher<? extends Source> ensureSource( Source src ) {
+    return getRepositoryForSourceType(src.getClass()).ensureSource(src);
   }
 
   public Publisher<Class<? extends Source>> getSourceImplementors() {

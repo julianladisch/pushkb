@@ -63,7 +63,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		return Flux.fromIterable(Boostraps.sources.values())
 			.flatMap(src -> {
 				try {
-					return sourceService.ensureSource(src, src.getClass());
+					return sourceService.ensureSource(src);
 					
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -78,7 +78,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		return Flux.fromIterable(Boostraps.destinations.values())
 			.flatMap(dest -> {
 				try {
-					return destinationService.ensureDestination(dest, dest.getClass());
+					return destinationService.ensureDestination(dest);
 					
 				} catch (Exception e) {
 					e.printStackTrace();
