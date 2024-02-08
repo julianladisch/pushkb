@@ -25,6 +25,7 @@ import lombok.ToString;
 @Builder(toBuilder = true)
 public class FolioDestinationError implements Error<FolioDestination> {
   static final String LOGIN_ERROR_CODE = "LOGIN_ERROR";
+  static final String CONNECT_ERROR_CODE = "CONNECT_ERROR";
 
   @Id
 	@TypeDef(type = DataType.UUID)

@@ -3,7 +3,7 @@ package com.k_int.pushKb.interactions.folio;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.core.cli.Option;
 import io.micronaut.core.type.Argument;
-
+import io.micronaut.data.connection.exceptions.ConnectionException;
 import io.micronaut.http.BasicAuth;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpMethod;
@@ -12,6 +12,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
+import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.uri.UriBuilder;
@@ -29,6 +30,7 @@ import com.k_int.pushKb.interactions.HttpClientRequestResponseException;
 import com.k_int.pushKb.utils.CookieToken;
 import com.k_int.pushKb.utils.RelativeUriResolver;
 
+import java.net.ConnectException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.AbstractMap;
@@ -200,7 +202,7 @@ public class FolioApiClient {
 	// TODO errorType is mandatory rn
 	private <T> Mono<T> get(String path, Class<T> type, Class<?> errorType, Consumer<UriBuilder> uriBuilderConsumer) {
 		return createRequest(GET, path).map(req -> req.uri(uriBuilderConsumer)).flatMap(this::ensureToken)
-				.flatMap(req -> doRetrieve(req, type, errorType));
+			.flatMap(req -> doRetrieve(req, type, errorType));
 	}
 
 	// Specific requests
