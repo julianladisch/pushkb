@@ -19,6 +19,7 @@ public record CookieToken(
 
 	public static final Duration DEFAULT_EXPIRATION_BUFFER = Duration.ofSeconds(10);
 	
+	// If we don't have an expiry date explicitly (Because cookies don't actually hold those) then make best guess with 10 second buffer
 	public CookieToken(
 		@NotEmpty String name,
 		@NotEmpty String value,
@@ -30,6 +31,13 @@ public record CookieToken(
 		Cookie cookie
 	) {
 		this(cookie.getName(), cookie.getValue(), cookie.getMaxAge());
+	}
+
+	public CookieToken(
+		Cookie cookie,
+		Instant expires
+	) {
+		this(cookie.getName(), cookie.getValue(), expires);
 	}
 
 	public boolean isExpired() {

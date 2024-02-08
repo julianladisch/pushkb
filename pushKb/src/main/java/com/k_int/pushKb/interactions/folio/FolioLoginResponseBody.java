@@ -4,9 +4,11 @@ import java.time.Instant;
 import java.util.List;
 
 import io.micronaut.serde.annotation.Serdeable;
+import lombok.Data;
 import lombok.Getter;
 
 @Serdeable
+@Data
 public class FolioLoginResponseBody {
   @Getter
   Instant accessTokenExpiration;

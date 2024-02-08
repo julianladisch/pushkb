@@ -189,12 +189,23 @@ public class FolioApiClient {
 				// TODO Use authn/login-with-expiry, then we get expiration dates for tokens in response body (So response _would_ matter, grrr)
 				.flatMap(req -> doExchange(
 					req,
-					FolioLoginError.class,
+					FolioLoginResponseBody.class,
 					FolioLoginError.class
 				)) // Actual response doesn't matter, all Auth is in cookie headers
 				.map(resp -> {
-					// Get hold of cookie from resp
-					return new CookieToken(resp.getCookie(FOLIO_ACCESS_TOKEN).get());
+					Optional<FolioLoginResponseBody> flrb = resp.getBody(FolioLoginResponseBody.class);
+					Optional<Cookie> accessTokenCookie = resp.getCookie(FOLIO_ACCESS_TOKEN);
+					if (accessTokenCookie.isEmpty()) {
+						// Is this right???
+						throw new HttpClientException("No login cookie");
+					}
+
+					// If we have the response body and that contains an accessTokenExpiration, use it directly
+					if (flrb.isEmpty() || flrb.get().getAccessTokenExpiration() == null) {
+						return new CookieToken(accessTokenCookie.get());
+					} else {
+						return new CookieToken(accessTokenCookie.get(), flrb.get().accessTokenExpiration);
+					}
 				});
 		// 
 	}
