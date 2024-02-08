@@ -59,7 +59,7 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 						if (hcrre.getRequest().getPath().equals(FolioApiClient.LOGIN_URI)) {
 							Optional<FolioLoginError> fle = hcrre.getResponse().getBody(FolioLoginError.class);
 							if (fle.isEmpty()) {
-								log.error("Failed to login to destination ({})", destination.getId());
+								log.error("Failed to login to destination ({}). {}", destination.getId(), hcrre.getMessage());
 							} else {
 								log.error("Failed to login to destination ({}). {}", destination.getId(), fle.get().getErrors().get(0).getMessage());
 							}

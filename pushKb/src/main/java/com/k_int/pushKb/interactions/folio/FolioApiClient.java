@@ -176,12 +176,12 @@ public class FolioApiClient {
 		});
 	}
 
-	//@Override
 	@SingleResult
 	public Mono<CookieToken> login() {
-		// FIXME There has to be a better way than this...
-		String loginBody = "{\"username\":\"" + loginUser + "\",\"password\":\""+ loginPassword + "\"}";
-		//String loginBody = "{\"username\":\"" + loginUser + "\",\"password\":\"wrong-password\"}";
+		FolioLoginBody loginBody = FolioLoginBody.builder()
+																						 .username(loginUser)
+																						 .password(loginPassword)
+																						 .build();
 		return postRequest(LOGIN_URI)
 				.map(req -> {
 					return req.body(loginBody);
@@ -217,7 +217,7 @@ public class FolioApiClient {
 	@SingleResult
 	@Retryable
 	public Publisher<String> getAgreements() {
-		return get("/erm/sass", String.class, String.class, uri -> {
+		return get("/erm/sas", String.class, String.class, uri -> {
 			uri.queryParam("stats", true);
 		});
 	}
