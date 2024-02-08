@@ -2,19 +2,16 @@ package com.k_int.pushKb.destinations.folio;
 
 import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
-import java.util.List;
 import java.util.UUID;
 
 import com.k_int.pushKb.model.Destination;
 
 import io.micronaut.core.annotation.NonNull;
-import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
-import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -53,11 +50,6 @@ public class FolioDestination implements Destination {
   @NonNull
   @Size(max = 200)
   private final String loginPassword;
-
-  @Nullable
-  @ToString.Exclude
-  @OneToMany(mappedBy = "destination")
-  List<FolioDestinationError> errors; 
 
   private static final String UUID5_PREFIX = "folio_destination";
   public static UUID generateUUID(String tenant, String destinationUrl) {
