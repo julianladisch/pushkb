@@ -4,10 +4,8 @@ import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.model.Error;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.storage.DestinationRepository;
-import com.k_int.pushKb.storage.ErrorRepository;
 
 import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
@@ -35,30 +33,21 @@ public class DestinationService {
     return (DestinationApiService<Destination>) beanContext.getBean( Argument.of(DestinationApiService.class, destinationType) ); // Use argument specify core type plus any generic...
   }
 
-  @NonNull
-  @SingleResult
-  @Transactional
   public Publisher<? extends Destination> findById(Class<? extends Destination> type, UUID id ) {
     return getRepositoryForDestinationType(type).findById(id);
   }
 
-  @NonNull
-  @SingleResult
-  @Transactional
   public Publisher<Boolean> existsById( Class<? extends Destination> type, UUID id  ) {
     return getRepositoryForDestinationType(type).existsById(id);
   }
 
-  @NonNull
-  @SingleResult
-  @Transactional
   // FIXME double check this ensure works as expected
   public Publisher<? extends Destination> ensureDestination(Destination dest ) {
     return getRepositoryForDestinationType(dest.getClass()).ensureDestination(dest);
   }
 
   // FIXME this is just a test rn
-  public void testMethod(Destination dest) {
-    getApiServiceForDestinationType(dest.getClass()).testMethod(dest);
+  public Publisher<Boolean> testMethod(Destination dest) {
+    return getApiServiceForDestinationType(dest.getClass()).testMethod(dest);
   }
 }

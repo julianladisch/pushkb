@@ -1,14 +1,12 @@
 package com.k_int.pushKb.destinations.folio;
 
 
-import java.util.Optional;
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.storage.DestinationRepository;
 
-import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.model.query.builder.sql.Dialect;

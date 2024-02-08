@@ -1,6 +1,7 @@
 package com.k_int.pushKb.interactions.folio;
 
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.core.cli.Option;
 import io.micronaut.core.type.Argument;
 
 import io.micronaut.http.BasicAuth;
@@ -24,6 +25,7 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.k_int.pushKb.interactions.HttpClientRequestResponseException;
 import com.k_int.pushKb.utils.CookieToken;
 import com.k_int.pushKb.utils.RelativeUriResolver;
 
@@ -46,11 +48,10 @@ import static io.micronaut.http.MediaType.APPLICATION_JSON;
 
 
 public class FolioApiClient {
-	private final static String X_OKAPI_TENANT = "X-Okapi-Tenant";
-	private final static String FOLIO_ACCESS_TOKEN = "folioAccessToken";
-	private final static String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
-
-	private final static String LOGIN_URI = "/bl-users/login-with-expiry";
+	public final static String X_OKAPI_TENANT = "X-Okapi-Tenant";
+	public final static String FOLIO_ACCESS_TOKEN = "folioAccessToken";
+	public final static String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
+	public final static String LOGIN_URI = "/authn/login-with-expiry";
 
 	private final HttpClient client;
 	private final URI rootUri;
@@ -80,24 +81,15 @@ public class FolioApiClient {
 							.build();
 	}
 
-	// FIXME we need error handling -- See HostLmsSierraApiClient for examples
-	// Is it ok to assume we always pass request in? I want to be able to do special casde handling for login.
 	private <T> Mono<T> handleResponseErrors(final Mono<T> current, MutableHttpRequest<?> request) {
-		return current.doOnError(HttpClientResponseException.class, e -> {
-
-			// Not sure exactly why == operator doesn't work here
-			if (request.getPath().equals(LOGIN_URI)) {
-				// LOGIN SPECIFIC ERROR HANDLING
-				log.info("This is a login failure");
+		return current.onErrorMap(exception -> {
+			if (exception instanceof HttpClientResponseException) {
+				// Return special HttpClientRequestResponseException which has access to both the exception and the original request
+				return new HttpClientRequestResponseException((HttpClientResponseException)exception, request);
 			}
-
-			HttpResponse<?> errorResponse = e.getResponse();
-			log.info("ERROR CODE: {}", errorResponse.getStatus());
-			log.info("ERROR BODY: {}", errorResponse.getBody());
-
-		}).onErrorComplete(); // FIXME not sure if completing is the right thing to do.
+			return exception;
+		});
 	}
-
 
 	private void clearToken() {
 		log.debug("Clearing token to trigger re-authentication");
@@ -120,16 +112,44 @@ public class FolioApiClient {
 				);
 	}
 
+	// Extra helpers to make code nicer *shrug* possibly just mess tbh but hey ho
+	private <T> Mono<HttpResponse<T>> doExchange(MutableHttpRequest<?> request, Class<T> type, Class<?> errorType) {
+		return doExchange(request, Argument.of(type), Optional.of(Argument.of(errorType)));
+	}
+
 	private <T> Mono<HttpResponse<T>> doExchange(MutableHttpRequest<?> request, Class<T> type) {
-		return Mono.from(client.exchange(request, Argument.of(type))).transform(mono -> this.handleResponseErrors(mono, request));
+		return doExchange(request, Argument.of(type));
+	}
+
+	private <T> Mono<HttpResponse<T>> doExchange(MutableHttpRequest<?> request, Argument<T> type) {
+		return doExchange(request, type, Optional.empty());
+	}
+
+	private <T> Mono<HttpResponse<T>> doExchange(MutableHttpRequest<?> request, Argument<T> type, Optional<Argument<?>> errorType) {
+		if (errorType.isPresent()){
+			return Mono.from(client.exchange(request, type, errorType.get())).transform(mono -> this.handleResponseErrors(mono, request));
+		}
+		return Mono.from(client.exchange(request, type)).transform(mono -> this.handleResponseErrors(mono, request));
+	}
+
+	private <T> Mono<T> doRetrieve(MutableHttpRequest<?> request, Class<T> type, Class<?> errorType) {
+		return doRetrieve(request, Argument.of(type), Optional.of(Argument.of(errorType)));
+	}
+
+	private <T> Mono<T> doRetrieve(MutableHttpRequest<?> request, Class<T> type) {
+		return doRetrieve(request, Argument.of(type));
 	}
 
 	private <T> Mono<T> doRetrieve(MutableHttpRequest<?> request, Argument<T> argumentType) {
-		return doRetrieve(request, argumentType, true);
+		return doRetrieve(request, argumentType, Optional.empty(), true);
 	}
 
-	private <T> Mono<T> doRetrieve(MutableHttpRequest<?> request, Argument<T> argumentType, boolean mapErrors) {
-		var response =  Mono.from(client.retrieve(request, argumentType));
+	private <T> Mono<T> doRetrieve(MutableHttpRequest<?> request, Argument<T> argumentType, Optional<Argument<?>> errorType) {
+		return doRetrieve(request, argumentType, Optional.empty(), true);
+	}
+
+	private <T> Mono<T> doRetrieve(MutableHttpRequest<?> request, Argument<T> argumentType, Optional<Argument<?>> errorType, boolean mapErrors) {
+		var response = errorType.isPresent() ? Mono.from(client.retrieve(request, argumentType, errorType.get())) : Mono.from(client.retrieve(request, argumentType));
 		return mapErrors ? response.transform(mono -> this.handleResponseErrors(mono, request)) : response;
 	}
 
@@ -164,8 +184,12 @@ public class FolioApiClient {
 				.map(req -> {
 					return req.body(loginBody);
 				})
-				// FIXME needs error handling for bad login creds
-				.flatMap(req -> doExchange(req, String.class)) // Actual response doesn't matter, all Auth is in cookie headers
+				// TODO Use authn/login-with-expiry, then we get expiration dates for tokens in response body (So response _would_ matter, grrr)
+				.flatMap(req -> doExchange(
+					req,
+					FolioLoginError.class,
+					FolioLoginError.class
+				)) // Actual response doesn't matter, all Auth is in cookie headers
 				.map(resp -> {
 					// Get hold of cookie from resp
 					return new CookieToken(resp.getCookie(FOLIO_ACCESS_TOKEN).get());
@@ -173,16 +197,17 @@ public class FolioApiClient {
 		// 
 	}
 
-	private <T> Mono<T> get(String path, Argument<T> argumentType, Consumer<UriBuilder> uriBuilderConsumer) {
+	// TODO errorType is mandatory rn
+	private <T> Mono<T> get(String path, Class<T> type, Class<?> errorType, Consumer<UriBuilder> uriBuilderConsumer) {
 		return createRequest(GET, path).map(req -> req.uri(uriBuilderConsumer)).flatMap(this::ensureToken)
-				.flatMap(req -> doRetrieve(req, argumentType));
+				.flatMap(req -> doRetrieve(req, type, errorType));
 	}
 
 	// Specific requests
 	@SingleResult
 	@Retryable
 	public Publisher<String> getChunks() {
-		return get("/erm/pushKB/chunks", Argument.of(String.class), uri -> {
+		return get("/erm/pushKB/chunks", String.class, String.class, uri -> {
 			uri.queryParam("stats", true);
 		});
 	}
@@ -190,7 +215,7 @@ public class FolioApiClient {
 	@SingleResult
 	@Retryable
 	public Publisher<String> getAgreements() {
-		return get("/erm/sass", Argument.of(String.class), uri -> {
+		return get("/erm/sass", String.class, String.class, uri -> {
 			uri.queryParam("stats", true);
 		});
 	}

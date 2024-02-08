@@ -138,10 +138,8 @@ public class SchedulingService {
 			/* FolioDestination.generateUUIDFromDestination(
 				(FolioDestination) Boostraps.destinations.get("SNAPSHOT2")
 			) */
-		)).doOnNext(dest -> {
-			// This is a void method rn
-			destinationService.testMethod(dest);
-		})
-		.subscribe();
+		))
+			.flatMapMany(destinationService::testMethod)
+			.subscribe();
 	}
 }

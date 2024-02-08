@@ -9,5 +9,5 @@ public interface Destination {
 
   String toString();
 
-  List<? extends Error> getErrors();
+  List<? extends Error<? extends Destination>> getErrors();
 }
