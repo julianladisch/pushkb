@@ -1,4 +1,4 @@
-package com.k_int.pushKb.sources.gokb;
+package com.k_int.pushKb.interactions.gokb.source;
 
 import static io.micronaut.http.HttpHeaders.ACCEPT;
 import static io.micronaut.http.HttpHeaders.USER_AGENT;

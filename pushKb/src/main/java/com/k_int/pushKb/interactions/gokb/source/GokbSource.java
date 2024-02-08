@@ -1,4 +1,4 @@
-package com.k_int.pushKb.sources.gokb;
+package com.k_int.pushKb.interactions.gokb.source;
 
 import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 

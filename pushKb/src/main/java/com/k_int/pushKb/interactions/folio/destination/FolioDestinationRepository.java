@@ -1,4 +1,4 @@
-package com.k_int.pushKb.destinations.folio;
+package com.k_int.pushKb.interactions.folio.destination;
 
 
 import java.util.UUID;

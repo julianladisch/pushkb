@@ -5,12 +5,12 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.AbstractMap.SimpleEntry;
 
-import com.k_int.pushKb.destinations.folio.FolioDestination;
+import com.k_int.pushKb.interactions.folio.destination.FolioDestination;
+import com.k_int.pushKb.interactions.gokb.source.GokbSource;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.GokbSourceType;
-import com.k_int.pushKb.sources.gokb.GokbSource;
 
 public interface Boostraps {
 

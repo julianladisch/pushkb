@@ -12,8 +12,8 @@ import java.util.Optional;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.Boostraps;
-import com.k_int.pushKb.destinations.folio.FolioDestination;
-import com.k_int.pushKb.destinations.folio.FolioDestinationApiService;
+import com.k_int.pushKb.interactions.folio.destination.FolioDestination;
+import com.k_int.pushKb.interactions.folio.destination.FolioDestinationApiService;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
 
