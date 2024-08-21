@@ -49,7 +49,7 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 
 	public Flux<SourceRecord> fetchSourceRecords(GokbSourceType gokbSourceType, UUID sourceId, Optional<Instant> changedSince) {
 		Instant startTime = Instant.now();
-		log.info("LOGDEBUG RAN AT: {}", startTime);
+		log.info("LOGDEBUG RAN FOR SOURCE({}, {}) AT: {}",sourceId, gokbSourceType, startTime);
 
 		return fetchPage(gokbSourceType, changedSince)
 //			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
@@ -63,13 +63,14 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 			.map(jsonNode -> this.handleSourceRecordJson(jsonNode, sourceId) ) // Map the JsonNode to a source record
 			.concatMap( sourceRecordService::saveOrUpdateRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
 			.buffer( 1000 )
-			
 			.doOnNext( chunk -> {
 				log.info("Saved {} records", chunk.size());
 			})
 			.doOnError(throwable -> throwable.printStackTrace())
 			// TODO is this ok?
-			.flatMap(chunk -> Flux.fromIterable(chunk)); // Return from chunk back to regular flux at the end for return type reasons
+			.flatMap(chunk -> Flux.fromIterable(chunk)) // Return from chunk back to regular flux at the end for return type reasons
+			// FIXME do we need this (And does this even work?)
+			.doOnComplete(() -> log.info("LOGDEBUG FINISHED FOR SOURCE({}, {}) AT: {}", sourceId, gokbSourceType, Instant.now()));
 	}
 
 	protected Mono<GokbScrollResponse> fetchPage(@NonNull GokbSourceType gokbSourceType, @NonNull Optional<String> scrollId, Optional<Instant> changedSince ) {
@@ -97,7 +98,8 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
   	
   	if (!more) {
   		Instant endTime = Instant.now();
-  		log.info( "Finished ingesting at: {}", endTime);
+			// Not sure about logging this tbh
+  		log.info( "Fetched last page: {}", endTime);
   		return Mono.empty();
   	}
   	return fetchPage(gokbSourceType, Optional.ofNullable(currentResponse.getScrollId()), changedSince )
