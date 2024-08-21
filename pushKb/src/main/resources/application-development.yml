@@ -70,7 +70,7 @@ flyway:
       # password: ${DB_PASSWORD:`pass`}
 db:
   host: localhost
-  port: 5432
+  port: 6543
 
 
 datasources:
@@ -85,7 +85,7 @@ datasources:
     reconnect: true
     username: pushkb
     password: pushkb
-    url: "jdbc:postgresql://localhost:54321/pushkb"
+    url: "jdbc:postgresql://localhost:6543/pushkb"
 
 r2dbc:
   datasources:
@@ -97,7 +97,7 @@ r2dbc:
       # db-type: postgresql
       db-type: postgres
       reconnect: true
-      url: "r2dbc:postgresql://localhost:54321/pushkb"
+      url: "r2dbc:postgresql://localhost:6543/pushkb"
       username: pushkb
       password: pushkb
       options:

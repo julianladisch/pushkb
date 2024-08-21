@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: pushkb
       POSTGRES_DB: pushkb
     ports:
-      - '54321:5432'
+      - '6543:5432'
     volumes: 
       - db:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d
