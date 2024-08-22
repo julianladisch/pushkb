@@ -37,9 +37,9 @@ public interface Boostraps {
       FolioDestination.builder()
         .destinationUrl("http://localhost:30100")
         .tenant("test1")
-        // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
-        .loginUser("dummyUser")
-        .loginPassword("dummyPass")
+        // Use env vars for now... this file will eventually be gone anyway
+        .loginUser(System.getenv("LOCAL_RANCHER_USERNAME"))
+        .loginPassword(System.getenv("LOCAL_RANCHER_PASSWORD"))
         .build()
     ),
     new SimpleEntry<String, Destination>(
@@ -48,8 +48,8 @@ public interface Boostraps {
         .destinationUrl("https://folio-snapshot-okapi.dev.folio.org")
         .tenant("diku")
         // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
-        .loginUser("dummyUser")
-        .loginPassword("dummyPass")
+        .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
+        .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
         .build()
     ),
     new SimpleEntry<String, Destination>(
@@ -58,8 +58,8 @@ public interface Boostraps {
         .destinationUrl("https://folio-snapshot-2-okapi.dev.folio.org")
         .tenant("diku")
         // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
-        .loginUser("dummyUser")
-        .loginPassword("dummyPass")
+        .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
+        .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
         .build()
     )
   );
