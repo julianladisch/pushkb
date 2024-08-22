@@ -41,12 +41,30 @@ public class ProteusService {
     return ComponentSpec.loadFile(TRANSFORM_SPEC_PATH + "/" + specName);
   }
 
-  public JsonNode convert(ComponentSpec<Object> spec, Object inputJson) {
-    Context context = Context
+  public Context getContextFromSpec(String specName) {
+    ComponentSpec<Object> spec = loadSpec(specName);
+    return getContextFromSpec(spec);
+  }
+
+  public Context getContextFromSpec(ComponentSpec<Object> spec) {
+    return Context
       .builder()
       .spec(spec)
       .config(ProteusService.config)
       .build();
+  }
+
+  public Object objectFromJsonNode(JsonNode json) {
+    Object objectJson = null;
+    try {
+      objectJson = objectMapper.readValue(objectMapper.writeValueAsBytes(json), Object.class);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return objectJson;
+  }
+
+  public JsonNode convert(Context context, Object inputJson) {
     Input internal = new Input(inputJson);
 
     return JsonNode.from(context
@@ -55,20 +73,22 @@ public class ProteusService {
       .orElse(null));
   }
 
+  public JsonNode convert(Context context, JsonNode inputJson) {
+    Object objectJson = objectFromJsonNode(inputJson);
+    return convert(context, objectJson);
+  }
+
+  public JsonNode convert(ComponentSpec<Object> spec, Object inputJson) {
+    Context context = getContextFromSpec(spec);
+    return convert(context, inputJson);
+  }
+
   public JsonNode convert(ComponentSpec<Object> spec, JsonNode inputJson) {
-    Object objectJson = null;
-    try {
-      objectJson = objectMapper.readValue(objectMapper.writeValueAsBytes(inputJson), Object.class);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    Object objectJson = objectFromJsonNode(inputJson);
     return convert(spec, objectJson);
   }
 
 	public Object loadJson(String fileName) throws IOException {
     return objectMapper.readValue(new FileInputStream(TRANSFORM_SPEC_PATH + "/" + fileName), Object.class);
 	}
-
-
-
 }
