@@ -37,16 +37,16 @@ public class ProteusService {
                                       .pathNotFoundToNull(true)
                                       .build();
 
-  public ComponentSpec<Object> loadSpec(String specName) {
-    return ComponentSpec.loadFile(TRANSFORM_SPEC_PATH + "/" + specName);
+  public ComponentSpec<JsonNode> loadSpec(String specName) {
+    return ComponentSpec.loadFile(JsonNode.class, TRANSFORM_SPEC_PATH + "/" + specName);
   }
 
   public Context getContextFromSpec(String specName) {
-    ComponentSpec<Object> spec = loadSpec(specName);
+    ComponentSpec<JsonNode> spec = loadSpec(specName);
     return getContextFromSpec(spec);
   }
 
-  public Context getContextFromSpec(ComponentSpec<Object> spec) {
+  public Context getContextFromSpec(ComponentSpec<JsonNode> spec) {
     return Context
       .builder()
       .spec(spec)
@@ -64,8 +64,8 @@ public class ProteusService {
     return objectJson;
   }
 
-  public JsonNode convert(Context context, Object inputJson) {
-    Input internal = new Input(inputJson);
+  public JsonNode convert(Context context, JsonNode inputJson) {
+    Input internal = new Input(inputJson.toString());
 
     return JsonNode.from(context
       .inputMapper(internal)
@@ -73,22 +73,8 @@ public class ProteusService {
       .orElse(null));
   }
 
-  public JsonNode convert(Context context, JsonNode inputJson) {
-    Object objectJson = objectFromJsonNode(inputJson);
-    return convert(context, objectJson);
-  }
-
-  public JsonNode convert(ComponentSpec<Object> spec, Object inputJson) {
+  public JsonNode convert(ComponentSpec<JsonNode> spec, JsonNode inputJson) {
     Context context = getContextFromSpec(spec);
     return convert(context, inputJson);
   }
-
-  public JsonNode convert(ComponentSpec<Object> spec, JsonNode inputJson) {
-    Object objectJson = objectFromJsonNode(inputJson);
-    return convert(spec, objectJson);
-  }
-
-	public Object loadJson(String fileName) throws IOException {
-    return objectMapper.readValue(new FileInputStream(TRANSFORM_SPEC_PATH + "/" + fileName), Object.class);
-	}
 }
