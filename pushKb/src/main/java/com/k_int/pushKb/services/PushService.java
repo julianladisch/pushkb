@@ -1,5 +1,6 @@
 package com.k_int.pushKb.services;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import com.k_int.proteus.ComponentSpec;
+import com.k_int.proteus.Context;
 
 @Singleton
 @Slf4j
@@ -107,7 +109,7 @@ public class PushService {
 
 
     // FIXME this needs to come from the PT transform model somehow
-    ComponentSpec<Object> proteusSpec = proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json");
+    ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json");
 
     return Flux.from(sourceRecordService.getSourceRecordFeedBySourceId(
 			pt.getSourceId(),
@@ -117,15 +119,45 @@ public class PushService {
 			//Instant.now()
 			upperBound
 		))
-    .buffer(100)
-		.flatMap(srArray -> {
-      //log.info("SR ARRAY: {}", srArray);
+    // Flux<SourceRecord> -> aiming for Tuple<SourceRecord, <JsonNode>>?
+    .flatMap(sourceRecord -> {
+      try {
+        JsonNode transformedRecord = proteusService.convert(
+          proteusSpec,
+          sourceRecord.getJsonRecord()
+        );
+        return Mono.just(Tuples.of(sourceRecord, transformedRecord));
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        return Mono.error(e);
+      }
+    })
+    .doOnError(e -> log.error("ERROR???: {}", e))
+    // We now have Flux<Mono<Tuple2<List<SourceRecord>, List<JsonNode>>>>
+    //.doOnNext(thing -> log.info("TRANSFORMED THING: {}", thing))
+    .buffer(1000)
+    .flatMap(list ->
+      Flux.fromIterable(list)
+        .reduce(
+          Tuples.of(new ArrayList<SourceRecord>(), new ArrayList<JsonNode>()),
+          (acc, tuple) -> {
+            acc.getT1().add(tuple.getT1());
+            acc.getT2().add(tuple.getT2());
+            return acc;
+          }
+        ) // Stream within stream here... not 100% sure on why this works, but if you add a return and put this inside a block it fails...
+    ) // At this point we SHOULD
+		.flatMap(chunkedRecordTuple -> {
+      ArrayList<SourceRecord> sourceRecordList = chunkedRecordTuple.getT1();
+      ArrayList<JsonNode> recordsList = chunkedRecordTuple.getT2();
 
+      //log.info("SR ARRAY: {}", chunkedRecordTuple.getT1());
+      //log.info("Transformed JSON ARRAY: {}", recordsList);
       // We need to build the JsonNode "records" field and then apply to output
-      ArrayList<JsonNode> recordsList = new ArrayList<JsonNode>();
 
       // TODO can we parallelise the transformation of these 100 records?
-      for(SourceRecord sr : srArray) {
+/*       for(SourceRecord sr : srArray) {
         try {
           // Am not convinced that converting one by one is the way to go,
           // perhaps a standard proteusSpec for converting an array of records
@@ -140,7 +172,7 @@ public class PushService {
           // Is this the right way to error?
           return Mono.error(e);
         }
-      }
+      } */
 
       // Set up output
       // FIXME this isn't how we'll manage sessions and chunks
@@ -150,7 +182,7 @@ public class PushService {
         new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
       ));
 
-      log.info("pushKBJsonOutput: {}", pushKBJsonOutput);
+      //log.info("pushKBJsonOutput: {}", pushKBJsonOutput);
       /* TODO
        * Convert list of SRs into single JSON output
        */
@@ -160,8 +192,8 @@ public class PushService {
        */
 
       // We check the very bottom sourceRecord, as that's where the pointer will move
-      SourceRecord firstSr = srArray.get(0);
-      SourceRecord sr = srArray.get(srArray.size() - 1);
+      SourceRecord firstSr = sourceRecordList.get(0);
+      SourceRecord sr = sourceRecordList.get(sourceRecordList.size() - 1);
       
       // FIXME these logs are not helpful wording yet
 
@@ -184,7 +216,7 @@ public class PushService {
         return Mono.error(new Exception("SOMETHING WENT WRONG HERE"));
       }
  */
-      log.info("SENT RECORD: {}", sr.getId());
+      //log.info("SENT RECORD: {}", sr.getId());
       // ASSUMING right now it's successful, so sr.getUpdated() is new relevant data
       
       // The last thing "successfully sent" was the last timestamp
@@ -201,6 +233,7 @@ public class PushService {
     /*
      * TODO does last trigger if there's an error?
      */
+    .doOnError(err -> log.error("WHAT IS HAPPENEING: {}", err))
     .takeLast(1) // This will contain the PT as it stands after the LAST record in the stack
     .next() // This should be a passive version of last(), where if stream is empty we don't get a crash
     .flatMap(lastPt -> {
