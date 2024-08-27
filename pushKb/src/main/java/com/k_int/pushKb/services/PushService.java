@@ -109,6 +109,13 @@ public class PushService {
     log.info("UPPER BOUND: {}", upperBound);
     log.info("LOWER BOUND: {}", lowerBound);
 
+    /* Keep bundleSize consistent between chunking for send and chunking for transform
+     * IMPORTANT these cannot be allowed to drift because we're assuming a sequential order
+     * that these are being sent in. The chunks can be internally ordered however, but each chunk
+     * MUST be in the right order when sent so that we can maintain pointer positions.
+     */
+    int bundleSize = 1000;
+
     // FIXME this needs to come from the PT transform model somehow
     ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json");
 
@@ -129,7 +136,7 @@ public class PushService {
     })
     // Flux<SourceRecord> -> aiming for Tuple<SourceRecord, <JsonNode>>?
     // Parallelise transform within each buffered chunk (tracking earliest and latest so order within chunk doesn't matter)
-    .buffer(1000)
+    .buffer(bundleSize)
     .flatMapSequential(chunkedSourceRecordList -> {
       return Flux.fromIterable(chunkedSourceRecordList)
         .parallel()
@@ -148,7 +155,7 @@ public class PushService {
           }
         })
         .sequential()
-        .buffer(1000); // REBUFFER to keep blocks of 1000
+        .buffer(bundleSize); // REBUFFER to keep blocks of 1000
     })
     .doOnError(e -> log.error("ERROR???: {}", e))
     // Change List<Tuple2<SourceRecord, JsonNode>> to Tuple3<List<JsonNode>, Instant, Instant>
@@ -177,12 +184,12 @@ public class PushService {
           }
         ); // Stream within stream here
     }) // At this point we SHOULD
+    .doOnNext(tuple -> log.info("Pushing records {} -> {}", tuple.getT2(), tuple.getT3()))
 		.flatMapSequential(chunkedRecordTuple -> {
       ArrayList<JsonNode> recordsList = chunkedRecordTuple.getT1();
       // Keep track of earliest and latest, so we can do things inside chunks out of order
       Instant earliestSeen = chunkedRecordTuple.getT2();
       Instant latestSeen = chunkedRecordTuple.getT3();
-      log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
 
       //log.info("SR ARRAY: {}", chunkedRecordTuple.getT1());
 
@@ -229,9 +236,9 @@ public class PushService {
         // We have a new head pointer
         pt.setDestinationHeadPointer(latestSeen);
       }
-
 			return pushTaskService.update(pt);
 		})
+    //.doOnNext(savedPt -> log.info("Saved PT: {}", savedPt))
     /*
      * TODO does last trigger if there's an error?
      */
