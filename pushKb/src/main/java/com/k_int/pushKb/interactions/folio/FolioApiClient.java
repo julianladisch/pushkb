@@ -48,12 +48,16 @@ import static io.micronaut.http.HttpMethod.POST;
 import static io.micronaut.http.HttpMethod.PUT;
 import static io.micronaut.http.MediaType.APPLICATION_JSON;
 
-
 public class FolioApiClient {
 	public final static String X_OKAPI_TENANT = "X-Okapi-Tenant";
 	public final static String FOLIO_ACCESS_TOKEN = "folioAccessToken";
 	public final static String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
 	public final static String LOGIN_URI = "/authn/login-with-expiry";
+
+	// PushKB Urls
+	public final static String PUSHKB_BASE_URL = "/erm/pushKB";
+	public final static String PUSHKB_PKG_URL = PUSHKB_BASE_URL + "/pkg";
+	public final static String PUSHKB_PCI_URL = PUSHKB_BASE_URL + "/pci";
 
 	private final HttpClient client;
 	private final URI rootUri;
