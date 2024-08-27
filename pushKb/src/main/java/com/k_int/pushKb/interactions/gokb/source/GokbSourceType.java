@@ -1,4 +1,4 @@
-package com.k_int.pushKb.model;
+package com.k_int.pushKb.interactions.gokb.source;
 
 import io.micronaut.serde.annotation.Serdeable;
 

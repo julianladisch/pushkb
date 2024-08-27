@@ -2,6 +2,7 @@ package com.k_int.pushKb;
 
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.interactions.gokb.GokbRepository;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.Source;
@@ -34,7 +35,8 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
     Environment environment,
 		DestinationService destinationService,
 		SourceService sourceService,
-		PushTaskService pushTaskService
+		PushTaskService pushTaskService,
+		GokbRepository gokbRepository // This is obviously implementation specific unlike "source".
  	) {
 		this.environment = environment;
 		this.destinationService = destinationService;
@@ -60,8 +62,9 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 
 	private Publisher<Source> bootstrapSources() {
 		log.debug("bootstrapSources");
+		// Do this in flatMap with maxConcurrency set to 1 to avoid trying to create the same GOKB Object in multiple ensureSource calls
 		return Flux.fromIterable(Boostraps.sources.values())
-			.flatMap(src -> {
+			.flatMapSequential(src -> {
 				try {
 					return sourceService.ensureSource(src);
 					
@@ -69,14 +72,14 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 					e.printStackTrace();
 					return Mono.empty();
 				}
-			});
+			}, 1);
 	}
 
 	private Publisher<Destination> bootstrapDestinations() {
 		log.debug("bootstrapDestinations");
 		
 		return Flux.fromIterable(Boostraps.destinations.values())
-			.flatMap(dest -> {
+			.flatMapSequential(dest -> {
 				try {
 					return destinationService.ensureDestination(dest);
 					
@@ -90,7 +93,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 	private Publisher<PushTask> bootstrapPushTasks() {
 		log.debug("bootstrapPushTasks");
 		return Flux.fromIterable(Boostraps.pushTasks.values())
-			.flatMap(pt -> {
+			.flatMapSequential(pt -> {
 				try {
 					return Mono.from(pushTaskService.ensurePushTask(pt));
 				} catch (Exception e) {

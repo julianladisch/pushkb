@@ -96,7 +96,7 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
-	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
 			// Iterate over all PushTasks, maybe want to be smarter about this in future
@@ -105,7 +105,7 @@ public class SchedulingService {
 				.doOnNext(pt -> log.info("WHEN DO WE SEE THIS FINAL END? {}", pt))
 				.subscribe();
 	}
-
+ */
   // FIXME need to work on delay here
 /*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {

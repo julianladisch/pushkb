@@ -1,4 +1,4 @@
-package com.k_int.pushKb.interactions.gokb.source;
+package com.k_int.pushKb.interactions.gokb;
 
 import static io.micronaut.http.HttpHeaders.ACCEPT;
 import static io.micronaut.http.HttpHeaders.USER_AGENT;
@@ -12,6 +12,8 @@ import jakarta.validation.constraints.NotBlank;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.k_int.pushKb.interactions.gokb.source.GokbScrollResponse;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
@@ -45,7 +47,7 @@ public interface GokbApiClient {
 		return scroll(COMPONENT_TYPE_PACKAGE, scrollId, changedSince != null ? changedSince.truncatedTo(ChronoUnit.SECONDS).toString() : null);
 	}
 
-	@Get("/scroll")
+	@Get("/api/scroll")
 	@SingleResult
 	@Retryable
 	abstract <T> Publisher<GokbScrollResponse> scroll(

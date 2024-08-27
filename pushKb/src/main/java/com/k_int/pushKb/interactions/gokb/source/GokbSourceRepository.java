@@ -4,20 +4,25 @@ import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.interactions.gokb.Gokb;
 import com.k_int.pushKb.storage.SourceRepository;
 
 import io.micronaut.core.annotation.NonNull;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.data.annotation.Join;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Mono;
 
 @Singleton
 @Transactional
 @R2dbcRepository(dialect = Dialect.POSTGRES)
-public interface GokbSourceRepository extends SourceRepository<GokbSource>{
+public interface GokbSourceRepository extends SourceRepository<GokbSource> {
   // Specific Gokb ensureSource (Needs generateUUID cos we've decided to use UUID5)
   @NonNull
   @SingleResult
@@ -25,7 +30,7 @@ public interface GokbSourceRepository extends SourceRepository<GokbSource>{
   default Publisher<GokbSource> ensureSource( GokbSource src ) {
     UUID gen_id = GokbSource.generateUUID(
       src.getGokbSourceType(),
-      src.getSourceUrl()
+      src.getGokb()
     );
 
     src.setId(gen_id);
@@ -39,4 +44,15 @@ public interface GokbSourceRepository extends SourceRepository<GokbSource>{
           return Mono.from(save(src));
         });
   }
+
+  // Unique up to baseUrl
+  @NonNull
+  @SingleResult
+	@Join("gokb")
+  Publisher<GokbSource> findById(@Nullable UUID id);
+
+  @NonNull
+  @SingleResult
+	@Join("gokb")
+  Publisher<GokbSource> save(@Valid @NotNull GokbSource src);
 }

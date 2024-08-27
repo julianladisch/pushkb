@@ -4,21 +4,24 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.util.UUID;
 
+import com.k_int.pushKb.interactions.gokb.Gokb;
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.GokbSourceType;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.ToString;
 import services.k_int.utils.UUIDUtils;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
+import io.micronaut.data.annotation.Relation;
+import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.annotation.TypeDef;
+import io.micronaut.data.annotation.sql.JoinColumn;
 import io.micronaut.serde.annotation.Serdeable;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import io.micronaut.data.model.DataType;
 
 @Serdeable
@@ -37,18 +40,22 @@ public class GokbSource implements Source {
 
   @NotNull
   @NonNull
-  @ToString.Include
-	@Size(max = 200)
-  String sourceUrl;
+  Gokb gokb;
+  
+  // Scrolling api available here
+  @Transient
+  public String getSourceUrl() {
+    return gokb.getBaseUrl();
+  }
 
-  // Should be unique up to code/type/url
+  // Should be unique up to type/gokb
   private static final String UUID5_PREFIX = "gokb_source";
-  public static UUID generateUUID(GokbSourceType gokbSourceType, String sourceUrl) {
-    final String concat = UUID5_PREFIX + ":" + ":" + gokbSourceType.toString() + ":" + sourceUrl;
+  public static UUID generateUUID(GokbSourceType gokbSourceType, Gokb gokb) {
+    final String concat = UUID5_PREFIX + ":" + ":" + gokbSourceType.toString() + ":" + Gokb.generateUUIDFromGoKB(gokb).toString();
     return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
   }
 
   public static UUID generateUUIDFromSource(GokbSource source) {
-    return generateUUID(source.getGokbSourceType(), source.getSourceUrl());
-  }  
+    return generateUUID(source.getGokbSourceType(), source.getGokb());
+  }
 }

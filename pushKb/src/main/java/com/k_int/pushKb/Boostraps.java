@@ -6,26 +6,34 @@ import java.util.Map;
 import java.util.AbstractMap.SimpleEntry;
 
 import com.k_int.pushKb.interactions.folio.destination.FolioDestination;
+import com.k_int.pushKb.interactions.gokb.Gokb;
 import com.k_int.pushKb.interactions.gokb.source.GokbSource;
+import com.k_int.pushKb.interactions.gokb.source.GokbSourceType;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.GokbSourceType;
 
 public interface Boostraps {
-
   public static final Map<String, ? extends Source> sources = Map.ofEntries(
     new SimpleEntry<String, GokbSource>(
       "GOKB_PACKAGE",
       GokbSource.builder()
-        .sourceUrl("https://gokb.org/gokb/api")
+        .gokb(
+          Gokb.builder()
+            .baseUrl("https://gokb.org/gokb")
+            .build()
+        )
         .gokbSourceType(GokbSourceType.PACKAGE)
         .build()
     ),
     new SimpleEntry<String, GokbSource>(
       "GOKB_TIPP",
       GokbSource.builder()
-        .sourceUrl("https://gokb.org/gokb/api")
+        .gokb(
+          Gokb.builder()
+            .baseUrl("https://gokb.org/gokb")
+            .build()
+        )
         .gokbSourceType(GokbSourceType.TIPP)
         .build()
     )

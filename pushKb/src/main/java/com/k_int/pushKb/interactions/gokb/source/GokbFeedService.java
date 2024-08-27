@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.k_int.pushKb.model.GokbSourceType;
+import com.k_int.pushKb.interactions.gokb.GokbApiClient;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.services.SourceFeedService;
 import com.k_int.pushKb.services.SourceRecordService;
