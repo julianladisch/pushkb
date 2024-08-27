@@ -50,6 +50,11 @@ public class SourceRecordService {
   }
 
   @Transactional
+  protected Publisher<Long> countSourceRecordFeedBySourceId (UUID sourceId, Instant footTimestamp, Instant headTimestamp) {
+    return sourceRecordRepository.countBySourceIdAndUpdatedGreaterThanAndUpdatedLessThan(sourceId, footTimestamp, headTimestamp);
+  }
+
+  @Transactional
   @SingleResult
   public Publisher<Instant> findMaxLastUpdatedAtSourceBySource (Source source) {
     return sourceRecordRepository.findMaxLastUpdatedAtSourceBySourceId(source.getId());

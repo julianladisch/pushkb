@@ -53,6 +53,9 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
  */
 
   @NonNull
+  Publisher<Long> countBySourceIdAndUpdatedGreaterThanAndUpdatedLessThan(UUID sourceId, Instant footTimestamp, Instant headTimestamp);
+
+  @NonNull
   Publisher<SourceRecord> findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(UUID sourceId, Instant footTimestamp, Instant headTimestamp);
 
   // Finds values STRICTLY between foot and head timestamps
