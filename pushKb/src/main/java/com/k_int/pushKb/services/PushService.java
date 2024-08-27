@@ -151,15 +151,15 @@ public class PushService {
         .buffer(1000); // REBUFFER to keep blocks of 1000
     })
     .doOnError(e -> log.error("ERROR???: {}", e))
-    // Change List<Tuple2<SourceRecord, JsonNode>> to Tuple4<List<SourceRecord>, List<JsonNode>, Instant, Instant>
+    // Change List<Tuple2<SourceRecord, JsonNode>> to Tuple3<List<JsonNode>, Instant, Instant>
     .flatMapSequential(list -> {
       return Flux.fromIterable(list)
         .reduce(
-          Tuples.of(new ArrayList<SourceRecord>(), new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
+          Tuples.of(new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
           (acc, tuple) -> {
             Instant sourceRecordUpdated = tuple.getT1().getUpdated();
-            Instant earliestSeen = acc.getT3();
-            Instant latestSeen = acc.getT4();
+            Instant earliestSeen = acc.getT2();
+            Instant latestSeen = acc.getT3();
             
             // STORE EARLIEST SOURCE RECORD "updated" IN T3
             if (sourceRecordUpdated.isBefore(earliestSeen)) {
@@ -170,20 +170,18 @@ public class PushService {
               latestSeen = sourceRecordUpdated;
             }
             
-            acc.getT1().add(tuple.getT1());
-            acc.getT2().add(tuple.getT2());
+            acc.getT1().add(tuple.getT2());
             
             // I think this works... Tuples are immutable so return list
-            return Tuples.of(acc.getT1(), acc.getT2(), earliestSeen, latestSeen);
+            return Tuples.of(acc.getT1(), earliestSeen, latestSeen);
           }
         ); // Stream within stream here
     }) // At this point we SHOULD
 		.flatMapSequential(chunkedRecordTuple -> {
-      ArrayList<SourceRecord> sourceRecordList = chunkedRecordTuple.getT1();
-      ArrayList<JsonNode> recordsList = chunkedRecordTuple.getT2();
+      ArrayList<JsonNode> recordsList = chunkedRecordTuple.getT1();
       // Keep track of earliest and latest, so we can do things inside chunks out of order
-      Instant earliestSeen = chunkedRecordTuple.getT3();
-      Instant latestSeen = chunkedRecordTuple.getT4();
+      Instant earliestSeen = chunkedRecordTuple.getT2();
+      Instant latestSeen = chunkedRecordTuple.getT3();
       log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
 
       //log.info("SR ARRAY: {}", chunkedRecordTuple.getT1());
