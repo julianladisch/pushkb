@@ -18,6 +18,7 @@ import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.function.TupleUtils;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -96,31 +97,40 @@ public class PushService {
 
   public Mono<PushTask> runPushTaskSingle(PushTask pt) {
     log.info("runPushTaskSingle called with {}", pt);
-    Instant lowerBound = pt.getFootPointer();
+    final Instant lowerBound = pt.getFootPointer();
     Instant upperBound = Instant.now();
 
     if (pt.getDestinationHeadPointer().compareTo(pt.getFootPointer()) != 0) {
       // If the DHP is NOT equal to FP, then we are in the "gap", continue from LSP
       upperBound = pt.getLastSentPointer();
     } // Otherwise, use head of stack with Instant.now()
+    final Instant finalUpperBound = upperBound;
 
     log.info("UPPER BOUND: {}", upperBound);
     log.info("LOWER BOUND: {}", lowerBound);
 
-
     // FIXME this needs to come from the PT transform model somehow
     ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json");
 
-    return Flux.from(sourceRecordService.getSourceRecordFeedBySourceId(
-			pt.getSourceId(),
-			// TODO what happens if we have two records with the same timestamp? - Unlikely but possible I guess
-			//Instant.EPOCH,
-			lowerBound,
-			//Instant.now()
-			upperBound
-		))
+    return Mono.from(sourceRecordService.countSourceRecordFeedBySourceId(
+      pt.getSourceId(),
+      lowerBound,
+      finalUpperBound
+    )).flatMapMany(count -> {
+      log.info("Pushing {} records", count);
+      return Flux.from(sourceRecordService.getSourceRecordFeedBySourceId(
+        pt.getSourceId(),
+        // TODO what happens if we have two records with the same timestamp? - Unlikely but possible I guess
+        //Instant.EPOCH,
+        lowerBound,
+        //Instant.now()
+        finalUpperBound
+      ));
+    })
     // Flux<SourceRecord> -> aiming for Tuple<SourceRecord, <JsonNode>>?
-    .flatMap(sourceRecord -> {
+    // Approach -- We chunk into 1000, then SEQUENTIALLY handle each chunk
+    // FIXME Old code... trying to parallelise
+    .flatMapSequential(sourceRecord -> {
       try {
         JsonNode transformedRecord = proteusService.convert(
           proteusSpec,
@@ -137,20 +147,39 @@ public class PushService {
     // We now have Flux<Mono<Tuple2<List<SourceRecord>, List<JsonNode>>>>
     //.doOnNext(thing -> log.info("TRANSFORMED THING: {}", thing))
     .buffer(1000)
-    .flatMap(list ->
-      Flux.fromIterable(list)
+    .flatMapSequential(list -> {
+      return Flux.fromIterable(list)
         .reduce(
-          Tuples.of(new ArrayList<SourceRecord>(), new ArrayList<JsonNode>()),
+          Tuples.of(new ArrayList<SourceRecord>(), new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
           (acc, tuple) -> {
+            Instant sourceRecordUpdated = tuple.getT1().getUpdated();
+            Instant earliestSeen = acc.getT3();
+            Instant latestSeen = acc.getT4();
+            
+            // STORE EARLIEST SOURCE RECORD "updated" IN T3
+            if (sourceRecordUpdated.isBefore(earliestSeen)) {
+              earliestSeen = sourceRecordUpdated;
+            }
+            // STORE LATEST SOURCE RECORD "updated" IN T4
+            if (sourceRecordUpdated.isAfter(latestSeen)) {
+              latestSeen = sourceRecordUpdated;
+            }
+            
             acc.getT1().add(tuple.getT1());
             acc.getT2().add(tuple.getT2());
-            return acc;
+            
+            // I think this works... Tuples are immutable so return list
+            return Tuples.of(acc.getT1(), acc.getT2(), earliestSeen, latestSeen);
           }
-        ) // Stream within stream here... not 100% sure on why this works, but if you add a return and put this inside a block it fails...
-    ) // At this point we SHOULD
-		.flatMap(chunkedRecordTuple -> {
+        ); // Stream within stream here
+    }) // At this point we SHOULD
+		.flatMapSequential(chunkedRecordTuple -> {
       ArrayList<SourceRecord> sourceRecordList = chunkedRecordTuple.getT1();
       ArrayList<JsonNode> recordsList = chunkedRecordTuple.getT2();
+      // Keep track of earliest and latest, so we can do things inside chunks out of order
+      Instant earliestSeen = chunkedRecordTuple.getT3();
+      Instant latestSeen = chunkedRecordTuple.getT4();
+      log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
 
       //log.info("SR ARRAY: {}", chunkedRecordTuple.getT1());
       //log.info("Transformed JSON ARRAY: {}", recordsList);
@@ -219,13 +248,13 @@ public class PushService {
       //log.info("SENT RECORD: {}", sr.getId());
       // ASSUMING right now it's successful, so sr.getUpdated() is new relevant data
       
-      // The last thing "successfully sent" was the last timestamp
-      pt.setLastSentPointer(sr.getUpdated());
+      // The earliest record "successfully sent" was the "last sent" timestamp, as we're moving _down_ the list
+      pt.setLastSentPointer(earliestSeen);
 
-      // Now compare the earliest thing sent in this chunk to the DHP
-      if (firstSr.getUpdated().compareTo(pt.getDestinationHeadPointer()) > 0) {
+      // Now compare the latest updated record sent in this chunk to the DHP
+      if (latestSeen.compareTo(pt.getDestinationHeadPointer()) > 0) {
         // We have a new head pointer
-        pt.setDestinationHeadPointer(firstSr.getUpdated());
+        pt.setDestinationHeadPointer(latestSeen);
       }
 
 			return pushTaskService.update(pt);
