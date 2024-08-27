@@ -96,7 +96,7 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
-/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
 			// Iterate over all PushTasks, maybe want to be smarter about this in future
@@ -104,7 +104,7 @@ public class SchedulingService {
 				.flatMap(pushService::runPushTask)
 				.doOnNext(pt -> log.info("WHEN DO WE SEE THIS FINAL END? {}", pt))
 				.subscribe();
-	} */
+	}
 
   // FIXME need to work on delay here
 /*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
@@ -115,19 +115,11 @@ public class SchedulingService {
 			.flatMap(sourceService::list)
 			// For each source, trigger an ingest of all records
 			.flatMap(sourceService::triggerIngestForSource)
-			.subscribe(); */
-
-		// Example grabbing bootstrapped TIPP Source directly, not necessary now
-/* 		Mono.from(sourceService.findById(
-			GokbSource.generateUUIDFromSource((GokbSource) Boostraps.sources.get("GOKB_TIPP")),
-			GokbSource.class
-		))
-			.flatMapMany(sourceService::triggerIngestForSource)
-			.subscribe(); 
-	}*/
+			.subscribe();
+	} */
 
 	// FETCHING FROM FOLIO---?
-	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
 		// For now, grab our FolioDestination from Bootstraps directly
 		Mono.from(destinationService.findById(
@@ -135,11 +127,11 @@ public class SchedulingService {
 			FolioDestination.generateUUIDFromDestination(
 				(FolioDestination) Boostraps.destinations.get("LOCAL_RANCHER_FOLIO")
 			)
-			/* FolioDestination.generateUUIDFromDestination(
-				(FolioDestination) Boostraps.destinations.get("SNAPSHOT2")
-			) */
+			//FolioDestination.generateUUIDFromDestination(
+			//	(FolioDestination) Boostraps.destinations.get("SNAPSHOT")
+			//)
 		))
 			.flatMapMany(destinationService::testMethod)
 			.subscribe();
-	}
+	} */
 }
