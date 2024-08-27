@@ -1,6 +1,7 @@
-package com.k_int.pushKb.gokb;
+package com.k_int.pushKb.interactions.gokb.source;
 
 import static io.micronaut.http.HttpHeaders.ACCEPT;
+import static io.micronaut.http.HttpHeaders.USER_AGENT;
 import static io.micronaut.http.MediaType.APPLICATION_JSON;
 
 import java.time.Instant;
@@ -21,8 +22,10 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.retry.annotation.Retryable;
 
+// TODO We may need low level instead because this @Client does not use Source data
 @Client("${" + GokbApiClient.CONFIG_ROOT + ".api.url:`https://gokb.org/gokb/api`}")
 @Header(name = ACCEPT, value = APPLICATION_JSON)
+@Header(name = USER_AGENT, value = "pushKB")
 public interface GokbApiClient {
 	public static final String COMPONENT_TYPE_TIPP = "TitleInstancePackagePlatform";
 	public static final String COMPONENT_TYPE_PACKAGE = "Package";
@@ -45,7 +48,6 @@ public interface GokbApiClient {
 	@Get("/scroll")
 	@SingleResult
 	@Retryable
-	@Header(name = "user-agent", value = "pushKB")
 	abstract <T> Publisher<GokbScrollResponse> scroll(
 		@NonNull @NotBlank @QueryValue(GokbApiClient.QUERY_PARAM_COMPONENT_TYPE) String type,
 		@Nullable @QueryValue("scrollId") String scrollId,

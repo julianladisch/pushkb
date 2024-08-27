@@ -2,42 +2,85 @@ package com.k_int.pushKb;
 
 import java.time.Instant;
 
+import java.util.Map;
+import java.util.AbstractMap.SimpleEntry;
+
+import com.k_int.pushKb.interactions.folio.destination.FolioDestination;
+import com.k_int.pushKb.interactions.gokb.source.GokbSource;
 import com.k_int.pushKb.model.Destination;
-import com.k_int.pushKb.model.DestinationSourceLink;
-import com.k_int.pushKb.model.DestinationType;
+import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceCode;
-import com.k_int.pushKb.model.SourceType;
+import com.k_int.pushKb.model.GokbSourceType;
 
 public interface Boostraps {
-	public static interface Sources {
-		public static final Source GOKB_PACKAGE = Source.builder()
-                                            .sourceUrl("https://gokb.org/gokb/api")
-                                            .code(SourceCode.GOKB)
-                                            .sourceType(SourceType.PACKAGE)
-                                            .build();
-    public static final Source GOKB_TIPP = Source.builder()
-                                            .sourceUrl("https://gokb.org/gokb/api")
-                                            .code(SourceCode.GOKB)
-                                            .sourceType(SourceType.TIPP)
-                                            .build();
-	}
 
-  public static interface Destinations {
-		public static final Destination FOLIO = Destination.builder()
-                                            .destinationUrl("https://test.com")
-                                            .destinationType(DestinationType.FOLIO)
-                                            .build();
-	}
+  public static final Map<String, ? extends Source> sources = Map.ofEntries(
+    new SimpleEntry<String, GokbSource>(
+      "GOKB_PACKAGE",
+      GokbSource.builder()
+        .sourceUrl("https://gokb.org/gokb/api")
+        .gokbSourceType(GokbSourceType.PACKAGE)
+        .build()
+    ),
+    new SimpleEntry<String, GokbSource>(
+      "GOKB_TIPP",
+      GokbSource.builder()
+        .sourceUrl("https://gokb.org/gokb/api")
+        .gokbSourceType(GokbSourceType.TIPP)
+        .build()
+    )
+  );
 
-  public static interface DestinationSourceLinks {
-		public static final DestinationSourceLink FOLIO_GOKB_TIPP = DestinationSourceLink.builder()
-                                            .transform("example_tranform")
-                                            .source(Sources.GOKB_TIPP)
-                                            .destination(Destinations.FOLIO)
-                                            .destinationHeadPointer(Instant.EPOCH)
-                                            .lastSentPointer(Instant.EPOCH)
-                                            .footPointer(Instant.EPOCH)
-                                            .build();
-	}
+  public static final Map<String, ? extends Destination> destinations = Map.ofEntries(
+    new SimpleEntry<String, Destination>(
+      "LOCAL_RANCHER_FOLIO",
+      FolioDestination.builder()
+        .destinationUrl("http://localhost:30100")
+        .tenant("test1")
+        // Use env vars for now... this file will eventually be gone anyway
+        .loginUser(System.getenv("LOCAL_RANCHER_USERNAME"))
+        .loginPassword(System.getenv("LOCAL_RANCHER_PASSWORD"))
+        .build()
+    ),
+    new SimpleEntry<String, Destination>(
+      "SNAPSHOT",
+      FolioDestination.builder()
+        .destinationUrl("https://folio-snapshot-okapi.dev.folio.org")
+        .tenant("diku")
+        // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
+        .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
+        .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
+        .build()
+    ),
+    new SimpleEntry<String, Destination>(
+      "SNAPSHOT2",
+      FolioDestination.builder()
+        .destinationUrl("https://folio-snapshot-2-okapi.dev.folio.org")
+        .tenant("diku")
+        // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
+        .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
+        .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
+        .build()
+    )
+  );
+
+  public static final Map<String, PushTask> pushTasks = Map.ofEntries(
+    new SimpleEntry<String, PushTask>(
+      "FOLIO_GOKB_TIPP",
+      PushTask.builder()
+        .transform("example_tranform")
+        .sourceId(GokbSource.generateUUIDFromSource(
+          (GokbSource) sources.get("GOKB_TIPP")
+        ))
+        .sourceType(GokbSource.class)
+        .destinationId(FolioDestination.generateUUIDFromDestination(
+          (FolioDestination) destinations.get("LOCAL_RANCHER_FOLIO")
+        ))
+        .destinationType(FolioDestination.class)
+        .destinationHeadPointer(Instant.EPOCH)
+        .lastSentPointer(Instant.EPOCH)
+        .footPointer(Instant.EPOCH)
+        .build()
+    )
+  );
 }

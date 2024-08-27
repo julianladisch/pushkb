@@ -8,9 +8,10 @@ micronaut:
     client:
       event-loop-group: other
       read-timeout: 30
+      max-content-length: 2147483647 # This strikes me as a bit dangerous, but 10MB causes issues from GOKB for some reason
 
   server:
-    port: 8080
+    port: 8060
   application:
     name: pushKb
   security:
@@ -23,7 +24,7 @@ micronaut:
           client-secret: '${OAUTH_CLIENT_SECRET:secret}'
           client-id: '${OAUTH_CLIENT_ID:pushKB}' 
           openid:
-            issuer: '${OIDC_ISSUER_DOMAIN:`http://localhost:8080`}/realms/${KEYCLOAK_REALM:master}' 
+            issuer: '${OIDC_ISSUER_DOMAIN:`http://localhost:8060`}/realms/${KEYCLOAK_REALM:master}' 
     endpoints:
       logout:
         get-allowed: true 
@@ -69,7 +70,7 @@ flyway:
       # password: ${DB_PASSWORD:`pass`}
 db:
   host: localhost
-  port: 5432
+  port: 6543
 
 
 datasources:
@@ -84,7 +85,7 @@ datasources:
     reconnect: true
     username: pushkb
     password: pushkb
-    url: "jdbc:postgresql://localhost:54321/pushkb"
+    url: "jdbc:postgresql://localhost:6543/pushkb"
 
 r2dbc:
   datasources:
@@ -96,7 +97,7 @@ r2dbc:
       # db-type: postgresql
       db-type: postgres
       reconnect: true
-      url: "r2dbc:postgresql://localhost:54321/pushkb"
+      url: "r2dbc:postgresql://localhost:6543/pushkb"
       username: pushkb
       password: pushkb
       options:

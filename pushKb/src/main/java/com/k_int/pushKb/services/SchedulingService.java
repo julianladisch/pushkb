@@ -1,5 +1,7 @@
 package com.k_int.pushKb.services;
 
+import static java.util.Collections.checkedSortedMap;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
@@ -9,15 +11,16 @@ import java.util.Optional;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.Boostraps.Sources;
-import com.k_int.pushKb.model.DestinationSourceLink;
+import com.k_int.pushKb.Boostraps;
+import com.k_int.pushKb.interactions.folio.destination.FolioDestination;
+import com.k_int.pushKb.interactions.folio.destination.FolioDestinationApiService;
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceRecord;
-import com.k_int.pushKb.model.SourceType;
-import com.k_int.pushKb.proteus.ProteusService;
-import com.k_int.pushKb.storage.SourceRecordRepository;
 
+// FIXME think this will be removed once I'm done debugging Proteus usage -- future task though
+import com.k_int.pushKb.proteus.ProteusService;
+
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.json.tree.JsonNode;
 import io.micronaut.serde.ObjectMapper;
 import io.micronaut.scheduling.annotation.Scheduled;
@@ -29,41 +32,47 @@ import reactor.core.publisher.Mono;
 @Singleton
 @Slf4j
 public class SchedulingService {
-	private final GoKBFeedService goKBFeedService;
-	// FIXME This probably shouldn't be here
 	private final SourceService sourceService;
-	private final SourceRecordService sourceRecordService;
-	private final DestinationSourceLinkService destinationSourceLinkService;
+	private final PushTaskService pushTaskService;
 	private final PushService pushService;
 
+	// TODO Are we using this in the end?
+	private final DestinationService destinationService;
+
 	// FIXME remove this too
+	// SRS not needed long term, here for example usage with Proteus
+	private final SourceRecordService sourceRecordService;
 	private final ProteusService proteusService;
 	private final ObjectMapper objectMapper;
 
+	// Not sure about this
+	private final HttpClient httpClient;
+
 	public SchedulingService(
-		GoKBFeedService goKBFeedService,
 		SourceRecordService sourceRecordService,
 		SourceService sourceService,
-		DestinationSourceLinkService destinationSourceLinkService,
+		PushTaskService pushTaskService,
 		PushService pushService,
+		DestinationService destinationService,
 		ProteusService proteusService,
-		ObjectMapper objectMapper
+		ObjectMapper objectMapper,
+		HttpClient httpClient //TODO Keep an eye on this
 	) {
-		this.goKBFeedService = goKBFeedService;
 		this.sourceRecordService = sourceRecordService;
 		this.sourceService = sourceService;
-		this.destinationSourceLinkService = destinationSourceLinkService;
+		this.pushTaskService = pushTaskService;
 		this.pushService = pushService;
+		this.destinationService = destinationService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;
+		this.httpClient = httpClient;
 	}
 
-
 	// TESTING
-	/* @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testProteus() {
 		log.info("TESTING PROTEUS");
-			Flux.from(sourceRecordRepository.findTop2OrderByCreatedDesc())
+			Flux.from(sourceRecordService.findTop2OrderByCreatedDesc())
 				.map(sr -> {
 					try {
 						JsonNode jsonOutput = proteusService.convert(
@@ -87,35 +96,42 @@ public class SchedulingService {
 				.subscribe();
 	} */
 
-/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void testSendAlgorithm() {
 		log.info("TESTING PUSH ALGORITHM");
-			// Iterate over all DSLs, maybe want to be smarter about this in future
-			// TODO we will need two Fluxes happening one after the other... one to fill any holes,
-			// then one from head -> top of sent stack
-
-			Flux.from(destinationSourceLinkService.getDestinationSourceLinkFeed())
-				// Run first Flux -- shouldn't return til last ?
-				.flatMap(pushService::handleSourceRecordsFromDSL)
-				.doOnNext(dsl -> log.info("WHEN DO WE SEE THIS FINAL END? {}", dsl))
+			// Iterate over all PushTasks, maybe want to be smarter about this in future
+			Flux.from(pushTaskService.getPushTaskFeed())
+				.flatMap(pushService::runPushTask)
+				.doOnNext(pt -> log.info("WHEN DO WE SEE THIS FINAL END? {}", pt))
 				.subscribe();
-	} */
+	}
 
   // FIXME need to work on delay here
-  @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
-		Mono.from(sourceService.findById(Source.generateUUIDFromSource(Sources.GOKB_TIPP)))
-				.flatMap(this::handleSource)
-				.subscribe();
-	}
+			// Fetch all source implementers from sourceService
+			Flux.from(sourceService.getSourceImplementors())
+			// For each class implementing Source, list all actual Sources in DB
+			.flatMap(sourceService::list)
+			// For each source, trigger an ingest of all records
+			.flatMap(sourceService::triggerIngestForSource)
+			.subscribe();
+	} */
 
-	// This should be in its own thing
-	public Mono<Instant> handleSource(Source source) {
-		return Mono.from(sourceRecordService.findMaxLastUpdatedAtSourceBySource(source))
-			// Is it the right thing to do here to use doOnSuccess?
-			.doOnSuccess(maxVal -> {
-				log.info("MAXIMUM TIMESTAMP FOUND: {}", maxVal);
-				goKBFeedService.fetchGoKBTipps(source, Optional.ofNullable(maxVal));
-			});
-	}
+	// FETCHING FROM FOLIO---?
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	public void scheduledTask() {
+		// For now, grab our FolioDestination from Bootstraps directly
+		Mono.from(destinationService.findById(
+			FolioDestination.class,
+			FolioDestination.generateUUIDFromDestination(
+				(FolioDestination) Boostraps.destinations.get("LOCAL_RANCHER_FOLIO")
+			)
+			//FolioDestination.generateUUIDFromDestination(
+			//	(FolioDestination) Boostraps.destinations.get("SNAPSHOT")
+			//)
+		))
+			.flatMapMany(destinationService::testMethod)
+			.subscribe();
+	} */
 }

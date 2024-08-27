@@ -5,11 +5,11 @@ services:
     image: postgres:16.1
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: pushkb
+      POSTGRES_PASSWORD: pushkb
+      POSTGRES_DB: pushkb
     ports:
-      - '54321:5432'
+      - '6543:5432'
     volumes: 
       - db:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d
@@ -23,16 +23,16 @@ services:
     environment:
       DB_VENDOR: postgres
       DB_ADDR: db
-      DB_DATABASE: ${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_SCHEMA: ${KEYCLOAK_SCHEMA}
+      DB_DATABASE: pushkb
+      DB_USER: pushkb
+      DB_PASSWORD: pushkb
+      DB_SCHEMA: keycloak
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    image: quay.io/keycloak/keycloak:25.0
     entrypoint: ["/opt/keycloak/bin/kc.sh", "start-dev"]
     ports:
-      - "28080:8080"
+      - "28080:8060"
     restart: unless-stopped
     networks:
       - local-keycloak

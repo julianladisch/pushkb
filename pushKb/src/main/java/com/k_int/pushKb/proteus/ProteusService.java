@@ -1,12 +1,11 @@
 package com.k_int.pushKb.proteus;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
-import io.micronaut.serde.ObjectMapper;
+import java.io.IOException;
+
+//import io.micronaut.serde.ObjectMapper;
 import io.micronaut.json.tree.JsonNode;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -15,63 +14,52 @@ import com.k_int.proteus.ComponentSpec;
 import com.k_int.proteus.Config;
 import com.k_int.proteus.Context;
 import com.k_int.proteus.Input;
-import com.k_int.pushKb.services.GoKBFeedService;
-import com.k_int.pushKb.services.SourceService;
-import com.k_int.pushKb.storage.SourceRecordRepository;
+
+import io.micronaut.jackson.databind.JacksonDatabindMapper;
 
 @Slf4j
 @Singleton
 public class ProteusService {
   public static final String TRANSFORM_SPEC_PATH = "src/main/resources/transformSpecs";
-  private final ObjectMapper objectMapper;
+  private static final JacksonDatabindMapper jacksonDatabindMapper = new JacksonDatabindMapper();
 
   public ProteusService(
-    ObjectMapper objectMapper
 	) {
-		this.objectMapper = objectMapper;
 	}
 
   static final Config config = Config.builder()
                                      .objectMapper(
-                                        new com.fasterxml.jackson.databind.ObjectMapper()
+                                        jacksonDatabindMapper.getObjectMapper()
                                           .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                                           .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                                       )
                                       .pathNotFoundToNull(true)
                                       .build();
 
-  public ComponentSpec<Object> loadSpec(String specName) {
-    return ComponentSpec.loadFile(TRANSFORM_SPEC_PATH + "/" + specName);
+  public ComponentSpec<JsonNode> loadSpec(String specName) {
+    return ComponentSpec.loadFile(JsonNode.class, TRANSFORM_SPEC_PATH + "/" + specName);
   }
 
-  public JsonNode convert(ComponentSpec spec, Object inputJson) {
-    Context context = Context
+  public Context getContextFromSpec(String specName) {
+    ComponentSpec<JsonNode> spec = loadSpec(specName);
+    return getContextFromSpec(spec);
+  }
+
+  public Context getContextFromSpec(ComponentSpec<JsonNode> spec) {
+    return Context
       .builder()
       .spec(spec)
-      .config(this.config)
+      .config(ProteusService.config)
       .build();
-    Input internal = new Input(inputJson);
+  }
 
-    return JsonNode.from(context
+  public JsonNode convert(ComponentSpec<JsonNode> spec, JsonNode inputJson) throws IOException {
+    Context context = getContextFromSpec(spec);
+    Input internal = new Input(jacksonDatabindMapper.readValueFromTree(inputJson, com.fasterxml.jackson.databind.JsonNode.class));
+
+    return context
       .inputMapper(internal)
-      .getComponent()
-      .orElse(null));
+      .asValue(JsonNode.class) // Autoconvert to JsonNode? Doesn't seem to improve performance really
+      .orElse(null);
   }
-
-  public JsonNode convert(ComponentSpec spec, JsonNode inputJson) {
-    Object objectJson = null;
-    try {
-      objectJson = objectMapper.readValue(objectMapper.writeValueAsBytes(inputJson), Object.class);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    return convert(spec, objectJson);
-  }
-
-	public Object loadJson(String fileName) throws IOException {
-    return objectMapper.readValue(new FileInputStream(TRANSFORM_SPEC_PATH + "/" + fileName), Object.class);
-	}
-
-
-
 }

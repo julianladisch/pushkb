@@ -5,63 +5,49 @@ import java.util.UUID;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Destination;
-import com.k_int.pushKb.model.DestinationType;
 import com.k_int.pushKb.storage.DestinationRepository;
 
+import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.core.type.Argument;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
-import reactor.core.publisher.Mono;
 
+// This is the place to do any generic destination MODEL stuff, with specific model work being handled by the repositories
 @Singleton
 public class DestinationService {
-  private final DestinationRepository destinationRepository;
-	public DestinationService(
-    DestinationRepository destinationRepository
-  ) {
-    this.destinationRepository = destinationRepository;
-	}
+  private final BeanContext beanContext;
+  public DestinationService ( BeanContext beanContext ) {
 
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Destination> findById( UUID id ) {
-    return destinationRepository.findById(id);
+    this.beanContext = beanContext;
   }
 
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Destination> ensureDestination( String destinationUrl, DestinationType type ) {
-    Destination dest = Destination.builder()
-                       .destinationUrl(destinationUrl)
-                       .destinationType(type)
-                       .build();
-
-    return ensureDestination(dest);
+  @SuppressWarnings("unchecked")
+  protected <T extends Destination> DestinationRepository<Destination> getRepositoryForDestinationType( Class<T> destinationType ) {
+    return (DestinationRepository<Destination>) beanContext.getBean( Argument.of(DestinationRepository.class, destinationType) ); // Use argument specify core type plus any generic...
   }
-  
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Destination> ensureDestination( Destination dest ) {
-    UUID gen_id = Destination.generateUUID(
-      dest.getDestinationType(),
-      dest.getDestinationUrl()
-    );
 
-    // Set up new Destination so we're definitely not passing the one from the parameters
-    Destination new_dest = dest.toBuilder()
-                               .id(gen_id)
-                               .build();
+  @SuppressWarnings("unchecked")
+  protected <T extends Destination> DestinationApiService<Destination> getApiServiceForDestinationType( Class<T> destinationType) {
+    return (DestinationApiService<Destination>) beanContext.getBean( Argument.of(DestinationApiService.class, destinationType) ); // Use argument specify core type plus any generic...
+  }
 
-    return Mono.from(destinationRepository.existsById(gen_id))
-        .flatMap(doesItExist -> {
-          return Mono.from(doesItExist ?
-            destinationRepository.findById(gen_id) :
-            destinationRepository.save(new_dest)
-          );
-        });
+  public Publisher<? extends Destination> findById(Class<? extends Destination> type, UUID id ) {
+    return getRepositoryForDestinationType(type).findById(id);
+  }
+
+  public Publisher<Boolean> existsById( Class<? extends Destination> type, UUID id  ) {
+    return getRepositoryForDestinationType(type).existsById(id);
+  }
+
+  // FIXME double check this ensure works as expected
+  public Publisher<? extends Destination> ensureDestination(Destination dest ) {
+    return getRepositoryForDestinationType(dest.getClass()).ensureDestination(dest);
+  }
+
+  // FIXME this is just a test rn
+  public Publisher<Boolean> testMethod(Destination dest) {
+    return getApiServiceForDestinationType(dest.getClass()).testMethod(dest);
   }
 }

@@ -1,9 +1,6 @@
 package com.k_int.pushKb.storage;
 
-import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceCode;
 import com.k_int.pushKb.model.SourceRecord;
-import com.k_int.pushKb.model.SourceType;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -14,9 +11,6 @@ import org.slf4j.Logger;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
-import io.micronaut.data.annotation.Join;
-import io.micronaut.data.annotation.Query;
-import io.micronaut.data.annotation.Join.Type;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
@@ -36,11 +30,11 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
 
   @Nullable
   @SingleResult
-  Publisher<Instant> findMaxLastUpdatedAtSourceBySource(Source source);
+  Publisher<Instant> findMaxLastUpdatedAtSourceBySourceId(UUID sourceId);
 
   @Nullable
   @SingleResult
-  Publisher<Instant> findMaxUpdatedBySource(Source source);
+  Publisher<Instant> findMaxUpdatedBySourceId(UUID sourceId);
 
   @SingleResult
 	Publisher<Void> delete(UUID id);
@@ -50,7 +44,6 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   Publisher<Boolean> existsById(@Nullable UUID id);
 
   @NonNull
-  @Join(value="source")
   Publisher<SourceRecord> findTop2OrderByCreatedDesc();
 
   // Between is inclusive of end
@@ -60,8 +53,10 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
  */
 
   @NonNull
-  @Join(value="source")
-  Publisher<SourceRecord> findAllBySourceAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(Source source, Instant footTimestamp, Instant headTimestamp);
+  Publisher<Long> countBySourceIdAndUpdatedGreaterThanAndUpdatedLessThan(UUID sourceId, Instant footTimestamp, Instant headTimestamp);
+
+  @NonNull
+  Publisher<SourceRecord> findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(UUID sourceId, Instant footTimestamp, Instant headTimestamp);
 
   // Finds values STRICTLY between foot and head timestamps
   // Having to manually input these fields is a dealbreaker for me, using automagical Query above instead

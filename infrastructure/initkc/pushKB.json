@@ -11,10 +11,10 @@
   "clientAuthenticatorType": "client-secret",
   "secret": "619TJtR09bcHgQ4mBlsSyk2bFHo4hqXi",
   "redirectUris": [
-    "http://localhost:8080/oauth/callback/keycloak"
+    "http://localhost:8060/oauth/callback/keycloak"
   ],
   "webOrigins": [
-    "http://localhost:8080"
+    "http://localhost:8060"
   ],
   "notBefore": 0,
   "bearerOnly": false,
@@ -30,7 +30,7 @@
     "oidc.ciba.grant.enabled": "false",
     "client.secret.creation.time": "1701102254",
     "backchannel.logout.session.required": "true",
-    "post.logout.redirect.uris": "http://localhost:8080/logout",
+    "post.logout.redirect.uris": "http://localhost:8060/logout",
     "oauth2.device.authorization.grant.enabled": "false",
     "backchannel.logout.revoke.offline.tokens": "false",
     "login_theme": "",

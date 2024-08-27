@@ -1,5 +1,6 @@
 package com.k_int.pushKb.services;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -7,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import com.k_int.pushKb.model.DestinationSourceLink;
+import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.proteus.ProteusService;
 
@@ -17,28 +18,35 @@ import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.function.TupleUtils;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
+import com.k_int.proteus.ComponentSpec;
+import com.k_int.proteus.Context;
+
 @Singleton
 @Slf4j
 public class PushService {
+  private final SourceService sourceService;
 	private final SourceRecordService sourceRecordService;
-	private final DestinationSourceLinkService destinationSourceLinkService;
+  private final PushTaskService pushTaskService;
 
 	// FIXME This will need incorporating later
 	private final ProteusService proteusService;
 	private final ObjectMapper objectMapper;
 
 	public PushService(
+    SourceService sourceService,
 		SourceRecordService sourceRecordService,
-		DestinationSourceLinkService destinationSourceLinkService,
+    PushTaskService pushTaskService,
 		ProteusService proteusService,
     ObjectMapper objectMapper
 	) {
+    this.sourceService = sourceService;
 		this.sourceRecordService = sourceRecordService;
-		this.destinationSourceLinkService = destinationSourceLinkService;
+    this.pushTaskService = pushTaskService;
 		this.proteusService = proteusService;
 		this.objectMapper = objectMapper;
 	}
@@ -59,72 +67,131 @@ public class PushService {
 	//     Current pointers from destination_record
 	//     Head of source_records list
 	//     For each record log out id, then either SENT (ID) or ERROR (ID) (10% failure)
-  public Mono<DestinationSourceLink> handleSourceRecordsFromDSL(DestinationSourceLink dsl) {
+
+  public Mono<PushTask> runPushTask(PushTask pt) {
     // We potentially need to run this twice, once to zip up hole,
     //once to bring in line with latest changes
-    return Mono.from(handleSourceRecordsFromDSLSingleRun(dsl))
+    return Mono.from(runPushTaskSingle(pt))
       // At this point, we should ALWAYS have "zipped up" the gap in records, next check if any new ones exist ahead of DHP
       //.doOnNext(dest -> log.info("WHEN DO WE SEE THIS? {}", dest))
-				// Go lookup head of stream (DSL source should never have changed...)
-      .zipWith(Mono.from(sourceRecordService.findMaxUpdatedBySource(dsl.getSource())))
+				// Go lookup head of stream (PT sourceid should never have changed...)
+      .zipWith(
+        // Grab sourceId from pt, and then use that to grab Instant head of source feed
+        // Again we assume that id is unique acrosss sourceTypes
+        Mono.from(sourceRecordService.findMaxUpdatedBySourceId(pt.getSourceId()))
+      )
       .flatMap(tuple -> {
-        DestinationSourceLink lastDsl = tuple.getT1();
+        PushTask lastPt = tuple.getT1();
         Instant sourceRecordHead = tuple.getT2();
-        if (sourceRecordHead.compareTo(lastDsl.getDestinationHeadPointer()) > 0) {
-          // There are fresh records ahead of the footPointer, rerun from lastDSL
+        if (sourceRecordHead.compareTo(lastPt.getDestinationHeadPointer()) > 0) {
+          // There are fresh records ahead of the footPointer, rerun from lastPT
           // ATM we do this specifically as a second run, we could recurse this, but honestly running once an hour should be fine
           log.info("Fresh records exist ahead of destinationHeadPointer, bringing in line");
-          return handleSourceRecordsFromDSLSingleRun(lastDsl);
+          return runPushTaskSingle(lastPt);
         }
 
         // No need to rerun, just 
-        return Mono.just(dsl);
+        return Mono.just(pt);
       });
   }
 
-  public Mono<DestinationSourceLink> handleSourceRecordsFromDSLSingleRun(DestinationSourceLink dsl) {
-    log.info("handleSourceRecordsFromDSLSingleRun called with {}", dsl);
-    Instant lowerBound = dsl.getFootPointer();
+  public Mono<PushTask> runPushTaskSingle(PushTask pt) {
+    log.info("runPushTaskSingle called with {}", pt);
+    final Instant lowerBound = pt.getFootPointer();
     Instant upperBound = Instant.now();
 
-    if (dsl.getDestinationHeadPointer().compareTo(dsl.getFootPointer()) != 0) {
+    if (pt.getDestinationHeadPointer().compareTo(pt.getFootPointer()) != 0) {
       // If the DHP is NOT equal to FP, then we are in the "gap", continue from LSP
-      upperBound = dsl.getLastSentPointer();
+      upperBound = pt.getLastSentPointer();
     } // Otherwise, use head of stack with Instant.now()
+    final Instant finalUpperBound = upperBound;
 
-    /* log.info("UPPER BOUND: {}", upperBound);
-    log.info("LOWER BOUND: {}", lowerBound); */
+    log.info("UPPER BOUND: {}", upperBound);
+    log.info("LOWER BOUND: {}", lowerBound);
 
-    return Flux.from(sourceRecordService.getSourceRecordFeedBySource(
-			dsl.getSource(),
-			// TODO what happens if we have two records with the same timestamp?
-			// should our pointer include Id (or just be the sourceRecord itself)?
-			//Instant.EPOCH,
-			lowerBound,
-			//Instant.now()
-			upperBound
-		))
-    .buffer(100)
-		.flatMap(srArray -> {
-      //log.info("SR ARRAY: {}", srArray);
+    /* Keep bundleSize consistent between chunking for send and chunking for transform
+     * IMPORTANT these cannot be allowed to drift because we're assuming a sequential order
+     * that these are being sent in. The chunks can be internally ordered however, but each chunk
+     * MUST be in the right order when sent so that we can maintain pointer positions.
+     */
+    int bundleSize = 1000;
 
-      // We need to build the JsonNode "records" field and then apply to output
-      ArrayList<JsonNode> recordsList = new ArrayList<JsonNode>();
+    // FIXME this needs to come from the PT transform model somehow
+    ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json");
 
-      // TODO can we parallelise the transformation of these 100 records?
-      for(SourceRecord sr : srArray) {
-        try {
-          recordsList.add(proteusService.convert(
-            proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json"),
-            sr.getJsonRecord()
-          ));
-        } catch (Exception e) {
-          e.printStackTrace();
-          // FIXME
-          // Is this the right way to error?
-          return Mono.error(e);
-        }
-      }
+    return Mono.from(sourceRecordService.countSourceRecordFeedBySourceId(
+      pt.getSourceId(),
+      lowerBound,
+      finalUpperBound
+    )).flatMapMany(count -> {
+      log.info("Pushing {} records", count);
+      return Flux.from(sourceRecordService.getSourceRecordFeedBySourceId(
+        pt.getSourceId(),
+        // TODO what happens if we have two records with the same timestamp? - Unlikely but possible I guess
+        //Instant.EPOCH,
+        lowerBound,
+        //Instant.now()
+        finalUpperBound
+      ));
+    })
+    // Flux<SourceRecord> -> aiming for Tuple<SourceRecord, <JsonNode>>?
+    // Parallelise transform within each buffered chunk (tracking earliest and latest so order within chunk doesn't matter)
+    .buffer(bundleSize)
+    .flatMapSequential(chunkedSourceRecordList -> {
+      return Flux.fromIterable(chunkedSourceRecordList)
+        .parallel()
+        .runOn(Schedulers.boundedElastic())
+        .flatMap(sourceRecord -> {
+          try {
+            JsonNode transformedRecord = proteusService.convert(
+              proteusSpec,
+              sourceRecord.getJsonRecord()
+            );
+            return Mono.just(Tuples.of(sourceRecord, transformedRecord));
+          } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return Mono.error(e);
+          }
+        })
+        .sequential()
+        .buffer(bundleSize); // REBUFFER to keep blocks of 1000
+    })
+    .doOnError(e -> log.error("ERROR???: {}", e))
+    // Change List<Tuple2<SourceRecord, JsonNode>> to Tuple3<List<JsonNode>, Instant, Instant>
+    .flatMapSequential(list -> {
+      return Flux.fromIterable(list)
+        .reduce(
+          Tuples.of(new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
+          (acc, tuple) -> {
+            Instant sourceRecordUpdated = tuple.getT1().getUpdated();
+            Instant earliestSeen = acc.getT2();
+            Instant latestSeen = acc.getT3();
+            
+            // STORE EARLIEST SOURCE RECORD "updated" IN T3
+            if (sourceRecordUpdated.isBefore(earliestSeen)) {
+              earliestSeen = sourceRecordUpdated;
+            }
+            // STORE LATEST SOURCE RECORD "updated" IN T4
+            if (sourceRecordUpdated.isAfter(latestSeen)) {
+              latestSeen = sourceRecordUpdated;
+            }
+            
+            acc.getT1().add(tuple.getT2());
+            
+            // I think this works... Tuples are immutable so return list
+            return Tuples.of(acc.getT1(), earliestSeen, latestSeen);
+          }
+        ); // Stream within stream here
+    }) // At this point we SHOULD
+    .doOnNext(tuple -> log.info("Pushing records {} -> {}", tuple.getT2(), tuple.getT3()))
+		.flatMapSequential(chunkedRecordTuple -> {
+      ArrayList<JsonNode> recordsList = chunkedRecordTuple.getT1();
+      // Keep track of earliest and latest, so we can do things inside chunks out of order
+      Instant earliestSeen = chunkedRecordTuple.getT2();
+      Instant latestSeen = chunkedRecordTuple.getT3();
+
+      //log.info("SR ARRAY: {}", chunkedRecordTuple.getT1());
 
       // Set up output
       // FIXME this isn't how we'll manage sessions and chunks
@@ -134,24 +201,15 @@ public class PushService {
         new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
       ));
 
-      log.info("pushKBJsonOutput: {}", pushKBJsonOutput);
-      /* TODO
-       * Convert list of SRs into single JSON output
-       */
+      //log.info("pushKBJsonOutput: {}", pushKBJsonOutput);
       /*
        * Idk if this is useful, but this is how to set up our own tuple. Could be useful for passing info downstream
-       * Tuple2<SourceRecord, DestinationSourceLink> output = Tuples.of(sr, dsl);
+       * Tuple2<SourceRecord, PushTask> output = Tuples.of(sr, pt);
        */
 
-      // We check the very bottom sourceRecord, as that's where the pointer will move
-      SourceRecord firstSr = srArray.get(0);
-      SourceRecord sr = srArray.get(srArray.size() - 1);
-      
       // FIXME these logs are not helpful wording yet
-
   
       // For now, assume repository has properly fetched everything it needs to
-      // TODO check what happens if this run is empty
       // At this point we need to send this record
 
       // TODO Replace with actual send logic
@@ -168,30 +226,27 @@ public class PushService {
         return Mono.error(new Exception("SOMETHING WENT WRONG HERE"));
       }
  */
-      log.info("SENT RECORD: {}", sr.getId());
-      // ASSUMING right now it's successful, so sr.getUpdated() is new relevant data
+      //log.info("SENT RECORD: {}", sr.getId());
       
-      // The last thing "successfully sent" was the last timestamp
-      dsl.setLastSentPointer(sr.getUpdated());
+      // The earliest record "successfully sent" was the "last sent" timestamp, as we're moving _down_ the list
+      pt.setLastSentPointer(earliestSeen);
 
-      // Now compare the earliest thing sent in this chunk to the DHP
-      if (firstSr.getUpdated().compareTo(dsl.getDestinationHeadPointer()) > 0) {
+      // Now compare the latest updated record sent in this chunk to the DHP
+      if (latestSeen.compareTo(pt.getDestinationHeadPointer()) > 0) {
         // We have a new head pointer
-        dsl.setDestinationHeadPointer(firstSr.getUpdated());
+        pt.setDestinationHeadPointer(latestSeen);
       }
-
-			return destinationSourceLinkService.update(dsl);
+			return pushTaskService.update(pt);
 		})
+    //.doOnNext(savedPt -> log.info("Saved PT: {}", savedPt))
     /*
-     * TODO alternative -- can we break out of a Flux and not use Between? Would simplify logic
-     * instead working back from DestinationHeadPointer or head of record stack?
      * TODO does last trigger if there's an error?
      */
-    .takeLast(1) // This will contain the DSL as it stands after the LAST record in the stack
+    .doOnError(err -> log.error("WHAT IS HAPPENEING: {}", err))
+    .takeLast(1) // This will contain the PT as it stands after the LAST record in the stack
     .next() // This should be a passive version of last(), where if stream is empty we don't get a crash
-    .flatMap(lastDsl -> {
+    .flatMap(lastPt -> {
       log.info("We still got here after exception though");
-      // FIXME is it ok to update from this new "version" of DSL instead of the passed one?
       /* If previous footPointer is updated
        * then the between logic will return a list NOT containing
        * a record equal to or below FootPointer.
@@ -200,17 +255,17 @@ public class PushService {
        * should be the new footPointer. ASSUMES THAT THE BETWEEN WORKS AS EXPECTED
        */
       // Is this if necessary? DHP should always be ahead of FP
-      if (lastDsl.getDestinationHeadPointer().compareTo(dsl.getFootPointer()) > 0 ) {
+      if (lastPt.getDestinationHeadPointer().compareTo(pt.getFootPointer()) > 0 ) {
         // We reached the end but never moved footPointer
-        lastDsl.setFootPointer(lastDsl.getDestinationHeadPointer());
-        return Mono.from(destinationSourceLinkService.update(lastDsl)); 
+        lastPt.setFootPointer(lastPt.getDestinationHeadPointer());
+        return Mono.from(pushTaskService.update(lastPt)); 
       }
 
-      // If nothing changed, just return DSL as is
-      return Mono.just(lastDsl);
+      // If nothing changed, just return PT as is
+      return Mono.just(lastPt);
       /* 
        * TODO
-       * DOWNSTREAM will need to inspect the changed DSL and make decisions
+       * DOWNSTREAM will need to inspect the changed PT and make decisions
        * about continuing/moving on based on pointers and head of record stack
        */
     });

@@ -1,6 +1,7 @@
 package com.k_int.pushKb.services;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
@@ -26,7 +27,7 @@ public class SourceRecordService {
 
   @Transactional
   @SingleResult // Use when you use a Publisher representing a single result
-  protected Publisher<SourceRecord> saveOrUpdateRecord ( @NonNull @Valid SourceRecord sr ) {
+  public Publisher<SourceRecord> saveOrUpdateRecord ( @NonNull @Valid SourceRecord sr ) {
   	return sourceRecordRepository.saveOrUpdate(sr);
   }
 
@@ -38,18 +39,37 @@ public class SourceRecordService {
 
   @Transactional
   protected Publisher<SourceRecord> getSourceRecordFeedBySource (Source source, Instant footTimestamp, Instant headTimestamp) {
-    return sourceRecordRepository.findAllBySourceAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(source, footTimestamp, headTimestamp);
+    return getSourceRecordFeedBySourceId(source.getId(), footTimestamp, headTimestamp);
+  }
+
+  // THIS ASSUMES THAT SOURCES OF TWO DIFFERENT TYPES WILL NOT SHARE AN ID...
+  // BE VERY CAREFUL WITH UUID5
+  @Transactional
+  protected Publisher<SourceRecord> getSourceRecordFeedBySourceId (UUID sourceId, Instant footTimestamp, Instant headTimestamp) {
+    return sourceRecordRepository.findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(sourceId, footTimestamp, headTimestamp);
+  }
+
+  @Transactional
+  protected Publisher<Long> countSourceRecordFeedBySourceId (UUID sourceId, Instant footTimestamp, Instant headTimestamp) {
+    return sourceRecordRepository.countBySourceIdAndUpdatedGreaterThanAndUpdatedLessThan(sourceId, footTimestamp, headTimestamp);
   }
 
   @Transactional
   @SingleResult
-  protected Publisher<Instant> findMaxLastUpdatedAtSourceBySource (Source source) {
-    return sourceRecordRepository.findMaxLastUpdatedAtSourceBySource(source);
+  public Publisher<Instant> findMaxLastUpdatedAtSourceBySource (Source source) {
+    return sourceRecordRepository.findMaxLastUpdatedAtSourceBySourceId(source.getId());
+  }
+  // FIXME should probably change these methods to use UUID as well? Maybe not, see where the wind takes you
+
+  @Transactional
+  @SingleResult
+  public Publisher<Instant> findMaxUpdatedBySource (Source source) {
+    return findMaxUpdatedBySourceId(source.getId());
   }
 
   @Transactional
   @SingleResult
-  protected Publisher<Instant> findMaxUpdatedBySource (Source source) {
-    return sourceRecordRepository.findMaxUpdatedBySource(source);
+  public Publisher<Instant> findMaxUpdatedBySourceId (UUID sourceId) {
+    return sourceRecordRepository.findMaxUpdatedBySourceId(sourceId);
   }
 }

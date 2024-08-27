@@ -3,6 +3,11 @@ micronaut:
     port: 8080
   application:
     name: pushKb
+  http:
+    client:
+      #event-loop-group: other
+      #read-timeout: 30
+      max-content-length: 2147483647 # This strikes me as a bit dangerous, but 10MB causes issues from GOKB for some reason
   #router:
   #  static-resources:
   #    swagger:

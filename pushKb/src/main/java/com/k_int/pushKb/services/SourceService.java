@@ -1,71 +1,79 @@
 package com.k_int.pushKb.services;
 
 import java.util.UUID;
+import java.util.HashSet;
 
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.interactions.gokb.source.GokbSource;
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceCode;
-import com.k_int.pushKb.model.SourceType;
-
+import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.storage.SourceRepository;
 
+import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.core.type.Argument;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
-import reactor.core.publisher.Mono;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 @Singleton
+@Slf4j
 public class SourceService {
-  private final SourceRepository sourceRepository;
-	public SourceService(
-    SourceRepository sourceRepository
-  ) {
-    this.sourceRepository = sourceRepository;
-	}
+  private final BeanContext beanContext;
+  public SourceService ( BeanContext beanContext ) {
+    this.beanContext = beanContext;
+  }
 
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Source> findById( UUID id ) {
-    return sourceRepository.findById(id);
+  @SuppressWarnings("unchecked")
+  protected <T extends Source> SourceRepository<Source> getRepositoryForSourceType( Class<T> sourceType ) {
+    return (SourceRepository<Source>) beanContext.getBean( Argument.of(SourceRepository.class, sourceType) ); // Use argument specify core type plus any generic...
+  }
+
+  @SuppressWarnings("unchecked")
+  protected <T extends Source> SourceFeedService<Source> getFeedServiceForSourceType( Class<T> sourceType ) {
+    return (SourceFeedService<Source>) beanContext.getBean( Argument.of(SourceFeedService.class, sourceType) ); // Use argument specify core type plus any generic...
   }
 
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<Source> ensureSource( String sourceUrl, SourceCode code, SourceType type ) {
-    Source src = Source.builder()
-                       .sourceUrl(sourceUrl)
-                       .code(code)
-                       .sourceType(type)
-                       .build();
-
-    return ensureSource(src);
+  public Publisher<? extends Source> findById( Class<? extends Source> type, UUID id ) {
+    return getRepositoryForSourceType(type).findById(id);
   }
 
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<Source> ensureSource( Source src ) {
-    UUID gen_id = Source.generateUUID(
-      src.getCode(),
-      src.getSourceType(),
-      src.getSourceUrl()
-    );
+  public Publisher<Boolean> existsById( Class<? extends Source> type, UUID id ) {
+    return getRepositoryForSourceType(type).existsById(id);
+  }
 
-    // Set up new Source so we're definitely not passing the one from the parameters
-    Source new_source = src.toBuilder()
-                           .id(gen_id)
-                           .build();
+  @NonNull
+  @Transactional
+  public Publisher<? extends Source> list(Class<? extends Source> type ) {
+    return getRepositoryForSourceType(type).list();
+  }
 
-    return Mono.from(sourceRepository.existsById(gen_id))
-        .flatMap(doesItExist -> {
-          return Mono.from(doesItExist ?
-            sourceRepository.findById(gen_id) :
-            sourceRepository.save(new_source)
-          );
-        });
+  @NonNull
+  @SingleResult
+  @Transactional
+  public Publisher<? extends Source> ensureSource( Source src ) {
+    return getRepositoryForSourceType(src.getClass()).ensureSource(src);
+  }
+
+  public Publisher<Class<? extends Source>> getSourceImplementors() {
+    HashSet<Class<? extends Source>> sourceClasses = new HashSet<Class<? extends Source>>();
+    // For now manually return set of all Source implementing classes (??)
+    sourceClasses.add(GokbSource.class);
+
+    return Flux.fromIterable(sourceClasses);
+  }
+
+  public Publisher<SourceRecord> triggerIngestForSource(Source source) {
+    SourceFeedService<Source> sourceFeedService = getFeedServiceForSourceType(source.getClass());
+    return sourceFeedService.fetchSourceRecords(source);
   }
 }
