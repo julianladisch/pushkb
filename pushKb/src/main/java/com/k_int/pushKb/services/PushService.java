@@ -128,25 +128,30 @@ public class PushService {
       ));
     })
     // Flux<SourceRecord> -> aiming for Tuple<SourceRecord, <JsonNode>>?
-    // Approach -- We chunk into 1000, then SEQUENTIALLY handle each chunk
-    // FIXME Old code... trying to parallelise
-    .flatMapSequential(sourceRecord -> {
-      try {
-        JsonNode transformedRecord = proteusService.convert(
-          proteusSpec,
-          sourceRecord.getJsonRecord()
-        );
-        return Mono.just(Tuples.of(sourceRecord, transformedRecord));
-      } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        return Mono.error(e);
-      }
+    // Parallelise transform within each buffered chunk (tracking earliest and latest so order within chunk doesn't matter)
+    .buffer(1000)
+    .flatMapSequential(chunkedSourceRecordList -> {
+      return Flux.fromIterable(chunkedSourceRecordList)
+        .parallel()
+        .runOn(Schedulers.boundedElastic())
+        .flatMap(sourceRecord -> {
+          try {
+            JsonNode transformedRecord = proteusService.convert(
+              proteusSpec,
+              sourceRecord.getJsonRecord()
+            );
+            return Mono.just(Tuples.of(sourceRecord, transformedRecord));
+          } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return Mono.error(e);
+          }
+        })
+        .sequential()
+        .buffer(1000); // REBUFFER to keep blocks of 1000
     })
     .doOnError(e -> log.error("ERROR???: {}", e))
-    // We now have Flux<Mono<Tuple2<List<SourceRecord>, List<JsonNode>>>>
-    //.doOnNext(thing -> log.info("TRANSFORMED THING: {}", thing))
-    .buffer(1000)
+    // Change List<Tuple2<SourceRecord, JsonNode>> to Tuple4<List<SourceRecord>, List<JsonNode>, Instant, Instant>
     .flatMapSequential(list -> {
       return Flux.fromIterable(list)
         .reduce(
@@ -182,26 +187,6 @@ public class PushService {
       log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
 
       //log.info("SR ARRAY: {}", chunkedRecordTuple.getT1());
-      //log.info("Transformed JSON ARRAY: {}", recordsList);
-      // We need to build the JsonNode "records" field and then apply to output
-
-      // TODO can we parallelise the transformation of these 100 records?
-/*       for(SourceRecord sr : srArray) {
-        try {
-          // Am not convinced that converting one by one is the way to go,
-          // perhaps a standard proteusSpec for converting an array of records
-          // which can reference a spec we feed in? 
-          recordsList.add(proteusService.convert(
-            proteusSpec,
-            sr.getJsonRecord()
-          ));
-        } catch (Exception e) {
-          e.printStackTrace();
-          // FIXME
-          // Is this the right way to error?
-          return Mono.error(e);
-        }
-      } */
 
       // Set up output
       // FIXME this isn't how we'll manage sessions and chunks
@@ -212,23 +197,14 @@ public class PushService {
       ));
 
       //log.info("pushKBJsonOutput: {}", pushKBJsonOutput);
-      /* TODO
-       * Convert list of SRs into single JSON output
-       */
       /*
        * Idk if this is useful, but this is how to set up our own tuple. Could be useful for passing info downstream
        * Tuple2<SourceRecord, PushTask> output = Tuples.of(sr, pt);
        */
 
-      // We check the very bottom sourceRecord, as that's where the pointer will move
-      SourceRecord firstSr = sourceRecordList.get(0);
-      SourceRecord sr = sourceRecordList.get(sourceRecordList.size() - 1);
-      
       // FIXME these logs are not helpful wording yet
-
   
       // For now, assume repository has properly fetched everything it needs to
-      // TODO check what happens if this run is empty
       // At this point we need to send this record
 
       // TODO Replace with actual send logic
@@ -246,7 +222,6 @@ public class PushService {
       }
  */
       //log.info("SENT RECORD: {}", sr.getId());
-      // ASSUMING right now it's successful, so sr.getUpdated() is new relevant data
       
       // The earliest record "successfully sent" was the "last sent" timestamp, as we're moving _down_ the list
       pt.setLastSentPointer(earliestSeen);
