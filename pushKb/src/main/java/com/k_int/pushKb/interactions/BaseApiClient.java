@@ -80,11 +80,7 @@ public class BaseApiClient implements ApiClient {
 	}
 
   protected Optional<Argument<?>> getErrorArgument(Optional<Class<?>> errorType) {
-    if (errorType.isPresent()) {
-      return Optional.of(Argument.of(errorType.get()));
-    }
-  
-    return Optional.empty();
+    return errorType.map(et -> Argument.of(et));
   }
 
   public <T> Mono<HttpResponse<T>> get(
