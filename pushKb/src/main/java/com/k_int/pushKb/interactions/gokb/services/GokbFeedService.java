@@ -32,6 +32,7 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
     GokbApiClient gokbApiClient,
 		SourceRecordService sourceRecordService
   ) {
+		// FIXME when we dynamically instantiate this like Folio client, make sure we append `/api`
 		this.gokbApiClient = gokbApiClient;
 		this.sourceRecordService = sourceRecordService;
 	}

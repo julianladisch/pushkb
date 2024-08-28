@@ -24,6 +24,7 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.retry.annotation.Retryable;
 
+// This is *just* the client for '/api'. An OAI (/oai) client would differ -- possibly different source type or at least a flag on there.
 // TODO We may need low level instead because this @Client does not use Source data
 @Client("${" + GokbApiClient.CONFIG_ROOT + ".api.url:`https://gokb.org/gokb/api`}")
 @Header(name = ACCEPT, value = APPLICATION_JSON)
@@ -47,7 +48,7 @@ public interface GokbApiClient {
 		return scroll(COMPONENT_TYPE_PACKAGE, scrollId, changedSince != null ? changedSince.truncatedTo(ChronoUnit.SECONDS).toString() : null);
 	}
 
-	@Get("/api/scroll")
+	@Get("/scroll")
 	@SingleResult
 	@Retryable
 	abstract <T> Publisher<GokbScrollResponse> scroll(
