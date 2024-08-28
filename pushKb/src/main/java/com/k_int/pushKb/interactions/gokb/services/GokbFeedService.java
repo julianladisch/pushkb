@@ -1,10 +1,13 @@
-package com.k_int.pushKb.interactions.gokb.source;
+package com.k_int.pushKb.interactions.gokb.services;
 
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.k_int.pushKb.model.GokbSourceType;
+import com.k_int.pushKb.interactions.gokb.GokbApiClient;
+import com.k_int.pushKb.interactions.gokb.model.GokbScrollResponse;
+import com.k_int.pushKb.interactions.gokb.model.GokbSource;
+import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.services.SourceFeedService;
 import com.k_int.pushKb.services.SourceRecordService;
@@ -29,9 +32,13 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
     GokbApiClient gokbApiClient,
 		SourceRecordService sourceRecordService
   ) {
+		// FIXME when we dynamically instantiate this like Folio client, make sure we append `/api`
 		this.gokbApiClient = gokbApiClient;
 		this.sourceRecordService = sourceRecordService;
 	}
+
+	// Dynamically set up GokbApiClient from source
+	
 
 	// The actual "Fetch a stream of sourceRecords" method
 	public Flux<SourceRecord> fetchSourceRecords(GokbSource source) {

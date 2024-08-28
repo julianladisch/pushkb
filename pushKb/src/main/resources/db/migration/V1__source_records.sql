@@ -28,12 +28,3 @@ CREATE INDEX IF NOT EXISTS source_record_updated_idx ON source_record (updated);
 CREATE INDEX IF NOT EXISTS source_record_source_updated_idx ON source_record (source_id, updated);
 CREATE INDEX IF NOT EXISTS source_record_source_type_source_updated_idx ON source_record (source_type, source_id, updated);
 
-CREATE TABLE gokb_source (
-	id uuid PRIMARY KEY,
-	gokb_source_type VARCHAR(64) NOT NULL,
-	source_url varchar(200)
-);
-
-CREATE INDEX IF NOT EXISTS source_gokb_source_type_idx ON gokb_source (gokb_source_type);
-CREATE INDEX IF NOT EXISTS source_source_url_idx ON gokb_source (source_url);
-CREATE INDEX IF NOT EXISTS source_source_url_gokb_source_type_idx ON gokb_source (source_url, gokb_source_type);

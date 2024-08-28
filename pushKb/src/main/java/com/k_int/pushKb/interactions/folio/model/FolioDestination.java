@@ -1,4 +1,4 @@
-package com.k_int.pushKb.interactions.folio.destination;
+package com.k_int.pushKb.interactions.folio.model;
 
 import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 

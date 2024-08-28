@@ -1,4 +1,4 @@
-package com.k_int.pushKb.interactions.gokb.source;
+package com.k_int.pushKb.interactions.gokb;
 
 import static io.micronaut.http.HttpHeaders.ACCEPT;
 import static io.micronaut.http.HttpHeaders.USER_AGENT;
@@ -13,6 +13,8 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.k_int.pushKb.interactions.gokb.model.GokbScrollResponse;
+
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
@@ -22,6 +24,7 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.retry.annotation.Retryable;
 
+// This is *just* the client for '/api'. An OAI (/oai) client would differ -- possibly different source type or at least a flag on there.
 // TODO We may need low level instead because this @Client does not use Source data
 @Client("${" + GokbApiClient.CONFIG_ROOT + ".api.url:`https://gokb.org/gokb/api`}")
 @Header(name = ACCEPT, value = APPLICATION_JSON)

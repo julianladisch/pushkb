@@ -3,7 +3,7 @@ CREATE TABLE push_task (
 	transform VARCHAR(255) NOT NULL,
 	destination_id uuid,
   destination_type VARCHAR(255) NOT NULL,
-	source_id uuid,
+	source_id uuid, -- References a table dynamically through destinationType
   source_type VARCHAR(255) NOT NULL, -- SourceType here is a CLASS not to be confused with GokbSourceType on GokbSource
 	destination_head_pointer TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	last_sent_pointer TIMESTAMP WITHOUT TIME ZONE NOT NULL,

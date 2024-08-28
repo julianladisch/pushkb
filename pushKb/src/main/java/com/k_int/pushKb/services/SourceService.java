@@ -5,10 +5,10 @@ import java.util.HashSet;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.interactions.gokb.source.GokbSource;
+import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
-import com.k_int.pushKb.storage.SourceRepository;
+//import com.k_int.pushKb.storage.SourceRepository;
 
 import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
@@ -28,9 +28,15 @@ public class SourceService {
   }
 
   @SuppressWarnings("unchecked")
+  protected <T extends Source> SourceDatabaseService<Source> getSourceDatabaseServiceForSourceType( Class<T> sourceType ) {
+    return (SourceDatabaseService<Source>) beanContext.getBean( Argument.of(SourceDatabaseService.class, sourceType) ); // Use argument specify core type plus any generic...
+  }
+
+  // Replaced with service calls, one more layer of abstraction
+/*   @SuppressWarnings("unchecked")
   protected <T extends Source> SourceRepository<Source> getRepositoryForSourceType( Class<T> sourceType ) {
     return (SourceRepository<Source>) beanContext.getBean( Argument.of(SourceRepository.class, sourceType) ); // Use argument specify core type plus any generic...
-  }
+  } */
 
   @SuppressWarnings("unchecked")
   protected <T extends Source> SourceFeedService<Source> getFeedServiceForSourceType( Class<T> sourceType ) {
@@ -41,27 +47,27 @@ public class SourceService {
   @SingleResult
   @Transactional
   public Publisher<? extends Source> findById( Class<? extends Source> type, UUID id ) {
-    return getRepositoryForSourceType(type).findById(id);
+    return getSourceDatabaseServiceForSourceType(type).findById(id);
   }
 
   @NonNull
   @SingleResult
   @Transactional
   public Publisher<Boolean> existsById( Class<? extends Source> type, UUID id ) {
-    return getRepositoryForSourceType(type).existsById(id);
+    return getSourceDatabaseServiceForSourceType(type).existsById(id);
   }
 
   @NonNull
   @Transactional
   public Publisher<? extends Source> list(Class<? extends Source> type ) {
-    return getRepositoryForSourceType(type).list();
+    return getSourceDatabaseServiceForSourceType(type).list();
   }
 
   @NonNull
   @SingleResult
   @Transactional
   public Publisher<? extends Source> ensureSource( Source src ) {
-    return getRepositoryForSourceType(src.getClass()).ensureSource(src);
+    return getSourceDatabaseServiceForSourceType(src.getClass()).ensureSource(src);
   }
 
   public Publisher<Class<? extends Source>> getSourceImplementors() {

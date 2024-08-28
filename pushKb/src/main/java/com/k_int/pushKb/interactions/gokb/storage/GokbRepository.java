@@ -1,11 +1,10 @@
-package com.k_int.pushKb.storage;
-
-import com.k_int.pushKb.interactions.gokb.model.GokbSource;
-import com.k_int.pushKb.model.PushTask;
+package com.k_int.pushKb.interactions.gokb.storage;
 
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
+
+import com.k_int.pushKb.interactions.gokb.model.Gokb;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
@@ -19,20 +18,19 @@ import jakarta.inject.Singleton;
 @Singleton
 @Transactional
 @R2dbcRepository(dialect = Dialect.POSTGRES)
-public interface PushTaskRepository extends ReactiveStreamsPageableRepository<PushTask, UUID> {
-  // Unique up to destination/source/transform
+public interface GokbRepository extends ReactiveStreamsPageableRepository<Gokb, UUID> {
+  // Unique up to baseUrl
   @NonNull
   @SingleResult
   Publisher<Boolean> existsById(@Nullable UUID id);
   
-  // Unique up to destination/source/transform
+  // Unique up to baseUrl
   @NonNull
   @SingleResult
-  Publisher<PushTask> findById(@Nullable UUID id);
+  Publisher<Gokb> findById(@Nullable UUID id);
 
   @NonNull
-  Publisher<PushTask> findBySourceIdAndDestinationId(UUID sourceId, UUID destinationID);
+  Publisher<Gokb> findByBaseUrl(String baseUrl);
 
-  @NonNull
-  Publisher<PushTask> listOrderBySourceIdAndDestinationIdAndId();
+  Publisher<Gokb> listOrderByBaseUrl();
 }
