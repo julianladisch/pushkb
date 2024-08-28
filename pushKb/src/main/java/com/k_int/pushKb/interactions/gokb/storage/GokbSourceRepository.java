@@ -1,10 +1,10 @@
-package com.k_int.pushKb.interactions.gokb.source;
+package com.k_int.pushKb.interactions.gokb.storage;
 
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.interactions.gokb.Gokb;
+import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.storage.SourceRepository;
 
 import io.micronaut.core.annotation.NonNull;
@@ -27,6 +27,7 @@ public interface GokbSourceRepository extends SourceRepository<GokbSource> {
   @NonNull
   @SingleResult
   @Transactional
+	@Join("gokb")
   default Publisher<GokbSource> ensureSource( GokbSource src ) {
     UUID gen_id = GokbSource.generateUUID(
       src.getGokbSourceType(),
@@ -55,4 +56,9 @@ public interface GokbSourceRepository extends SourceRepository<GokbSource> {
   @SingleResult
 	@Join("gokb")
   Publisher<GokbSource> save(@Valid @NotNull GokbSource src);
+
+  @NonNull
+  @Transactional
+  @Join("gokb")
+  Publisher<GokbSource> list();
 }

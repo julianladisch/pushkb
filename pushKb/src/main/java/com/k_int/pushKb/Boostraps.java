@@ -5,10 +5,11 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.AbstractMap.SimpleEntry;
 
-import com.k_int.pushKb.interactions.folio.destination.FolioDestination;
-import com.k_int.pushKb.interactions.gokb.Gokb;
-import com.k_int.pushKb.interactions.gokb.source.GokbSource;
-import com.k_int.pushKb.interactions.gokb.source.GokbSourceType;
+import com.k_int.pushKb.interactions.folio.model.FolioDestination;
+import com.k_int.pushKb.interactions.gokb.model.Gokb;
+import com.k_int.pushKb.interactions.gokb.model.GokbSource;
+import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
+
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.Source;

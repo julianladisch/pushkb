@@ -1,4 +1,4 @@
-package com.k_int.pushKb.interactions.folio.destination;
+package com.k_int.pushKb.interactions.folio.services;
 
 import com.k_int.pushKb.services.DestinationApiService;
 
@@ -13,7 +13,8 @@ import java.util.Optional;
 
 import com.k_int.pushKb.interactions.HttpClientRequestResponseException;
 import com.k_int.pushKb.interactions.folio.FolioApiClient;
-import com.k_int.pushKb.interactions.folio.FolioLoginError;
+import com.k_int.pushKb.interactions.folio.model.FolioDestination;
+import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 
 @Singleton
 @Slf4j

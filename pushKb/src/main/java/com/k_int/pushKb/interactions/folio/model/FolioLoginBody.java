@@ -1,4 +1,4 @@
-package com.k_int.pushKb.interactions.folio;
+package com.k_int.pushKb.interactions.folio.model;
 
 import io.micronaut.serde.annotation.Serdeable;
 import lombok.Builder;

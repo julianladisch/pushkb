@@ -1,4 +1,4 @@
-package com.k_int.pushKb.interactions.folio;
+package com.k_int.pushKb.interactions.folio.model;
 
 import java.time.Instant;
 import java.util.List;

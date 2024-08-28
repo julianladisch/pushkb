@@ -1,10 +1,9 @@
-package com.k_int.pushKb.interactions.gokb.source;
+package com.k_int.pushKb.interactions.gokb.model;
 
 import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.util.UUID;
 
-import com.k_int.pushKb.interactions.gokb.Gokb;
 import com.k_int.pushKb.model.Source;
 
 import lombok.AllArgsConstructor;
@@ -14,13 +13,9 @@ import services.k_int.utils.UUIDUtils;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
-import io.micronaut.data.annotation.Relation;
 import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.annotation.TypeDef;
-import io.micronaut.data.annotation.sql.JoinColumn;
 import io.micronaut.serde.annotation.Serdeable;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotNull;
 import io.micronaut.data.model.DataType;
 

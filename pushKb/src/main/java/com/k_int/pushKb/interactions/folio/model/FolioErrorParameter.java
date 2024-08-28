@@ -1,6 +1,4 @@
-package com.k_int.pushKb.interactions.folio;
-
-import java.util.List;
+package com.k_int.pushKb.interactions.folio.model;
 
 import io.micronaut.serde.annotation.Serdeable;
 import lombok.AllArgsConstructor;
@@ -10,7 +8,9 @@ import lombok.Getter;
 @Serdeable
 @AllArgsConstructor
 @Data
-public class FolioLoginError {
+public class FolioErrorParameter {
   @Getter
-  List<FolioErrorBlock> errors;
+  String key;
+  @Getter
+  String value;
 }

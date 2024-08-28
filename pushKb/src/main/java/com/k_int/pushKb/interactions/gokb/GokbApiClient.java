@@ -13,7 +13,7 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.k_int.pushKb.interactions.gokb.source.GokbScrollResponse;
+import com.k_int.pushKb.interactions.gokb.model.GokbScrollResponse;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;

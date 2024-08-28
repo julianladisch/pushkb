@@ -1,10 +1,11 @@
-package com.k_int.pushKb.interactions.gokb.source;
+package com.k_int.pushKb.interactions.gokb.services;
 
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.interactions.gokb.GokbDatabaseService;
+import com.k_int.pushKb.interactions.gokb.storage.GokbSourceRepository;
+import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.services.SourceDatabaseService;
 
 import io.micronaut.core.annotation.NonNull;
@@ -16,11 +17,11 @@ import reactor.core.publisher.Mono;
 
 @Singleton
 @Slf4j
-public class GokbSourceService implements SourceDatabaseService<GokbSource> {
+public class GokbSourceDatabaseService implements SourceDatabaseService<GokbSource> {
   private final GokbSourceRepository gokbSourceRepository;
   private final GokbDatabaseService gokbDatabaseService;
 
-	public GokbSourceService(
+	public GokbSourceDatabaseService(
     GokbSourceRepository gokbSourceRepository,
     GokbDatabaseService gokbDatabaseService
   ) {
@@ -52,11 +53,11 @@ public class GokbSourceService implements SourceDatabaseService<GokbSource> {
   @SingleResult
   @Transactional
   public Publisher<GokbSource> ensureSource( GokbSource src ) {
-    return Mono.from(gokbDatabaseService.ensureGokb(src.gokb)) // Ensure the gokb first, then the source as a whole
+    return Mono.from(gokbDatabaseService.ensureGokb(src.getGokb())) // Ensure the gokb first, then the source as a whole
       .flatMap(gokb -> {
 
         // Use the gokb that was ensured, so as not to attempt to create any gokb unnecessarily
-        src.gokb = gokb;
+        src.setGokb(gokb);
         return Mono.from(gokbSourceRepository.ensureSource(src));
       });
   }

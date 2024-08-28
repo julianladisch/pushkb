@@ -1,4 +1,4 @@
-package com.k_int.pushKb.interactions.gokb;
+package com.k_int.pushKb.interactions.gokb.model;
 
 import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 

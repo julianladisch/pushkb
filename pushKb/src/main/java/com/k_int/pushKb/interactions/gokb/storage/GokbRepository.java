@@ -1,8 +1,10 @@
-package com.k_int.pushKb.interactions.gokb;
+package com.k_int.pushKb.interactions.gokb.storage;
 
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
+
+import com.k_int.pushKb.interactions.gokb.model.Gokb;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;

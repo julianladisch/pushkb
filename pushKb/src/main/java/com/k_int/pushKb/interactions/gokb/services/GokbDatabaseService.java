@@ -1,12 +1,11 @@
-package com.k_int.pushKb.interactions.gokb;
+package com.k_int.pushKb.interactions.gokb.services;
 
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.interactions.gokb.source.GokbSource;
-import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.services.SourceDatabaseService;
+import com.k_int.pushKb.interactions.gokb.model.Gokb;
+import com.k_int.pushKb.interactions.gokb.storage.GokbRepository;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
@@ -39,8 +38,8 @@ public class GokbDatabaseService {
       return Mono.from(gokbRepository.existsById(gen_id))
         .flatMap(doesItExist -> {
           return Mono.from(doesItExist ?
-          gokbRepository.findById(gen_id) :
-          gokbRepository.save(gokb)
+            gokbRepository.findById(gen_id) :
+            gokbRepository.save(gokb)
           );
       });
     };

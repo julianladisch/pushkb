@@ -5,10 +5,10 @@ import java.util.HashSet;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.interactions.gokb.source.GokbSource;
+import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
-import com.k_int.pushKb.storage.SourceRepository;
+//import com.k_int.pushKb.storage.SourceRepository;
 
 import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;

@@ -2,7 +2,7 @@ package com.k_int.pushKb;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.interactions.gokb.GokbRepository;
+import com.k_int.pushKb.interactions.gokb.storage.GokbRepository;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.Source;

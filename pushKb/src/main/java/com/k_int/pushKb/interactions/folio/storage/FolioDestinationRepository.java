@@ -1,10 +1,11 @@
-package com.k_int.pushKb.interactions.folio.destination;
+package com.k_int.pushKb.interactions.folio.storage;
 
 
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import com.k_int.pushKb.storage.DestinationRepository;
 
 import io.micronaut.core.annotation.NonNull;

@@ -1,6 +1,6 @@
 package com.k_int.pushKb.storage;
 
-import com.k_int.pushKb.interactions.gokb.source.GokbSource;
+import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.model.PushTask;
 
 import java.util.UUID;
@@ -15,7 +15,6 @@ import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
-import reactor.core.publisher.Mono;
 
 @Singleton
 @Transactional

@@ -1,24 +1,17 @@
 package com.k_int.pushKb.interactions.folio;
 
 import io.micronaut.core.async.annotation.SingleResult;
-import io.micronaut.core.cli.Option;
 import io.micronaut.core.type.Argument;
-import io.micronaut.data.connection.exceptions.ConnectionException;
-import io.micronaut.http.BasicAuth;
-import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.http.cookie.Cookie;
 
-import io.micronaut.json.tree.JsonNode;
 import io.micronaut.retry.annotation.Retryable;
 import reactor.core.publisher.Mono;
 
@@ -27,22 +20,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.k_int.pushKb.interactions.HttpClientRequestResponseException;
+import com.k_int.pushKb.interactions.folio.model.FolioLoginBody;
+import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
+import com.k_int.pushKb.interactions.folio.model.FolioLoginResponseBody;
 import com.k_int.pushKb.utils.CookieToken;
 import com.k_int.pushKb.utils.RelativeUriResolver;
 
-import java.net.ConnectException;
 import java.net.URI;
-import java.time.Instant;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
-import static io.micronaut.http.HttpHeaders.ACCEPT;
-import static io.micronaut.http.HttpHeaders.USER_AGENT;
 import static io.micronaut.http.HttpMethod.GET;
 import static io.micronaut.http.HttpMethod.POST;
 import static io.micronaut.http.HttpMethod.PUT;
@@ -208,7 +195,7 @@ public class FolioApiClient {
 					if (flrb.isEmpty() || flrb.get().getAccessTokenExpiration() == null) {
 						return new CookieToken(accessTokenCookie.get());
 					} else {
-						return new CookieToken(accessTokenCookie.get(), flrb.get().accessTokenExpiration);
+						return new CookieToken(accessTokenCookie.get(), flrb.get().getAccessTokenExpiration());
 					}
 				});
 		// 
