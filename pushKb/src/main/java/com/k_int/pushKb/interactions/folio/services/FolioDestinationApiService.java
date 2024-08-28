@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import java.net.ConnectException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Optional;
 
 import com.k_int.pushKb.interactions.HttpClientRequestResponseException;
@@ -19,19 +21,17 @@ import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 @Singleton
 @Slf4j
 public class FolioDestinationApiService implements DestinationApiService<FolioDestination> {
-	private final HttpClient client;
-
-	public FolioDestinationApiService(
-		HttpClient client
-	) {
-		this.client = client;
+	public FolioDestinationApiService() {
 	}
 
+	// Does this belong in some other service, or perhaps should "getClient" be a method on DestinationApiService interface?
 	// Be able to set up a new FolioApiClient per destination
-	FolioApiClient getFolioClient(FolioDestination destination) {
+	FolioApiClient getFolioClient(FolioDestination destination) throws MalformedURLException {
+		URL url = new URL(destination.getDestinationUrl());
+		HttpClient client = HttpClient.create(url);
+
 		return new FolioApiClient(
 			client,
-			destination.getDestinationUrl(),
 			destination.getTenant(),
 			destination.getLoginUser(),
 			destination.getLoginPassword()
@@ -43,8 +43,10 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
  // onErrorResume is a _fallback_
  // TODO sort out how this -should_ return *shrug*
 	public Mono<Boolean> testMethod(FolioDestination destination) {
-		FolioApiClient folioClient = getFolioClient(destination);
-		return Mono.from(folioClient.getAgreements())
+		try {
+			FolioApiClient folioClient = getFolioClient(destination);
+
+			return Mono.from(folioClient.getAgreements())
 				// Remove any errors on successful fetch
 				.doOnNext(resp -> {
 					log.info("WHAT IS RESP? {}", resp);
@@ -71,5 +73,8 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 				})
 				// TODO this probably isn't right, but it'll do for now
 				.onErrorResume(HttpClientException.class, hce -> Mono.just(Boolean.FALSE));
+		} catch (MalformedURLException e) {
+			return Mono.error(e);
+		}
 	}
 }
