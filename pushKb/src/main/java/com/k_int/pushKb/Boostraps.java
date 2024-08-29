@@ -16,7 +16,7 @@ import com.k_int.pushKb.model.Source;
 
 public interface Boostraps {
   public static final Map<String, ? extends Source> sources = Map.ofEntries(
-    new SimpleEntry<String, GokbSource>(
+/*     new SimpleEntry<String, GokbSource>(
       "GOKB_PACKAGE",
       GokbSource.builder()
         .gokb(
@@ -33,6 +33,28 @@ public interface Boostraps {
         .gokb(
           Gokb.builder()
             .baseUrl("https://gokb.org/gokb/api")
+            .build()
+        )
+        .gokbSourceType(GokbSourceType.TIPP)
+        .build()
+    ), */
+    new SimpleEntry<String, GokbSource>(
+      "GOKBT_PACKAGE",
+      GokbSource.builder()
+        .gokb(
+          Gokb.builder()
+            .baseUrl("https://gokbt.gbv.de/gokb/api")
+            .build()
+        )
+        .gokbSourceType(GokbSourceType.PACKAGE)
+        .build()
+    ),
+    new SimpleEntry<String, GokbSource>(
+      "GOKBT_TIPP",
+      GokbSource.builder()
+        .gokb(
+          Gokb.builder()
+            .baseUrl("https://gokbt.gbv.de/gokb/api")
             .build()
         )
         .gokbSourceType(GokbSourceType.TIPP)
@@ -74,12 +96,29 @@ public interface Boostraps {
   );
 
   public static final Map<String, PushTask> pushTasks = Map.ofEntries(
-    new SimpleEntry<String, PushTask>(
+    /* new SimpleEntry<String, PushTask>(
       "FOLIO_GOKB_TIPP",
       PushTask.builder()
         .transform("example_tranform")
         .sourceId(GokbSource.generateUUIDFromSource(
           (GokbSource) sources.get("GOKB_TIPP")
+        ))
+        .sourceType(GokbSource.class)
+        .destinationId(FolioDestination.generateUUIDFromDestination(
+          (FolioDestination) destinations.get("LOCAL_RANCHER_FOLIO")
+        ))
+        .destinationType(FolioDestination.class)
+        .destinationHeadPointer(Instant.EPOCH)
+        .lastSentPointer(Instant.EPOCH)
+        .footPointer(Instant.EPOCH)
+        .build()
+    ), */
+    new SimpleEntry<String, PushTask>(
+      "FOLIO_GOKBT_TIPP",
+      PushTask.builder()
+        .transform("example_tranform")
+        .sourceId(GokbSource.generateUUIDFromSource(
+          (GokbSource) sources.get("GOKBT_TIPP")
         ))
         .sourceType(GokbSource.class)
         .destinationId(FolioDestination.generateUUIDFromDestination(
