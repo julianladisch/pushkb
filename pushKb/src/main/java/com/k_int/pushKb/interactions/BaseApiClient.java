@@ -6,9 +6,7 @@ import static io.micronaut.http.HttpMethod.PUT;
 import static io.micronaut.http.HttpMethod.DELETE;
 
 import java.util.Optional;
-import java.util.concurrent.Flow.Publisher;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpMethod;
@@ -19,9 +17,11 @@ import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.uri.UriBuilder;
+
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
-
+@Slf4j
 public class BaseApiClient implements ApiClient {
   HttpClient client;
 
@@ -111,8 +111,7 @@ public class BaseApiClient implements ApiClient {
     Class<T> responseType,
     Optional<Class<?>> errorType
   ) {
-    return request
-      .flatMap(req -> doExchange(req, Argument.of(responseType), Optional.of(true), getErrorArgument(errorType)))
+    return request.flatMap(req -> doExchange(req, Argument.of(responseType), Optional.of(true), getErrorArgument(errorType)));
   }
 
   public <T> Mono<HttpResponse<T>> post(
@@ -151,12 +150,12 @@ public class BaseApiClient implements ApiClient {
     return request
       .map(req -> {
         if (body.isPresent()) {
-          return req.body(body);
+          return req.body(body.get());
         }
 
         return req;
       })
-      .flatMap(req -> doExchange(req, Argument.of(responseType), Optional.of(true), getErrorArgument(errorType)))
+      .flatMap(req -> doExchange(req, Argument.of(responseType), Optional.of(true), getErrorArgument(errorType)));
   }
 
   public <T> Mono<HttpResponse<T>> put(
@@ -195,12 +194,12 @@ public class BaseApiClient implements ApiClient {
     return request
       .map(req -> {
         if (body.isPresent()) {
-          return req.body(body);
+          return req.body(body.get());
         }
 
         return req;
       })
-      .flatMap(req -> doExchange(req, Argument.of(responseType), Optional.of(true), getErrorArgument(errorType)))
+      .flatMap(req -> doExchange(req, Argument.of(responseType), Optional.of(true), getErrorArgument(errorType)));
   }
 
 
@@ -232,6 +231,6 @@ public class BaseApiClient implements ApiClient {
     Class<T> responseType,
     Optional<Class<?>> errorType
   ) {
-    request.flatMap(req -> doExchange(req, Argument.of(responseType), Optional.of(true), getErrorArgument(errorType)))
+    return request.flatMap(req -> doExchange(req, Argument.of(responseType), Optional.of(true), getErrorArgument(errorType)));
   }
 }

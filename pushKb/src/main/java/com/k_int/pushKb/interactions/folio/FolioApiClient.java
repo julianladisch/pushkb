@@ -1,7 +1,6 @@
 package com.k_int.pushKb.interactions.folio;
 
 import io.micronaut.core.async.annotation.SingleResult;
-import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpHeaders;
 import io.micronaut.http.MutableHttpRequest;
@@ -29,7 +28,6 @@ import static io.micronaut.http.HttpMethod.PUT;
 
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class FolioApiClient extends BaseApiClient {
 	public final static String X_OKAPI_TENANT = "X-Okapi-Tenant";
@@ -171,7 +169,7 @@ public class FolioApiClient extends BaseApiClient {
 																						 .username(loginUser)
 																						 .password(loginPassword)
 																						 .build();
-		return post(
+		return super.post( // Don't use out internal POST because that requires token, which this is trying to set :p
 			LOGIN_URI,
 			FolioLoginResponseBody.class,
 			Optional.of(loginBody),
@@ -216,8 +214,14 @@ public class FolioApiClient extends BaseApiClient {
 	@SingleResult
 	@Retryable
 	public Publisher<String> getAgreements() {
-		return get("/erm/sas", String.class, Optional.of(String.class), Optional.of(uri -> {
-			uri.queryParam("stats", true);
-		}), Optional.empty()).map(resp -> resp.body());
+		return get(
+			"/erm/sas",
+			String.class,
+			Optional.of(String.class),
+			Optional.of(uri -> {
+				uri.queryParam("stats", true);
+			}),
+			Optional.empty()
+		).map(resp -> resp.body());
 	}
 }
