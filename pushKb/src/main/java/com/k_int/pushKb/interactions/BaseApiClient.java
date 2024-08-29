@@ -53,7 +53,12 @@ public class BaseApiClient implements ApiClient {
 	}
 
   // Don't really see the point in doRetrieve, we can grab the body straight from doExchange anyway? Here as protected method in case implementors want it I guess
-  protected <T> Mono<T> doRetrieve(MutableHttpRequest<?> request, Argument<T> argumentType, Optional<Boolean> mapErrors, Optional<Argument<?>> errorType) {
+  protected <T> Mono<T> doRetrieve(
+    MutableHttpRequest<?> request,
+    Argument<T> argumentType,
+    Optional<Boolean> mapErrors,
+    Optional<Argument<?>> errorType
+  ) {
 		var response = errorType.isPresent() ?
       Mono.from(client.retrieve(request, argumentType, errorType.get())) :
       Mono.from(client.retrieve(request, argumentType));
@@ -61,7 +66,12 @@ public class BaseApiClient implements ApiClient {
 		return mapErrors.orElse(false) ? response.transform(mono -> this.handleResponseErrors(mono, request)) : response;
 	}
 
-  protected <T> Mono<HttpResponse<T>> doExchange(MutableHttpRequest<?> request, Argument<T> argumentType, Optional<Boolean> mapErrors, Optional<Argument<?>> errorType) {
+  protected <T> Mono<HttpResponse<T>> doExchange(
+    MutableHttpRequest<?> request,
+    Argument<T> argumentType,
+    Optional<Boolean> mapErrors,
+    Optional<Argument<?>> errorType
+  ) {
 		var response = errorType.isPresent() ?
       Mono.from(client.exchange(request, argumentType, errorType.get())) :
       Mono.from(client.exchange(request, argumentType));

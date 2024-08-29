@@ -1,6 +1,8 @@
 package com.k_int.pushKb.interactions.folio;
 
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.http.HttpMethod;
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpHeaders;
 import io.micronaut.http.MutableHttpRequest;
@@ -9,6 +11,7 @@ import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.retry.annotation.Retryable;
+import jakarta.validation.OverridesAttribute;
 import reactor.core.publisher.Mono;
 
 import org.reactivestreams.Publisher;
@@ -96,71 +99,15 @@ public class FolioApiClient extends BaseApiClient {
 		});
 	}
 
-	public <T> Mono<HttpResponse<T>> get(
-    String path,
-    Class<T> responseType,
-    Optional<Class<?>> errorType,
-    Optional<Consumer<UriBuilder>> uriBuilderConsumer,
-    Optional<Consumer<MutableHttpHeaders>> httpHeaderConsumer
-  ) {
-
-		return super.get(
-			createRequest(GET, path, uriBuilderConsumer, setFolioHeaders(httpHeaderConsumer)).flatMap(req -> ensureToken(req)),
-			responseType,
-			errorType
-		);
-	}
-
+	// Override createRequest by adding in token logic and folio tenant header
 	@Override
-  public <T> Mono<HttpResponse<T>> post(
+	protected Mono<MutableHttpRequest<?>> createRequest(
+    HttpMethod method,
     String path,
-    Class<T> responseType,
-    Optional<?> body,
-    Optional<Class<?>> errorType,
     Optional<Consumer<UriBuilder>> uriBuilderConsumer,
     Optional<Consumer<MutableHttpHeaders>> httpHeaderConsumer
   ) {
-
-		return super.post(
-			createRequest(POST, path, uriBuilderConsumer, setFolioHeaders(httpHeaderConsumer)).flatMap(req -> ensureToken(req)),
-			responseType,
-			body,
-			errorType
-		);
-	}
-
-	@Override
-  public <T> Mono<HttpResponse<T>> put(
-    String path,
-    Class<T> responseType,
-    Optional<?> body,
-    Optional<Class<?>> errorType,
-    Optional<Consumer<UriBuilder>> uriBuilderConsumer,
-    Optional<Consumer<MutableHttpHeaders>> httpHeaderConsumer
-  ) {
-
-		return super.post(
-			createRequest(PUT, path, uriBuilderConsumer, setFolioHeaders(httpHeaderConsumer)).flatMap(req -> ensureToken(req)),
-			responseType,
-			body,
-			errorType
-		);
-	}
-
-	@Override
-  public <T> Mono<HttpResponse<T>> delete(
-    String path,
-    Class<T> responseType,
-    Optional<Class<?>> errorType,
-    Optional<Consumer<UriBuilder>> uriBuilderConsumer,
-    Optional<Consumer<MutableHttpHeaders>> httpHeaderConsumer
-  ) {
-
-		return super.delete(
-			createRequest(DELETE, path, uriBuilderConsumer, setFolioHeaders(httpHeaderConsumer)).flatMap(req -> ensureToken(req)),
-			responseType,
-			errorType
-		);
+		return super.createRequest(method, path, uriBuilderConsumer, setFolioHeaders(httpHeaderConsumer)).flatMap(req -> ensureToken(req));
 	}
 
 	@SingleResult
@@ -169,13 +116,11 @@ public class FolioApiClient extends BaseApiClient {
 																						 .username(loginUser)
 																						 .password(loginPassword)
 																						 .build();
-		return super.post( // Don't use out internal POST because that requires token, which this is trying to set :p
-			LOGIN_URI,
+		return post( // Don't use our internal createRequest because that requires token, which this is trying to set.
+			super.createRequest(POST, LOGIN_URI, Optional.empty(), setFolioHeaders(Optional.empty())),
 			FolioLoginResponseBody.class,
 			Optional.of(loginBody),
-			Optional.of(FolioLoginError.class),
-			Optional.empty(),
-			Optional.of(headers -> { headers.set(X_OKAPI_TENANT, tenant); })
+			Optional.of(FolioLoginError.class)
 		)
 			// Actual response doesn't matter, all Auth is in cookie headers
 			.map(resp -> {
