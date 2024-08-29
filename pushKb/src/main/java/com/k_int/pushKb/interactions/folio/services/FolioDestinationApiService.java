@@ -8,6 +8,7 @@ import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
+import java.util.function.Consumer;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -38,10 +39,33 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 		);
 	}
 
- // Return Mono with TRUE if we successfully fetched or FALSE if we didn't (For whatever reason)
- // This isn't really the best logic... stream with True/False only works in DCB cos they expect a true/false from the validate check...
- // onErrorResume is a _fallback_
- // TODO sort out how this -should_ return *shrug*
+	// Folio destination error handling (in doOnError... not sure this is right yet)
+	private Consumer<HttpClientException> getErrorHandler(FolioDestination destination) {
+		return hce -> {
+			if (hce.getCause() instanceof ConnectException) {
+				log.error("Failed to connect to destination ({}). Connection error: {}", destination.getId(), hce.getCause().getMessage());
+			} else if (hce instanceof HttpClientRequestResponseException) {
+				// Our special caught error.
+				HttpClientRequestResponseException hcrre = (HttpClientRequestResponseException) hce;
+				// Login specific logging
+				if (hcrre.getRequest().getPath().equals(FolioApiClient.LOGIN_URI)) {
+					Optional<FolioLoginError> fle = hcrre.getResponse().getBody(FolioLoginError.class);
+					if (fle.isEmpty()) {
+						log.error("Failed to login to destination ({}). {}", destination.getId(), hcrre.getMessage());
+					} else {
+						log.error("Failed to login to destination ({}). {}", destination.getId(), fle.get().getErrors().get(0).getMessage());
+					}
+				} else {
+					log.error("Something went wrong connecting to destination ({}) on path {}. {}", destination.getId(), hcrre.getRequest().getPath(), hcrre.getMessage());
+				}
+			}
+		};
+	}
+
+	// Return Mono with TRUE if we successfully fetched or FALSE if we didn't (For whatever reason)
+	// This isn't really the best logic... stream with True/False only works in DCB cos they expect a true/false from the validate check...
+	// onErrorResume is a _fallback_
+	// TODO sort out how this -should_ return *shrug*
 	public Mono<Boolean> testMethod(FolioDestination destination) {
 		try {
 			FolioApiClient folioClient = getFolioClient(destination);
@@ -52,25 +76,7 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 					log.info("WHAT IS RESP? {}", resp);
 				})
 				.flatMap(resp -> Mono.just(Boolean.TRUE))
-				.doOnError(HttpClientException.class, hce -> {
-					if (hce.getCause() instanceof ConnectException) {
-						log.error("Failed to connect to destination ({}). Connection error: {}", destination.getId(), hce.getCause().getMessage());
-					} else if (hce instanceof HttpClientRequestResponseException) {
-						// Our special caught error.
-						HttpClientRequestResponseException hcrre = (HttpClientRequestResponseException) hce;
-						// Login specific logging
-						if (hcrre.getRequest().getPath().equals(FolioApiClient.LOGIN_URI)) {
-							Optional<FolioLoginError> fle = hcrre.getResponse().getBody(FolioLoginError.class);
-							if (fle.isEmpty()) {
-								log.error("Failed to login to destination ({}). {}", destination.getId(), hcrre.getMessage());
-							} else {
-								log.error("Failed to login to destination ({}). {}", destination.getId(), fle.get().getErrors().get(0).getMessage());
-							}
-						} else {
-							log.error("Something went wrong connecting to destination ({}) on path {}. {}", destination.getId(), hcrre.getRequest().getPath(), hcrre.getMessage());
-						}
-					}
-				})
+				.doOnError(HttpClientException.class, getErrorHandler(destination))
 				// TODO this probably isn't right, but it'll do for now
 				.onErrorResume(HttpClientException.class, hce -> Mono.just(Boolean.FALSE));
 		} catch (MalformedURLException e) {
