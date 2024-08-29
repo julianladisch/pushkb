@@ -21,7 +21,7 @@ public interface Boostraps {
       GokbSource.builder()
         .gokb(
           Gokb.builder()
-            .baseUrl("https://gokb.org/gokb")
+            .baseUrl("https://gokb.org/gokb/api")
             .build()
         )
         .gokbSourceType(GokbSourceType.PACKAGE)
@@ -32,7 +32,7 @@ public interface Boostraps {
       GokbSource.builder()
         .gokb(
           Gokb.builder()
-            .baseUrl("https://gokb.org/gokb")
+            .baseUrl("https://gokb.org/gokb/api")
             .build()
         )
         .gokbSourceType(GokbSourceType.TIPP)

@@ -2,8 +2,6 @@ package com.k_int.pushKb.interactions.folio;
 
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.http.HttpMethod;
-import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpHeaders;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
@@ -11,7 +9,6 @@ import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.retry.annotation.Retryable;
-import jakarta.validation.OverridesAttribute;
 import reactor.core.publisher.Mono;
 
 import org.reactivestreams.Publisher;
@@ -24,10 +21,7 @@ import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginResponseBody;
 import com.k_int.pushKb.utils.CookieToken;
 
-import static io.micronaut.http.HttpMethod.DELETE;
-import static io.micronaut.http.HttpMethod.GET;
 import static io.micronaut.http.HttpMethod.POST;
-import static io.micronaut.http.HttpMethod.PUT;
 
 import java.util.Optional;
 import java.util.function.Consumer;
