@@ -21,8 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.k_int.pushKb.interactions.BaseApiClient;
 import com.k_int.pushKb.interactions.gokb.model.GokbScrollResponse;
@@ -30,17 +28,12 @@ import com.k_int.pushKb.interactions.gokb.model.GokbScrollResponse;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
-import io.micronaut.core.type.Argument;
 
 import io.micronaut.http.HttpMethod;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpHeaders;
 import io.micronaut.http.MutableHttpRequest;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.Header;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.client.HttpClient;
-import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.uri.UriBuilder;
 
 import io.micronaut.retry.annotation.Retryable;
@@ -108,7 +101,7 @@ public class GokbApiClient extends BaseApiClient {
 
 	@SingleResult
 	@Retryable
-	public <T> Mono<GokbScrollResponse> scroll(
+	public Publisher<GokbScrollResponse> scroll(
 		@NonNull @NotBlank @QueryValue(QUERY_PARAM_COMPONENT_TYPE) String type,
 		@Nullable @QueryValue(SCROLL_ID_QUERY_PARAM) String scrollId,
 		@Nullable @QueryValue(CHANGED_SINCE_QUERY_PARAM) String changedSince

@@ -1,6 +1,7 @@
 package com.k_int.pushKb.interactions.folio.services;
 
 import com.k_int.pushKb.services.DestinationApiService;
+import com.k_int.pushKb.services.HttpClientService;
 
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.exceptions.HttpClientException;
@@ -10,7 +11,6 @@ import reactor.core.publisher.Mono;
 
 import java.net.ConnectException;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -22,14 +22,18 @@ import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 @Singleton
 @Slf4j
 public class FolioDestinationApiService implements DestinationApiService<FolioDestination> {
-	public FolioDestinationApiService() {
+	private final HttpClientService httpClientService;
+
+	public FolioDestinationApiService(
+		HttpClientService httpClientService
+	) {
+		this.httpClientService = httpClientService;
 	}
 
 	// Does this belong in some other service, or perhaps should "getClient" be a method on DestinationApiService interface?
 	// Be able to set up a new FolioApiClient per destination
 	FolioApiClient getFolioClient(FolioDestination destination) throws MalformedURLException {
-		URL url = new URL(destination.getDestinationUrl());
-		HttpClient client = HttpClient.create(url);
+		HttpClient client = httpClientService.create(destination.getDestinationUrl());
 
 		return new FolioApiClient(
 			client,

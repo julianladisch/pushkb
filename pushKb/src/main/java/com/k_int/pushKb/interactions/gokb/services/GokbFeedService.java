@@ -4,8 +4,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import java.net.URL;
-
 import java.net.MalformedURLException;
 
 import com.k_int.pushKb.interactions.gokb.GokbApiClient;
@@ -13,13 +11,12 @@ import com.k_int.pushKb.interactions.gokb.model.GokbScrollResponse;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
 import com.k_int.pushKb.model.SourceRecord;
+import com.k_int.pushKb.services.HttpClientService;
 import com.k_int.pushKb.services.SourceFeedService;
 import com.k_int.pushKb.services.SourceRecordService;
 
 import io.micronaut.core.annotation.NonNull;
-import io.micronaut.http.client.DefaultHttpClientConfiguration;
 import io.micronaut.http.client.HttpClient;
-import io.micronaut.http.client.HttpClientConfiguration;
 import io.micronaut.json.tree.JsonNode;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
@@ -32,26 +29,21 @@ import reactor.core.publisher.Mono;
 @ExecuteOn(TaskExecutors.BLOCKING)
 @Singleton
 public class GokbFeedService implements SourceFeedService<GokbSource> {
-	//private final GokbApiClient gokbApiClient;
 	private final SourceRecordService sourceRecordService;
+	private final HttpClientService httpClientService;
 
 	public GokbFeedService(
-    //GokbApiClient gokbApiClient,
-		SourceRecordService sourceRecordService
+		SourceRecordService sourceRecordService,
+		HttpClientService httpClientService
   ) {
-		// FIXME when we dynamically instantiate this like Folio client, make sure we append `/api`
-		//this.gokbApiClient = gokbApiClient;
 		this.sourceRecordService = sourceRecordService;
+		this.httpClientService = httpClientService;
 	}
 
 	// Dynamically set up GokbApiClient from source
 	// FIXME needs refactoring
 	GokbApiClient getGokbClient(GokbSource source) throws MalformedURLException {
-		URL url = new URL(source.getSourceUrl());
-		HttpClientConfiguration config = new DefaultHttpClientConfiguration();
-		config.setMaxContentLength(20971520); // Gokb scroll pages can be pretty large, set default to 20mb from 10mb
-
-		HttpClient client = HttpClient.create(url, config);
+		HttpClient client = httpClientService.create(source.getSourceUrl());
 
 		return new GokbApiClient(client);
 	}
