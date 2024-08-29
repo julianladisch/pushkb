@@ -1,15 +1,9 @@
 package com.k_int.pushKb.services;
 
-import com.k_int.pushKb.Boostraps;
-import com.k_int.pushKb.interactions.folio.model.FolioDestination;
-import com.k_int.pushKb.model.Source;
-
 import io.micronaut.scheduling.annotation.Scheduled;
-
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 @Singleton
 @Slf4j
 public class SchedulingService {
@@ -64,7 +58,7 @@ public class SchedulingService {
 			//	(FolioDestination) Boostraps.destinations.get("LOCAL_RANCHER_FOLIO")
 			//)
 			FolioDestination.generateUUIDFromDestination(
-				(FolioDestination) Boostraps.destinations.get("SNAPSHOT")
+				(FolioDestination) Boostraps.destinations.get("SNAPSHOT2")
 			)
 		))
 			.flatMapMany(destinationService::testMethod)
