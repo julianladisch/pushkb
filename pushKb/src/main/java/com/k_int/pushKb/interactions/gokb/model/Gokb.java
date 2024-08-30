@@ -33,6 +33,7 @@ public class Gokb {
 	@TypeDef(type = DataType.UUID)
 	private UUID id;
 
+  // We assume that this needs to be of the form <gokb domain> (no trailing slash or /gokb...) for now.
   @NotNull
   @NonNull
   @ToString.Include

@@ -185,7 +185,7 @@ public class PushService {
         ); // Stream within stream here
     }) // At this point we SHOULD
     .doOnNext(tuple -> log.info("Pushing records {} -> {}", tuple.getT2(), tuple.getT3()))
-		.flatMapSequential(chunkedRecordTuple -> {
+		.flatMapSequential(chunkedRecordTuple -> {  // FIXME I think this needs to be concatMap for the actual sending to destination
       ArrayList<JsonNode> recordsList = chunkedRecordTuple.getT1();
       // Keep track of earliest and latest, so we can do things inside chunks out of order
       Instant earliestSeen = chunkedRecordTuple.getT2();

@@ -40,7 +40,12 @@ public class GokbSource implements Source {
   // Scrolling api available here
   @Transient
   public String getSourceUrl() {
-    return gokb.getBaseUrl();
+    // GokbSource will be gokb url + `gokb/api/`
+    // ASSUMES that Gokb URL is of the form <gokb domain> (no trailing slash, domain ONLY)
+    // Trailing slash needed for this to be treated as baseUrl for relative.
+    // If we want to support OAIPMH in future that will need a different path (/gokb/oai/index/)...
+    // Either different source or switch in class somewhere
+    return gokb.getBaseUrl() + "/gokb/api/";
   }
 
   // Should be unique up to type/gokb

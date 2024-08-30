@@ -38,7 +38,6 @@ import io.micronaut.http.uri.UriBuilder;
 
 import io.micronaut.retry.annotation.Retryable;
 
-// We have one of these _per source_, so we can store the scroll component type on the ApiClient and do that automatically on scroll call
 @Slf4j
 public class GokbApiClient extends BaseApiClient {
 	public final static String USER_AGENT = "pushKB";
@@ -46,7 +45,8 @@ public class GokbApiClient extends BaseApiClient {
 	public static final String COMPONENT_TYPE_TIPP = "TitleInstancePackagePlatform";
 	public static final String COMPONENT_TYPE_PACKAGE = "Package";
 
-	public static final String SCROLL_URL = "/gokb/api/scroll";
+	// Append relative instead of absolute -- Trusting that the HttpClient client is set up with `/gokb/api/` ahead of time
+	public static final String SCROLL_URL = "scroll";
 	public static final String SCROLL_ID_QUERY_PARAM = "scrollId";
 	public static final String CHANGED_SINCE_QUERY_PARAM = "changedSince";
 

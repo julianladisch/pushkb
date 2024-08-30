@@ -43,6 +43,7 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 	// Dynamically set up GokbApiClient from source
 	// FIXME needs refactoring
 	GokbApiClient getGokbClient(GokbSource source) throws MalformedURLException {
+		// GokbApi Client will be gokb url + "/gokb/api". See domain class for details
 		HttpClient client = httpClientService.create(source.getSourceUrl());
 
 		return new GokbApiClient(client);
