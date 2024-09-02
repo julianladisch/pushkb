@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.AbstractMap.SimpleEntry;
 
+import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import com.k_int.pushKb.interactions.gokb.model.Gokb;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
@@ -68,9 +69,18 @@ public interface Boostraps {
       FolioDestination.builder()
         .destinationUrl("http://localhost:30100")
         .tenant("test1")
+        .authType(FolioAuthType.OKAPI)
         // Use env vars for now... this file will eventually be gone anyway
         .loginUser(System.getenv("LOCAL_RANCHER_USERNAME"))
         .loginPassword(System.getenv("LOCAL_RANCHER_PASSWORD"))
+        .build()
+    ),
+    new SimpleEntry<String, Destination>(
+      "LOCAL_DC_FOLIO",
+      FolioDestination.builder()
+        .destinationUrl("http://localhost:8080")
+        .tenant("test1")
+        .authType(FolioAuthType.NONE)
         .build()
     ),
     new SimpleEntry<String, Destination>(
@@ -78,6 +88,7 @@ public interface Boostraps {
       FolioDestination.builder()
         .destinationUrl("https://folio-snapshot-okapi.dev.folio.org")
         .tenant("diku")
+        .authType(FolioAuthType.OKAPI)
         // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
         .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
         .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
@@ -88,6 +99,7 @@ public interface Boostraps {
       FolioDestination.builder()
         .destinationUrl("https://folio-snapshot-2-okapi.dev.folio.org")
         .tenant("diku")
+        .authType(FolioAuthType.OKAPI)
         // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
         .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
         .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
@@ -105,7 +117,7 @@ public interface Boostraps {
         ))
         .sourceType(GokbSource.class)
         .destinationId(FolioDestination.generateUUIDFromDestination(
-          (FolioDestination) destinations.get("LOCAL_RANCHER_FOLIO")
+          (FolioDestination) destinations.get("LOCAL_DC_FOLIO")
         ))
         .destinationType(FolioDestination.class)
         .destinationHeadPointer(Instant.EPOCH)

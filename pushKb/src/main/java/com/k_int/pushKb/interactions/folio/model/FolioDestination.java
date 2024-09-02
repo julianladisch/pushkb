@@ -7,6 +7,7 @@ import java.util.UUID;
 import com.k_int.pushKb.model.Destination;
 
 import io.micronaut.core.annotation.NonNull;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.TypeDef;
@@ -42,15 +43,19 @@ public class FolioDestination implements Destination {
 
   private final String tenant;
 
-  @NotNull
-  @NonNull
+  @Nullable
   @Size(max = 200)
   private final String loginUser;
-  @NotNull
-  @NonNull
+
+  @Nullable
   @Size(max = 200)
   private final String loginPassword;
 
+  // Track whether this FOLIO needs auth through okapi or not.
+  @NotNull
+  @NonNull
+  private final FolioAuthType authType;
+  
   private static final String UUID5_PREFIX = "folio_destination";
   public static UUID generateUUID(String tenant, String destinationUrl) {
     final String concat = UUID5_PREFIX + ":" + tenant + ":" + destinationUrl;
