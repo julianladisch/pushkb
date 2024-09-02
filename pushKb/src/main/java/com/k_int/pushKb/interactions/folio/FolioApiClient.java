@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.k_int.pushKb.interactions.BaseApiClient;
+import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginBody;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginResponseBody;
@@ -44,6 +45,8 @@ public class FolioApiClient extends BaseApiClient {
 	private final String loginPassword;
 	private final String tenant;
 
+	private final FolioAuthType authType;
+
 	// Keep a current token for login etc
 	private CookieToken currentToken;
 
@@ -54,12 +57,14 @@ public class FolioApiClient extends BaseApiClient {
 		HttpClient client,
 		String tenant,
 		String loginUser,
-		String loginPassword
+		String loginPassword,
+		FolioAuthType authType
 	) {
 		super(client);
 		this.tenant = tenant;
 		this.loginUser = loginUser;
 		this.loginPassword = loginPassword;
+		this.authType = authType;
 	}
 
 /* 	private void clearToken() {
@@ -68,13 +73,21 @@ public class FolioApiClient extends BaseApiClient {
 	} */
 
 	private <T> Mono<MutableHttpRequest<T>> ensureToken(MutableHttpRequest<T> request) {
-		return Mono.justOrEmpty(currentToken).filter(token -> !token.isExpired()).switchIfEmpty(acquireAccessToken())
+
+		// Do different work depending on authType
+		switch (authType) {
+			case OKAPI:
+				return Mono.justOrEmpty(currentToken).filter(token -> !token.isExpired()).switchIfEmpty(acquireAccessToken())
 				.map(validToken -> {
 					// Uncomment to get token information in log
 					//log.debug("Using Cookie token: {}", validToken);
 
 					return request.cookie(validToken.returnToCookie());
 				}).defaultIfEmpty(request);
+			case NONE:
+			default:
+				return Mono.just(request);
+		}
 	}
 
 	private Mono<CookieToken> acquireAccessToken() {

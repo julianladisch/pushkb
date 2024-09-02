@@ -39,7 +39,8 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 			client,
 			destination.getTenant(),
 			destination.getLoginUser(),
-			destination.getLoginPassword()
+			destination.getLoginPassword(),
+			destination.getAuthType()
 		);
 	}
 
