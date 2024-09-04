@@ -7,13 +7,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.List;
 
+import com.k_int.pushKb.interactions.DestinationClient;
+import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.proteus.ProteusService;
 
 import io.micronaut.json.tree.JsonNode;
 import io.micronaut.serde.ObjectMapper;
+import io.micronaut.transaction.TransactionDefinition.Propagation;
+import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -21,6 +26,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.function.TupleUtils;
 import reactor.util.function.Tuple2;
+import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 
 import com.k_int.proteus.ComponentSpec;
@@ -32,6 +38,14 @@ public class PushService {
   private final SourceService sourceService;
 	private final SourceRecordService sourceRecordService;
   private final PushTaskService pushTaskService;
+  private final DestinationService destinationService;
+
+  /* Keep bundleSize consistent between chunking for send and chunking for transform
+   * IMPORTANT these cannot be allowed to drift because we're assuming a sequential order
+   * that these are being sent in. The chunks can be internally ordered however, but each chunk
+   * MUST be in the right order when sent so that we can maintain pointer positions.
+   */
+  private final static int BUNDLE_SIZE = 1000;
 
 	// FIXME This will need incorporating later
 	private final ProteusService proteusService;
@@ -42,12 +56,14 @@ public class PushService {
 		SourceRecordService sourceRecordService,
     PushTaskService pushTaskService,
 		ProteusService proteusService,
+    DestinationService destinationService,
     ObjectMapper objectMapper
 	) {
     this.sourceService = sourceService;
 		this.sourceRecordService = sourceRecordService;
     this.pushTaskService = pushTaskService;
 		this.proteusService = proteusService;
+    this.destinationService = destinationService;
 		this.objectMapper = objectMapper;
 	}
 
@@ -68,12 +84,103 @@ public class PushService {
 	//     Head of source_records list
 	//     For each record log out id, then either SENT (ID) or ERROR (ID) (10% failure)
 
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  protected Mono<PushTask> processChunkForPushTask(
+    PushTask pt,
+    List<SourceRecord> sourceRecordChunk,
+    ComponentSpec<JsonNode> proteusSpec,
+    DestinationClient<Destination> client
+  ) {
+    // First transform the whole sourceRecord
+    return Flux.fromIterable(sourceRecordChunk)
+        .flatMap(sourceRecord -> {
+          try {
+            JsonNode transformedRecord = proteusService.convert(
+              proteusSpec,
+              sourceRecord.getJsonRecord()
+            );
+            return Mono.just(Tuples.of(sourceRecord, transformedRecord));
+          } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return Mono.error(e);
+          }
+        })
+        .collectList()
+        // Change List<Tuple2<SourceRecord, JsonNode>> into Tuple3<List<JsonNode>, Instant, Instant>
+        // where instants are earliest and latest timestamp in chunk
+        .flatMap(list -> {
+          return Flux.fromIterable(list)
+            .reduce(
+              Tuples.of(new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
+              (acc, tuple) -> {
+                Instant sourceRecordUpdated = tuple.getT1().getUpdated();
+                Instant earliestSeen = acc.getT2();
+                Instant latestSeen = acc.getT3();
+                
+                // STORE EARLIEST SOURCE RECORD "updated" IN T3
+                if (sourceRecordUpdated.isBefore(earliestSeen)) {
+                  earliestSeen = sourceRecordUpdated;
+                }
+                // STORE LATEST SOURCE RECORD "updated" IN T4
+                if (sourceRecordUpdated.isAfter(latestSeen)) {
+                  latestSeen = sourceRecordUpdated;
+                }
+                
+                acc.getT1().add(tuple.getT2());
+                
+                // I think this works... Tuples are immutable so return list
+                return Tuples.of(acc.getT1(), earliestSeen, latestSeen);
+              }
+            );
+        })
+        .flatMap(TupleUtils.function((recordsList, earliestSeen, latestSeen) -> {  // ConcatMap to ensure that we only start sending chunk B after chunk A has returned
+          // FIXME this isn't how we'll manage sessions and chunks
+          JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
+            new AbstractMap.SimpleEntry<String, JsonNode>("sessionId", JsonNode.createStringNode("test-session-1")),
+            new AbstractMap.SimpleEntry<String, JsonNode>("chunkId", JsonNode.createStringNode("chunk1")),
+            new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
+          ));
+          
+          // Logging out what gets sent here, quite noisy
+          /* try {
+            // Just logging out the output here
+            log.info("SENDING JSON OUTPUT: {}", objectMapper.writeValueAsString(pushKBJsonOutput));
+          } catch (Exception e) {
+            e.printStackTrace();
+          } */
+
+          return Mono.just(Tuples.of(pushKBJsonOutput, earliestSeen, latestSeen));
+        }))
+        .flatMap(TupleUtils.function((json, earliestSeen, latestSeen) -> {
+    
+          log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
+    
+          return Mono.from(destinationService.push(client, json))
+            .flatMap(bool -> {
+              // Should just be "true", idk why this would ever be false tbh
+    
+              // The earliest record "successfully sent" was the "last sent" timestamp, as we're moving _down_ the list
+              pt.setLastSentPointer(earliestSeen);
+    
+              // Now compare the latest updated record sent in this chunk to the DHP
+              if (latestSeen.compareTo(pt.getDestinationHeadPointer()) > 0) {
+                // We have a new head pointer
+                pt.setDestinationHeadPointer(latestSeen);
+              }
+              return Mono.from(pushTaskService.update(pt));
+            });
+    
+          //log.info("SENT RECORD: {}", sr.getId());
+        }));
+  }
+
+
   public Mono<PushTask> runPushTask(PushTask pt) {
     // We potentially need to run this twice, once to zip up hole,
     //once to bring in line with latest changes
     return Mono.from(runPushTaskSingle(pt))
       // At this point, we should ALWAYS have "zipped up" the gap in records, next check if any new ones exist ahead of DHP
-      //.doOnNext(dest -> log.info("WHEN DO WE SEE THIS? {}", dest))
 				// Go lookup head of stream (PT sourceid should never have changed...)
       .zipWith(
         // Grab sourceId from pt, and then use that to grab Instant head of source feed
@@ -97,6 +204,7 @@ public class PushService {
 
   public Mono<PushTask> runPushTaskSingle(PushTask pt) {
     log.info("runPushTaskSingle called with {}", pt);
+
     final Instant lowerBound = pt.getFootPointer();
     Instant upperBound = Instant.now();
 
@@ -108,13 +216,6 @@ public class PushService {
 
     log.info("UPPER BOUND: {}", upperBound);
     log.info("LOWER BOUND: {}", lowerBound);
-
-    /* Keep bundleSize consistent between chunking for send and chunking for transform
-     * IMPORTANT these cannot be allowed to drift because we're assuming a sequential order
-     * that these are being sent in. The chunks can be internally ordered however, but each chunk
-     * MUST be in the right order when sent so that we can maintain pointer positions.
-     */
-    int bundleSize = 1000;
 
     // FIXME this needs to come from the PT transform model somehow
     ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json");
@@ -134,115 +235,18 @@ public class PushService {
         finalUpperBound
       ));
     })
+    //.limitRate(3000, 2000) // Ensure we don't have massive backpressure causing enormous memory strain (?)
     // Flux<SourceRecord> -> aiming for Tuple<SourceRecord, <JsonNode>>?
     // Parallelise transform within each buffered chunk (tracking earliest and latest so order within chunk doesn't matter)
-    .buffer(bundleSize)
-    .flatMapSequential(chunkedSourceRecordList -> {
-      return Flux.fromIterable(chunkedSourceRecordList)
-        .parallel()
-        .runOn(Schedulers.boundedElastic())
-        .flatMap(sourceRecord -> {
-          try {
-            JsonNode transformedRecord = proteusService.convert(
-              proteusSpec,
-              sourceRecord.getJsonRecord()
-            );
-            return Mono.just(Tuples.of(sourceRecord, transformedRecord));
-          } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            return Mono.error(e);
-          }
-        })
-        .sequential()
-        .buffer(bundleSize); // REBUFFER to keep blocks of 1000
+    .buffer(BUNDLE_SIZE)
+    .concatMap(sourceRecordChunk -> {
+      return Mono.from(destinationService.findById(
+        pt.getDestinationType(),
+        pt.getDestinationId()
+      ))
+      .flatMap(destination -> Mono.from(destinationService.getClient(destination)))
+      .flatMap(client -> processChunkForPushTask(pt, sourceRecordChunk, proteusSpec, client));
     })
-    .doOnError(e -> log.error("ERROR???: {}", e))
-    // Change List<Tuple2<SourceRecord, JsonNode>> to Tuple3<List<JsonNode>, Instant, Instant>
-    .flatMapSequential(list -> {
-      return Flux.fromIterable(list)
-        .reduce(
-          Tuples.of(new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
-          (acc, tuple) -> {
-            Instant sourceRecordUpdated = tuple.getT1().getUpdated();
-            Instant earliestSeen = acc.getT2();
-            Instant latestSeen = acc.getT3();
-            
-            // STORE EARLIEST SOURCE RECORD "updated" IN T3
-            if (sourceRecordUpdated.isBefore(earliestSeen)) {
-              earliestSeen = sourceRecordUpdated;
-            }
-            // STORE LATEST SOURCE RECORD "updated" IN T4
-            if (sourceRecordUpdated.isAfter(latestSeen)) {
-              latestSeen = sourceRecordUpdated;
-            }
-            
-            acc.getT1().add(tuple.getT2());
-            
-            // I think this works... Tuples are immutable so return list
-            return Tuples.of(acc.getT1(), earliestSeen, latestSeen);
-          }
-        ); // Stream within stream here
-    }) // At this point we SHOULD
-    .doOnNext(tuple -> log.info("Pushing records {} -> {}", tuple.getT2(), tuple.getT3()))
-		.flatMapSequential(chunkedRecordTuple -> {  // FIXME I think this needs to be concatMap for the actual sending to destination
-      ArrayList<JsonNode> recordsList = chunkedRecordTuple.getT1();
-      // Keep track of earliest and latest, so we can do things inside chunks out of order
-      Instant earliestSeen = chunkedRecordTuple.getT2();
-      Instant latestSeen = chunkedRecordTuple.getT3();
-
-      //log.info("SR ARRAY: {}", chunkedRecordTuple.getT1());
-
-      // Set up output
-      // FIXME this isn't how we'll manage sessions and chunks
-      JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
-        new AbstractMap.SimpleEntry<String, JsonNode>("sessionId", JsonNode.createStringNode("test-session-1")),
-        new AbstractMap.SimpleEntry<String, JsonNode>("chunkId", JsonNode.createStringNode("chunk1")),
-        new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
-      ));
-
-      //log.info("pushKBJsonOutput: {}", pushKBJsonOutput);
-      /*
-       * Idk if this is useful, but this is how to set up our own tuple. Could be useful for passing info downstream
-       * Tuple2<SourceRecord, PushTask> output = Tuples.of(sr, pt);
-       */
-
-      // FIXME these logs are not helpful wording yet
-  
-      // For now, assume repository has properly fetched everything it needs to
-      // At this point we need to send this record
-
-      // TODO Replace with actual send logic
-      try {
-        log.info("SENDING JSON OUTPUT: {}", objectMapper.writeValueAsString(pushKBJsonOutput));
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-
-      // Fixme forget this random bit
-/*       Random random = new Random();
-      // 10% failure rate
-      if (random.nextDouble() <= 0.1) {
-        return Mono.error(new Exception("SOMETHING WENT WRONG HERE"));
-      }
- */
-      //log.info("SENT RECORD: {}", sr.getId());
-      
-      // The earliest record "successfully sent" was the "last sent" timestamp, as we're moving _down_ the list
-      pt.setLastSentPointer(earliestSeen);
-
-      // Now compare the latest updated record sent in this chunk to the DHP
-      if (latestSeen.compareTo(pt.getDestinationHeadPointer()) > 0) {
-        // We have a new head pointer
-        pt.setDestinationHeadPointer(latestSeen);
-      }
-			return pushTaskService.update(pt);
-		})
-    //.doOnNext(savedPt -> log.info("Saved PT: {}", savedPt))
-    /*
-     * TODO does last trigger if there's an error?
-     */
-    .doOnError(err -> log.error("WHAT IS HAPPENEING: {}", err))
     .takeLast(1) // This will contain the PT as it stands after the LAST record in the stack
     .next() // This should be a passive version of last(), where if stream is empty we don't get a crash
     .flatMap(lastPt -> {

@@ -1,6 +1,7 @@
 package com.k_int.pushKb.interactions.folio;
 
 import io.micronaut.core.async.annotation.SingleResult;
+
 import io.micronaut.http.HttpMethod;
 import io.micronaut.http.MutableHttpHeaders;
 import io.micronaut.http.MutableHttpRequest;
@@ -9,6 +10,9 @@ import io.micronaut.http.client.exceptions.HttpClientException;
 import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.retry.annotation.Retryable;
+
+import io.micronaut.json.tree.JsonNode;
+
 import reactor.core.publisher.Mono;
 
 import org.reactivestreams.Publisher;
@@ -16,10 +20,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.k_int.pushKb.interactions.BaseApiClient;
+import com.k_int.pushKb.interactions.DestinationClient;
 import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
+import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginBody;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginResponseBody;
+import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.utils.CookieToken;
 
 import static io.micronaut.http.HttpMethod.POST;
@@ -27,7 +34,7 @@ import static io.micronaut.http.HttpMethod.POST;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class FolioApiClient extends BaseApiClient {
+public class FolioApiClient extends BaseApiClient implements DestinationClient<FolioDestination> {
 	public final static String X_OKAPI_TENANT = "X-Okapi-Tenant";
 	public final static String FOLIO_ACCESS_TOKEN = "folioAccessToken";
 	public final static String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
@@ -65,6 +72,10 @@ public class FolioApiClient extends BaseApiClient {
 		this.loginUser = loginUser;
 		this.loginPassword = loginPassword;
 		this.authType = authType;
+	}
+
+	public Class<? extends Destination> getDestinationClass() {
+		return FolioDestination.class;
 	}
 
 /* 	private void clearToken() {
@@ -175,5 +186,20 @@ public class FolioApiClient extends BaseApiClient {
 			}),
 			Optional.empty()
 		).map(resp -> resp.body());
+	}
+
+	// TODO we need a better return shape here
+	@SingleResult
+	@Retryable
+	public Publisher<String> pushPCIs(JsonNode json) {
+		return post(
+			"/erm/pushKB/pci",
+			String.class,
+			Optional.of(json),
+			Optional.of(String.class),
+			Optional.empty(),
+			Optional.empty()
+		).map(resp -> resp.body());
+		//return Mono.just("DONE");
 	}
 }

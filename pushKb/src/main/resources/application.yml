@@ -3,6 +3,10 @@ micronaut:
     port: 8080
   application:
     name: pushKb
+    #jvm: ## These seem to do nothing
+    #  options:
+    #    -Xms512m
+    #    -Xmx2g
   http:
     client:
       #event-loop-group: other

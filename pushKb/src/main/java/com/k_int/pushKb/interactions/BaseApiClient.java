@@ -31,6 +31,10 @@ public class BaseApiClient implements ApiClient {
     this.client = client;
 	}
 
+  public HttpClient getHttpClient() {
+    return client;
+  }
+
   protected Mono<MutableHttpRequest<?>> createRequest(
     HttpMethod method,
     String path,

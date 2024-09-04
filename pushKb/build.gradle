@@ -144,7 +144,11 @@ java {
 run {
 	systemProperties([
 		'micronaut.environments': 'development'
-	])
+	]);
+	jvmArgs(
+    '-Xms512m',
+    '-Xmx1g' 
+	);
 }
 
 graalvmNative.toolchainDetection = false

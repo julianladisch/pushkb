@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.interactions.DestinationClient;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.storage.DestinationRepository;
 
@@ -11,6 +12,7 @@ import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.core.type.Argument;
+import io.micronaut.json.tree.JsonNode;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 
@@ -46,8 +48,12 @@ public class DestinationService {
     return getRepositoryForDestinationType(dest.getClass()).ensureDestination(dest);
   }
 
-  // FIXME this is just a test rn
-  public Publisher<Boolean> testMethod(Destination dest) {
-    return getApiServiceForDestinationType(dest.getClass()).testMethod(dest);
+  public Publisher<? extends DestinationClient<Destination>> getClient(Destination dest) {
+    return getApiServiceForDestinationType(dest.getClass()).getClient(dest);
+  }
+
+  // I don't love this, but I don't want to have to create new clients for each push
+  public Publisher<Boolean> push(DestinationClient<Destination> client, JsonNode json) {
+    return getApiServiceForDestinationType(client.getDestinationClass()).push(client, json);
   }
 }
