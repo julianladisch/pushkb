@@ -8,6 +8,7 @@ import io.micronaut.scheduling.annotation.Scheduled;
 
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 @Singleton
@@ -19,6 +20,9 @@ public class SchedulingService {
 
 	// TODO Are we using this in the end?
 	private final DestinationService destinationService;
+
+	private Disposable pushTaskRunnerDisposable;
+	private Disposable ingestRunnerDisposable;
 
 	public SchedulingService(
 		SourceService sourceService,
@@ -32,30 +36,59 @@ public class SchedulingService {
 		this.destinationService = destinationService;
 	}
 
-/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
-	public void testSendAlgorithm() {
-		log.info("TESTING PUSH ALGORITHM");
+	public void resetPushRunner() {
+		pushTaskRunnerDisposable = null;
+	}
+
+	public void resetIngestRunner() {
+		ingestRunnerDisposable = null;
+	}
+
+	@Scheduled(initialDelay = "30s", fixedDelay = "1h")
+	public void pushRunner() {
+		if (pushTaskRunnerDisposable == null) {
 			// Iterate over all PushTasks, maybe want to be smarter about this in future
-			Flux.from(pushTaskService.getPushTaskFeed())
+			pushTaskRunnerDisposable = Flux.from(pushTaskService.getPushTaskFeed())
 				.flatMap(pushService::runPushTask)
-				.doOnNext(pt -> log.info("WHEN DO WE SEE THIS FINAL END? {}", pt))
-				.subscribe();
-	} */
+				.subscribe(
+					// FIXME this log message is misleading
+					pt -> log.info("WHEN DO WE SEE THIS FINAL END? {}", pt), // Consumer (doOnNext)
+					e -> {
+						log.error("Something went wrong in pushTaskScheduler: {}", e);
+						resetPushRunner();
+					}, // errorConsumer (doOnError)
+					() -> resetPushRunner() // completeConsumer (doOnComplete)
+				);
+		} else {
+			log.warn("Pushes in progress, skipping");
+		}
+	}
 
   // FIXME need to work on delay here
-/*   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
-	public void scheduledTask() {
+  @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	public void ingestRunner() {
+		if (ingestRunnerDisposable == null) {
 			// Fetch all source implementers from sourceService
-			Flux.from(sourceService.getSourceImplementors())
-			// For each class implementing Source, list all actual Sources in DB
-			.flatMap(sourceService::list)
-			// For each source, trigger an ingest of all records
-			.flatMap(sourceService::triggerIngestForSource)
-			.subscribe();
-	} */
+			ingestRunnerDisposable = Flux.from(sourceService.getSourceImplementors())
+				// For each class implementing Source, list all actual Sources in DB
+				.flatMap(sourceService::list)
+				// For each source, trigger an ingest of all records
+				.flatMap(sourceService::triggerIngestForSource)
+				.subscribe(
+					sr -> {}, // Consumer (doOnNext)
+					e -> {
+						log.error("Something went wrong in ingestScheduler: {}", e);
+						resetIngestRunner();
+					}, // errorConsumer (doOnError)
+					() -> resetIngestRunner() // completeConsumer (doOnComplete)
+				);
+		} else {
+			log.warn("Ingest in progress, skipping");
+		}
+	}
 
 	// FETCHING FROM FOLIO---?
-	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void scheduledTask() {
 		// For now, grab our FolioDestination from Bootstraps directly
 		Mono.from(destinationService.findById(
@@ -69,8 +102,11 @@ public class SchedulingService {
 			FolioDestination.generateUUIDFromDestination(
 				(FolioDestination) Boostraps.destinations.get("LOCAL_DC_FOLIO")
 			)
+			//FolioDestination.generateUUIDFromDestination(
+			//	(FolioDestination) Boostraps.destinations.get("SNAPSHOT")
+			//)
 		))
 			.flatMapMany(destinationService::testMethod)
 			.subscribe();
-	}
+	} */
 }

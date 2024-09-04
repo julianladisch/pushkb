@@ -52,7 +52,6 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 
 	// The actual "Fetch a stream of sourceRecords" method
 	public Flux<SourceRecord> fetchSourceRecords(GokbSource source) {
-		// FIXME here we have the source, why turn this into sourceType/sourceId?
 		log.info("GokbFeedService::fetchSourceRecords called for GokbSource: {}", source);
 		try {
 			GokbApiClient client = getGokbClient(source);
@@ -76,7 +75,7 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 //			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
 			.expand(currResponse -> this.getNextPage(source, client, currResponse, changedSince))
 
-			.limitRate(3, 2)
+			.limitRate(3, 2) // What if we don't limit this rate?
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
 			.flatMapSequential( Flux::fromIterable )
 			
@@ -87,11 +86,7 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 			.doOnNext( chunk -> {
 				log.info("Saved {} records", chunk.size());
 			})
-			.doOnError(throwable -> throwable.printStackTrace())
-			// TODO is this ok?
-			.flatMap(chunk -> Flux.fromIterable(chunk)) // Return from chunk back to regular flux at the end for return type reasons
-			// FIXME do we need this (And does this even work?)
-			.doOnComplete(() -> log.info("LOGDEBUG FINISHED FOR SOURCE({}, {}) AT: {}", source.getId(), source.getGokbSourceType(), Instant.now()));
+			.flatMap(chunk -> Flux.fromIterable(chunk)); // Return from chunk back to regular flux at the end for return type reasons
 	}
 
 	protected Mono<GokbScrollResponse> fetchPage(@NonNull GokbSource source, @NonNull GokbApiClient client, @NonNull Optional<String> scrollId, Optional<Instant> changedSince ) {

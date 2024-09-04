@@ -4,17 +4,16 @@ import com.k_int.pushKb.services.DestinationApiService;
 import com.k_int.pushKb.services.HttpClientService;
 
 import io.micronaut.http.client.HttpClient;
-import io.micronaut.http.client.exceptions.HttpClientException;
+import io.micronaut.json.tree.JsonNode;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
-import java.net.ConnectException;
 import java.net.MalformedURLException;
-import java.util.Optional;
-import java.util.function.Consumer;
 
-import com.k_int.pushKb.interactions.HttpClientRequestResponseException;
+import org.reactivestreams.Publisher;
+
+import com.k_int.pushKb.interactions.DestinationClient;
 import com.k_int.pushKb.interactions.folio.FolioApiClient;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
@@ -32,20 +31,23 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 
 	// Does this belong in some other service, or perhaps should "getClient" be a method on DestinationApiService interface?
 	// Be able to set up a new FolioApiClient per destination
-	FolioApiClient getFolioClient(FolioDestination destination) throws MalformedURLException {
-		HttpClient client = httpClientService.create(destination.getDestinationUrl());
-
-		return new FolioApiClient(
-			client,
-			destination.getTenant(),
-			destination.getLoginUser(),
-			destination.getLoginPassword(),
-			destination.getAuthType()
-		);
+	public Publisher<FolioApiClient> getClient(FolioDestination destination) {
+		try {
+			HttpClient client = httpClientService.create(destination.getDestinationUrl());
+			return Mono.just(new FolioApiClient(
+				client,
+				destination.getTenant(),
+				destination.getLoginUser(),
+				destination.getLoginPassword(),
+				destination.getAuthType()
+			));
+		} catch (MalformedURLException e) {
+			return Mono.error(e);
+		}
 	}
 
 	// Folio destination error handling (in doOnError... not sure this is right yet)
-	private Consumer<HttpClientException> getErrorHandler(FolioDestination destination) {
+	/* private Consumer<HttpClientException> getErrorHandler(FolioApiClient client) {
 		return hce -> {
 			if (hce.getCause() instanceof ConnectException) {
 				log.error("Failed to connect to destination ({}). Connection error: {}", destination.getId(), hce.getCause().getMessage());
@@ -65,27 +67,23 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 				}
 			}
 		};
-	}
+	} */
 
-	// Return Mono with TRUE if we successfully fetched or FALSE if we didn't (For whatever reason)
-	// This isn't really the best logic... stream with True/False only works in DCB cos they expect a true/false from the validate check...
-	// onErrorResume is a _fallback_
-	// TODO sort out how this -should_ return *shrug*
-	public Mono<Boolean> testMethod(FolioDestination destination) {
-		try {
-			FolioApiClient folioClient = getFolioClient(destination);
+	// WIP... I'm not sure about the return shape here
+	 public Mono<Boolean> push(DestinationClient<FolioDestination> client, JsonNode json) {
+		if (client instanceof FolioApiClient) {
+			FolioApiClient folioClient = (FolioApiClient) client;
 
-			return Mono.from(folioClient.getAgreements())
-				// Remove any errors on successful fetch
-				.doOnNext(resp -> {
-					log.info("WHAT IS RESP? {}", resp);
-				})
-				.flatMap(resp -> Mono.just(Boolean.TRUE))
-				.doOnError(HttpClientException.class, getErrorHandler(destination))
-				// TODO this probably isn't right, but it'll do for now
-				.onErrorResume(HttpClientException.class, hce -> Mono.just(Boolean.FALSE));
-		} catch (MalformedURLException e) {
-			return Mono.error(e);
+			return Mono.from(folioClient.pushPCIs(json))
+			.doOnNext(resp -> {
+				log.info("WHAT IS RESP? {}", resp);
+			})
+			.flatMap(string -> Mono.just(Boolean.TRUE));
+			//.doOnError(HttpClientException.class, getErrorHandler(client));
+			// TODO this probably isn't right, but it'll do for now
+			//.onErrorResume(HttpClientException.class, hce -> Mono.just(Boolean.FALSE));
+		} else {
+			return Mono.error(new IllegalArgumentException("Client must be a FolioApiClient"));
 		}
 	}
 }

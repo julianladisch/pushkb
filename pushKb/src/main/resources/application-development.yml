@@ -14,6 +14,10 @@ micronaut:
     port: 8060
   application:
     name: pushKb
+    #jvm: ## These seem to do nothing
+    #  options:
+    #    -Xms512m
+    #    -Xmx2g
   security:
     # FIXME Re-enable this later
     enabled: false
