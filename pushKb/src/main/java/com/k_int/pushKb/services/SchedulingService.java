@@ -1,5 +1,7 @@
 package com.k_int.pushKb.services;
 
+import java.time.Instant;
+
 import com.k_int.pushKb.Boostraps;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import com.k_int.pushKb.model.Source;
@@ -15,7 +17,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class SchedulingService {
 	private final SourceService sourceService;
-	private final PushTaskService pushTaskService;
+	private final PushTaskDatabaseService pushTaskDatabaseService;
 	private final PushService pushService;
 
 	// TODO Are we using this in the end?
@@ -26,12 +28,12 @@ public class SchedulingService {
 
 	public SchedulingService(
 		SourceService sourceService,
-		PushTaskService pushTaskService,
+		PushTaskDatabaseService pushTaskDatabaseService,
 		PushService pushService,
 		DestinationService destinationService
 	) {
 		this.sourceService = sourceService;
-		this.pushTaskService = pushTaskService;
+		this.pushTaskDatabaseService = pushTaskDatabaseService;
 		this.pushService = pushService;
 		this.destinationService = destinationService;
 	}
@@ -44,15 +46,14 @@ public class SchedulingService {
 		ingestRunnerDisposable = null;
 	}
 
-	@Scheduled(initialDelay = "30s", fixedDelay = "1h")
+/* 	@Scheduled(initialDelay = "30s", fixedDelay = "1h")
 	public void pushRunner() {
 		if (pushTaskRunnerDisposable == null) {
 			// Iterate over all PushTasks, maybe want to be smarter about this in future
-			pushTaskRunnerDisposable = Flux.from(pushTaskService.getPushTaskFeed())
-				.flatMap(pushService::runPushTask)
+			pushTaskRunnerDisposable = Flux.from(pushTaskDatabaseService.getPushTaskFeed())
+				.concatMap(pushService::runPushTask)
 				.subscribe(
-					// FIXME this log message is misleading
-					pt -> log.info("WHEN DO WE SEE THIS FINAL END? {}", pt), // Consumer (doOnNext)
+					pt -> log.info("PushTask({}) completed at {}", pt, Instant.now()), // Consumer (doOnNext)
 					e -> {
 						log.error("Something went wrong in pushTaskScheduler: {}", e);
 						resetPushRunner();
@@ -62,7 +63,7 @@ public class SchedulingService {
 		} else {
 			log.warn("Pushes in progress, skipping");
 		}
-	}
+	} */
 
   // FIXME need to work on delay here
   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
@@ -71,9 +72,10 @@ public class SchedulingService {
 			// Fetch all source implementers from sourceService
 			ingestRunnerDisposable = Flux.from(sourceService.getSourceImplementors())
 				// For each class implementing Source, list all actual Sources in DB
+				// PushTasks may rely on whether these have completed or not...
 				.flatMap(sourceService::list)
 				// For each source, trigger an ingest of all records
-				.flatMap(sourceService::triggerIngestForSource)
+				.concatMap(sourceService::triggerIngestForSource)
 				.subscribe(
 					sr -> {}, // Consumer (doOnNext)
 					e -> {

@@ -7,7 +7,7 @@ import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.services.DestinationService;
-import com.k_int.pushKb.services.PushTaskService;
+import com.k_int.pushKb.services.PushTaskDatabaseService;
 import com.k_int.pushKb.services.SourceService;
 
 import io.micronaut.context.env.Environment;
@@ -25,7 +25,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 	private final Environment environment;
 	private final DestinationService destinationService;
   private final SourceService sourceService;
-	private final PushTaskService pushTaskService;
+	private final PushTaskDatabaseService pushTaskDatabaseService;
  
   private static final String BOOSTRAP_SOURCES_VAR = "BOOSTRAP_SOURCES";
   private static final String BOOSTRAP_DESTINATIONS_VAR = "BOOSTRAP_DESTINATIONS";
@@ -35,13 +35,13 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
     Environment environment,
 		DestinationService destinationService,
 		SourceService sourceService,
-		PushTaskService pushTaskService,
+		PushTaskDatabaseService pushTaskDatabaseService,
 		GokbRepository gokbRepository // This is obviously implementation specific unlike "source".
  	) {
 		this.environment = environment;
 		this.destinationService = destinationService;
 		this.sourceService = sourceService;
-		this.pushTaskService = pushTaskService;
+		this.pushTaskDatabaseService = pushTaskDatabaseService;
 	}
 
 	@Override
@@ -62,9 +62,9 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 
 	private Publisher<Source> bootstrapSources() {
 		log.debug("bootstrapSources");
-		// Do this in flatMap with maxConcurrency set to 1 to avoid trying to create the same GOKB Object in multiple ensureSource calls
+		// Do this in concatMap to avoid trying to create the same GOKB Object in multiple ensureSource calls
 		return Flux.fromIterable(Boostraps.sources.values())
-			.flatMapSequential(src -> {
+			.concatMap(src -> {
 				try {
 					return sourceService.ensureSource(src);
 					
@@ -72,14 +72,14 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 					e.printStackTrace();
 					return Mono.empty();
 				}
-			}, 1);
+			});
 	}
 
 	private Publisher<Destination> bootstrapDestinations() {
 		log.debug("bootstrapDestinations");
-		
+		// Do this in concatMap to avoid trying to create the same FolioTenant Object in multiple ensureDestination calls
 		return Flux.fromIterable(Boostraps.destinations.values())
-			.flatMapSequential(dest -> {
+			.concatMap(dest -> {
 				try {
 					return destinationService.ensureDestination(dest);
 					
@@ -95,7 +95,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		return Flux.fromIterable(Boostraps.pushTasks.values())
 			.flatMapSequential(pt -> {
 				try {
-					return Mono.from(pushTaskService.ensurePushTask(pt));
+					return Mono.from(pushTaskDatabaseService.ensurePushTask(pt));
 				} catch (Exception e) {
 					e.printStackTrace();
 					return Mono.empty();

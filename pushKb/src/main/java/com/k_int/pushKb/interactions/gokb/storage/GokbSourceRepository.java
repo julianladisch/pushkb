@@ -30,8 +30,8 @@ public interface GokbSourceRepository extends SourceRepository<GokbSource> {
 	@Join("gokb")
   default Publisher<GokbSource> ensureSource( GokbSource src ) {
     UUID gen_id = GokbSource.generateUUID(
-      src.getGokbSourceType(),
-      src.getGokb()
+      src.getGokb(),
+      src.getGokbSourceType()
     );
 
     src.setId(gen_id);

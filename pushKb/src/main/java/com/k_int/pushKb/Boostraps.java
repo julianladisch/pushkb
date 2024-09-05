@@ -7,6 +7,8 @@ import java.util.AbstractMap.SimpleEntry;
 
 import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
+import com.k_int.pushKb.interactions.folio.model.FolioDestinationType;
+import com.k_int.pushKb.interactions.folio.model.FolioTenant;
 import com.k_int.pushKb.interactions.gokb.model.Gokb;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
@@ -65,44 +67,127 @@ public interface Boostraps {
 
   public static final Map<String, ? extends Destination> destinations = Map.ofEntries(
     new SimpleEntry<String, Destination>(
-      "LOCAL_RANCHER_FOLIO",
+      "LOCAL_RANCHER_FOLIO_PACKAGE",
       FolioDestination.builder()
-        .destinationUrl("http://localhost:30100")
-        .tenant("test1")
-        .authType(FolioAuthType.OKAPI)
+        .folioTenant(
+          FolioTenant.builder()
+            .authType(FolioAuthType.OKAPI)
+            .tenant("test1")
+            .baseUrl("http://localhost:30100")
+            .loginUser(System.getenv("LOCAL_RANCHER_USERNAME"))
+            .loginPassword(System.getenv("LOCAL_RANCHER_PASSWORD"))
+            .build()
+        )
+        .destinationType(FolioDestinationType.PACKAGE)
         // Use env vars for now... this file will eventually be gone anyway
-        .loginUser(System.getenv("LOCAL_RANCHER_USERNAME"))
-        .loginPassword(System.getenv("LOCAL_RANCHER_PASSWORD"))
         .build()
     ),
     new SimpleEntry<String, Destination>(
-      "LOCAL_DC_FOLIO",
+      "LOCAL_RANCHER_FOLIO_PCI",
       FolioDestination.builder()
-        .destinationUrl("http://localhost:8080")
-        .tenant("test1")
-        .authType(FolioAuthType.NONE)
+        .folioTenant(
+          FolioTenant.builder()
+            .authType(FolioAuthType.OKAPI)
+            .tenant("test1")
+            .baseUrl("http://localhost:30100")
+            .loginUser(System.getenv("LOCAL_RANCHER_USERNAME"))
+            .loginPassword(System.getenv("LOCAL_RANCHER_PASSWORD"))
+            .build()
+        )
+        .destinationType(FolioDestinationType.PCI)
+        // Use env vars for now... this file will eventually be gone anyway
         .build()
     ),
     new SimpleEntry<String, Destination>(
-      "SNAPSHOT",
+      "LOCAL_DC_FOLIO_PACKAGE",
       FolioDestination.builder()
-        .destinationUrl("https://folio-snapshot-okapi.dev.folio.org")
-        .tenant("diku")
-        .authType(FolioAuthType.OKAPI)
-        // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
-        .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
-        .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
+        .folioTenant(
+          FolioTenant.builder()
+            .authType(FolioAuthType.NONE)
+            .tenant("test1")
+            .baseUrl("http://localhost:8080")
+            .build()
+        )
+        .destinationType(FolioDestinationType.PACKAGE)
+        // Use env vars for now... this file will eventually be gone anyway
         .build()
     ),
     new SimpleEntry<String, Destination>(
-      "SNAPSHOT2",
+      "LOCAL_DC_FOLIO_PCI",
       FolioDestination.builder()
-        .destinationUrl("https://folio-snapshot-2-okapi.dev.folio.org")
-        .tenant("diku")
-        .authType(FolioAuthType.OKAPI)
-        // LOGIN DETAILS NEED CHANGING IN DB AFTER BOOTSTRAPPING
-        .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
-        .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
+        .folioTenant(
+          FolioTenant.builder()
+            .authType(FolioAuthType.NONE)
+            .tenant("test1")
+            .baseUrl("http://localhost:8080")
+            .build()
+        )
+        .destinationType(FolioDestinationType.PCI)
+        // Use env vars for now... this file will eventually be gone anyway
+        .build()
+    ),
+    new SimpleEntry<String, Destination>(
+      "SNAPSHOT_PACKAGE",
+      FolioDestination.builder()
+        .folioTenant(
+          FolioTenant.builder()
+            .authType(FolioAuthType.NONE)
+            .tenant("diku")
+            .baseUrl("https://folio-snapshot-okapi.dev.folio.org")
+            .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
+            .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
+            .build()
+        )
+        .destinationType(FolioDestinationType.PACKAGE)
+        // Use env vars for now... this file will eventually be gone anyway
+        .build()
+    ),
+    new SimpleEntry<String, Destination>(
+      "SNAPSHOT_PCI",
+      FolioDestination.builder()
+        .folioTenant(
+          FolioTenant.builder()
+            .authType(FolioAuthType.NONE)
+            .tenant("diku")
+            .baseUrl("https://folio-snapshot-okapi.dev.folio.org")
+            .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
+            .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
+            .build()
+        )
+        .destinationType(FolioDestinationType.PCI)
+        // Use env vars for now... this file will eventually be gone anyway
+        .build()
+    ),
+    new SimpleEntry<String, Destination>(
+      "SNAPSHOT2_PACKAGE",
+      FolioDestination.builder()
+        .folioTenant(
+          FolioTenant.builder()
+            .authType(FolioAuthType.NONE)
+            .tenant("diku")
+            .baseUrl("https://folio-snapshot-2-okapi.dev.folio.org")
+            .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
+            .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
+            .build()
+        )
+        .destinationType(FolioDestinationType.PACKAGE)
+        // Use env vars for now... this file will eventually be gone anyway
+        .build()
+    ),
+    new SimpleEntry<String, Destination>(
+      "SNAPSHOT2_PCI",
+      FolioDestination.builder()
+        .folioTenant(
+          FolioTenant.builder()
+            .authType(FolioAuthType.NONE)
+            .tenant("diku")
+            .baseUrl("https://folio-snapshot-2-okapi.dev.folio.org")
+            .loginUser(System.getenv("FOLIO_SNAPSHOT_USERNAME"))
+            .loginPassword(System.getenv("FOLIO_SNAPSHOT_PASSWORD"))
+            .build()
+        )
+        .destinationType(FolioDestinationType.PCI)
+        // Use env vars for now... this file will eventually be gone anyway
         .build()
     )
   );
@@ -117,7 +202,7 @@ public interface Boostraps {
         ))
         .sourceType(GokbSource.class)
         .destinationId(FolioDestination.generateUUIDFromDestination(
-          (FolioDestination) destinations.get("LOCAL_DC_FOLIO")
+          (FolioDestination) destinations.get("LOCAL_DC_FOLIO_PCI")
         ))
         .destinationType(FolioDestination.class)
         .destinationHeadPointer(Instant.EPOCH)
@@ -125,22 +210,5 @@ public interface Boostraps {
         .footPointer(Instant.EPOCH)
         .build()
     )
-    /* new SimpleEntry<String, PushTask>(
-      "FOLIO_GOKBT_TIPP",
-      PushTask.builder()
-        .transform("example_tranform")
-        .sourceId(GokbSource.generateUUIDFromSource(
-          (GokbSource) sources.get("GOKBT_TIPP")
-        ))
-        .sourceType(GokbSource.class)
-        .destinationId(FolioDestination.generateUUIDFromDestination(
-          (FolioDestination) destinations.get("LOCAL_RANCHER_FOLIO")
-        ))
-        .destinationType(FolioDestination.class)
-        .destinationHeadPointer(Instant.EPOCH)
-        .lastSentPointer(Instant.EPOCH)
-        .footPointer(Instant.EPOCH)
-        .build()
-    ) */
   );
 }

@@ -13,5 +13,5 @@ import reactor.core.publisher.Mono;
 public interface DestinationApiService<T extends Destination> {
   public Publisher<? extends DestinationClient<T>> getClient(T destination);
 
-  Mono<Boolean> push(DestinationClient<T> client, JsonNode json);
+  Mono<Boolean> push(T destination, DestinationClient<T> client, JsonNode json);
 }

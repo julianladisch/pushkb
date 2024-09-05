@@ -6,63 +6,55 @@ import java.util.UUID;
 
 import com.k_int.pushKb.model.Destination;
 
-import io.micronaut.core.annotation.NonNull;
-import io.micronaut.core.annotation.Nullable;
-import io.micronaut.data.annotation.Id;
-import io.micronaut.data.annotation.MappedEntity;
-import io.micronaut.data.annotation.TypeDef;
-import io.micronaut.data.model.DataType;
-import io.micronaut.serde.annotation.Serdeable;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.ToString;
 import services.k_int.utils.UUIDUtils;
+import io.micronaut.core.annotation.NonNull;
+import io.micronaut.data.annotation.Id;
+import io.micronaut.data.annotation.MappedEntity;
+import io.micronaut.data.annotation.Transient;
+import io.micronaut.data.annotation.TypeDef;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.constraints.NotNull;
+import io.micronaut.data.model.DataType;
 
 @Serdeable
 @Data
-@MappedEntity("folio_destination")
 @AllArgsConstructor
+@MappedEntity("folio_destination")
 @Builder(toBuilder = true)
 public class FolioDestination implements Destination {
   @Id
 	@TypeDef(type = DataType.UUID)
 	private UUID id;
-    // FIXME do we need a name for this?
-/*   @NotNull
-  @NonNull
-  String name; // User defined name for this destination */
 
   @NotNull
   @NonNull
-  @ToString.Include
-	@Size(max = 200)
-  protected String destinationUrl;
+  FolioDestinationType destinationType;
 
-  private final String tenant;
-
-  @Nullable
-  @Size(max = 200)
-  private final String loginUser;
-
-  @Nullable
-  @Size(max = 200)
-  private final String loginPassword;
-
-  // Track whether this FOLIO needs auth through okapi or not.
   @NotNull
   @NonNull
-  private final FolioAuthType authType;
+  FolioTenant folioTenant;
   
+  // FIXME work out whether url should be here as part of destination itself... GOKB only goes to "/golb/api" level so maybe not
+  @Transient
+  public String getDestinationUrl() {
+    /*
+     * FolioDestination url is folioTenant baseUrl.
+     * To mirror gokbSource pattern we won't append (say) /erm/pushKB/pushPCI here,
+     * instead keeping that in the client. I'm not 100% certain on this pattern atm
+     */
+    return folioTenant.getBaseUrl() ;
+  }
+
   private static final String UUID5_PREFIX = "folio_destination";
-  public static UUID generateUUID(String tenant, String destinationUrl) {
-    final String concat = UUID5_PREFIX + ":" + tenant + ":" + destinationUrl;
+  public static UUID generateUUID(FolioTenant folioTenant, FolioDestinationType destinationType) {
+    final String concat = UUID5_PREFIX + ":" + FolioTenant.generateUUIDFromFolioTenant(folioTenant) + ":" + destinationType.toString();
     return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
   }
 
   public static UUID generateUUIDFromDestination(FolioDestination destination) {
-    return generateUUID(destination.getTenant(), destination.getDestinationUrl());
+    return generateUUID(destination.getFolioTenant(), destination.getDestinationType());
   }
 }

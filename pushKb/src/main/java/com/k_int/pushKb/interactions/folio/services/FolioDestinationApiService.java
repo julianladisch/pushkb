@@ -16,7 +16,7 @@ import org.reactivestreams.Publisher;
 import com.k_int.pushKb.interactions.DestinationClient;
 import com.k_int.pushKb.interactions.folio.FolioApiClient;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
-import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
+// import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 
 @Singleton
 @Slf4j
@@ -36,10 +36,8 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 			HttpClient client = httpClientService.create(destination.getDestinationUrl());
 			return Mono.just(new FolioApiClient(
 				client,
-				destination.getTenant(),
-				destination.getLoginUser(),
-				destination.getLoginPassword(),
-				destination.getAuthType()
+				destination.getFolioTenant(),
+				destination.getDestinationType()
 			));
 		} catch (MalformedURLException e) {
 			return Mono.error(e);
@@ -70,7 +68,9 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 	} */
 
 	// WIP... I'm not sure about the return shape here
-	 public Mono<Boolean> push(DestinationClient<FolioDestination> client, JsonNode json) {
+	// Should we be passing destintation in here?
+	public Mono<Boolean> push(FolioDestination destination, DestinationClient<FolioDestination> client, JsonNode json) {
+		// FIXME Not thrilled about this cast, but can't figure out the typing to do this directly
 		if (client instanceof FolioApiClient) {
 			FolioApiClient folioClient = (FolioApiClient) client;
 

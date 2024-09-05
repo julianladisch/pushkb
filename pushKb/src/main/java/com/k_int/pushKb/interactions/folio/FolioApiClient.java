@@ -23,9 +23,11 @@ import com.k_int.pushKb.interactions.BaseApiClient;
 import com.k_int.pushKb.interactions.DestinationClient;
 import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
+import com.k_int.pushKb.interactions.folio.model.FolioDestinationType;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginBody;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginResponseBody;
+import com.k_int.pushKb.interactions.folio.model.FolioTenant;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.utils.CookieToken;
 
@@ -48,11 +50,9 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 	public final static String PUSHKB_PKG_URL = PUSHKB_BASE_URL + "/pkg";
 	public final static String PUSHKB_PCI_URL = PUSHKB_BASE_URL + "/pci";
 
-	private final String loginUser;
-	private final String loginPassword;
-	private final String tenant;
+	private final FolioTenant folioTenant;
+	private final FolioDestinationType destinationType;
 
-	private final FolioAuthType authType;
 
 	// Keep a current token for login etc
 	private CookieToken currentToken;
@@ -62,16 +62,12 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 
 	public FolioApiClient(
 		HttpClient client,
-		String tenant,
-		String loginUser,
-		String loginPassword,
-		FolioAuthType authType
+		FolioTenant folioTenant,
+		FolioDestinationType destinationType
 	) {
 		super(client);
-		this.tenant = tenant;
-		this.loginUser = loginUser;
-		this.loginPassword = loginPassword;
-		this.authType = authType;
+		this.folioTenant = folioTenant;
+		this.destinationType = destinationType;
 	}
 
 	public Class<? extends Destination> getDestinationClass() {
@@ -86,7 +82,7 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 	private <T> Mono<MutableHttpRequest<T>> ensureToken(MutableHttpRequest<T> request) {
 
 		// Do different work depending on authType
-		switch (authType) {
+		switch (folioTenant.getAuthType()) {
 			case OKAPI:
 				return Mono.justOrEmpty(currentToken).filter(token -> !token.isExpired()).switchIfEmpty(acquireAccessToken())
 				.map(validToken -> {
@@ -110,7 +106,7 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 
 	private Optional<Consumer<MutableHttpHeaders>> setFolioHeaders(Optional<Consumer<MutableHttpHeaders>> httpHeaderConsumer) {
 		return Optional.of(headers -> {
-			headers.set(FolioApiClient.X_OKAPI_TENANT, tenant);
+			headers.set(FolioApiClient.X_OKAPI_TENANT, folioTenant.getTenant());
 			if (httpHeaderConsumer.isPresent()) {
 				httpHeaderConsumer.get().accept(headers);
 			}
@@ -131,8 +127,8 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 	@SingleResult
 	public Mono<CookieToken> login() {
 		FolioLoginBody loginBody = FolioLoginBody.builder()
-																						 .username(loginUser)
-																						 .password(loginPassword)
+																						 .username(folioTenant.getLoginUser())
+																						 .password(folioTenant.getLoginPassword())
 																						 .build();
 		return post( // Don't use our internal createRequest because that requires token, which this is trying to set.
 			super.createRequest(POST, LOGIN_URI, Optional.empty(), setFolioHeaders(Optional.empty())),
@@ -194,6 +190,20 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 	public Publisher<String> pushPCIs(JsonNode json) {
 		return post(
 			"/erm/pushKB/pci",
+			String.class,
+			Optional.of(json),
+			Optional.of(String.class),
+			Optional.empty(),
+			Optional.empty()
+		).map(resp -> resp.body());
+		//return Mono.just("DONE");
+	}
+
+	@SingleResult
+	@Retryable
+	public Publisher<String> pushPKGs(JsonNode json) {
+		return post(
+			"/erm/pushKB/pkg",
 			String.class,
 			Optional.of(json),
 			Optional.of(String.class),
