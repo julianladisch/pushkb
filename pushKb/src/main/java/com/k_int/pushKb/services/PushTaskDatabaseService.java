@@ -15,9 +15,9 @@ import jakarta.validation.Valid;
 import reactor.core.publisher.Mono;
 
 @Singleton
-public class PushTaskService {
+public class PushTaskDatabaseService {
   private final PushTaskRepository pushTaskRepository;
-	public PushTaskService(
+	public PushTaskDatabaseService(
     PushTaskRepository pushTaskRepository
   ) {
     this.pushTaskRepository = pushTaskRepository;

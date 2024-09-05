@@ -16,10 +16,10 @@ import jakarta.inject.Singleton;
 import jakarta.validation.Valid;
 
 @Singleton
-public class SourceRecordService {
+public class SourceRecordDatabaseService {
   private final SourceRecordRepository sourceRecordRepository;
 
-	public SourceRecordService(
+	public SourceRecordDatabaseService(
     SourceRecordRepository sourceRecordRepository
   ) {
     this.sourceRecordRepository = sourceRecordRepository;

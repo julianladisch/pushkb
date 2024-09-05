@@ -2,6 +2,7 @@ package com.k_int.pushKb.services;
 
 import java.util.UUID;
 import java.util.HashSet;
+import java.util.List;
 
 import org.reactivestreams.Publisher;
 
@@ -23,7 +24,10 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class SourceService {
   private final BeanContext beanContext;
-  public SourceService ( BeanContext beanContext ) {
+
+  public SourceService (
+    BeanContext beanContext
+    ) {
     this.beanContext = beanContext;
   }
 
@@ -72,7 +76,7 @@ public class SourceService {
 
   public Publisher<Class<? extends Source>> getSourceImplementors() {
     HashSet<Class<? extends Source>> sourceClasses = new HashSet<Class<? extends Source>>();
-    // For now manually return set of all Source implementing classes (??)
+    // TODO For now manually return set of all Source implementing classes (??)
     sourceClasses.add(GokbSource.class);
 
     return Flux.fromIterable(sourceClasses);

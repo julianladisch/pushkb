@@ -3,6 +3,7 @@ package com.k_int.pushKb.interactions.gokb.services;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 import java.net.MalformedURLException;
 
@@ -13,7 +14,7 @@ import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.services.HttpClientService;
 import com.k_int.pushKb.services.SourceFeedService;
-import com.k_int.pushKb.services.SourceRecordService;
+import com.k_int.pushKb.services.SourceRecordDatabaseService;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.http.client.HttpClient;
@@ -29,14 +30,14 @@ import reactor.core.publisher.Mono;
 @ExecuteOn(TaskExecutors.BLOCKING)
 @Singleton
 public class GokbFeedService implements SourceFeedService<GokbSource> {
-	private final SourceRecordService sourceRecordService;
+	private final SourceRecordDatabaseService sourceRecordDatabaseService;
 	private final HttpClientService httpClientService;
 
 	public GokbFeedService(
-		SourceRecordService sourceRecordService,
+		SourceRecordDatabaseService sourceRecordDatabaseService,
 		HttpClientService httpClientService
   ) {
-		this.sourceRecordService = sourceRecordService;
+		this.sourceRecordDatabaseService = sourceRecordDatabaseService;
 		this.httpClientService = httpClientService;
 	}
 
@@ -55,7 +56,7 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 		log.info("GokbFeedService::fetchSourceRecords called for GokbSource: {}", source);
 		try {
 			GokbApiClient client = getGokbClient(source);
-			return Mono.from(sourceRecordService.findMaxLastUpdatedAtSourceBySource(source))
+			return Mono.from(sourceRecordDatabaseService.findMaxLastUpdatedAtSourceBySource(source))
 				.flatMapMany(maxVal -> {
 					return this.fetchSourceRecords(source, client, Optional.ofNullable(maxVal));
 				})
@@ -66,6 +67,13 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 		}
 	}
 
+	public Flux<SourceRecord> saveSourceRecordChunk(List<JsonNode> incomingRecords, GokbSource source) {
+		return Flux.fromIterable(incomingRecords)
+			.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source.getId()))
+			.flatMap( sourceRecordDatabaseService::saveOrUpdateRecord ) // Make sure we save the record (allow saves to happen)
+			.doOnComplete(() -> log.info("Saved {} records", incomingRecords.size()));
+			//.flatMap(sourceRecordDatabaseService::saveOrUpdateRecord);
+	}
 
 	public Flux<SourceRecord> fetchSourceRecords(GokbSource source, GokbApiClient client, Optional<Instant> changedSince) {
 		Instant startTime = Instant.now();
@@ -78,15 +86,16 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 			.limitRate(3, 2) // What if we don't limit this rate?
 			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
 			.flatMapSequential( Flux::fromIterable )
-			
-			// Convert this JsonNode into a Source record
-			.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source.getId()) ) // Map the JsonNode to a source record
-			.concatMap( sourceRecordService::saveOrUpdateRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
 			.buffer( 1000 )
-			.doOnNext( chunk -> {
-				log.info("Saved {} records", chunk.size());
-			})
-			.flatMap(chunk -> Flux.fromIterable(chunk)); // Return from chunk back to regular flux at the end for return type reasons
+			.concatMap(jsonRecords -> saveSourceRecordChunk(jsonRecords, source));
+			// Convert this JsonNode into a Source record
+			//.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source.getId()) ) // Map the JsonNode to a source record
+			//.concatMap( sourceRecordDatabaseService::saveOrUpdateRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
+			//.buffer( 1000 )
+			//.doOnNext( chunk -> {
+			//	log.info("Saved {} records", chunk.size());
+			//})
+			//.flatMap(chunk -> Flux.fromIterable(chunk)); // Return from chunk back to regular flux at the end for return type reasons
 	}
 
 	protected Mono<GokbScrollResponse> fetchPage(@NonNull GokbSource source, @NonNull GokbApiClient client, @NonNull Optional<String> scrollId, Optional<Instant> changedSince ) {

@@ -9,11 +9,15 @@ import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import com.k_int.pushKb.storage.DestinationRepository;
 
 import io.micronaut.core.annotation.NonNull;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.data.annotation.Join;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Mono;
 
 // Place for any FolioDestination specific logic
@@ -21,13 +25,16 @@ import reactor.core.publisher.Mono;
 @Transactional
 @R2dbcRepository(dialect = Dialect.POSTGRES)
 public interface FolioDestinationRepository extends DestinationRepository<FolioDestination> {
+
+  // Specific Folio tenant ensureDestination (Needs generateUUID cos we've decided to use UUID5)
   @NonNull
   @SingleResult
   @Transactional
+	@Join("folioTenant")
   default Publisher<FolioDestination> ensureDestination( FolioDestination dest ) {
     UUID gen_id = FolioDestination.generateUUID(
-      dest.getTenant(),
-      dest.getDestinationUrl()
+      dest.getFolioTenant(),
+      dest.getDestinationType()
     );
 
     dest.setId(gen_id);
@@ -41,4 +48,20 @@ public interface FolioDestinationRepository extends DestinationRepository<FolioD
           return Mono.from(save(dest));
         });
   }
+
+  // Unique up to baseUrl
+  @NonNull
+  @SingleResult
+	@Join("folioTenant")
+  Publisher<FolioDestination> findById(@Nullable UUID id);
+
+  @NonNull
+  @SingleResult
+	@Join("folioTenant")
+  Publisher<FolioDestination> save(@Valid @NotNull FolioDestination dest);
+
+  @NonNull
+  @Transactional
+  @Join("folioTenant")
+  Publisher<FolioDestination> list();
 }

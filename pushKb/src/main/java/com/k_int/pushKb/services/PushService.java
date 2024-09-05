@@ -36,8 +36,8 @@ import com.k_int.proteus.Context;
 @Slf4j
 public class PushService {
   private final SourceService sourceService;
-	private final SourceRecordService sourceRecordService;
-  private final PushTaskService pushTaskService;
+	private final SourceRecordDatabaseService sourceRecordDatabaseService;
+  private final PushTaskDatabaseService pushTaskDatabaseService;
   private final DestinationService destinationService;
 
   /* Keep bundleSize consistent between chunking for send and chunking for transform
@@ -47,21 +47,22 @@ public class PushService {
    */
   private final static int BUNDLE_SIZE = 1000;
 
-	// FIXME This will need incorporating later
+
+  // FIXME investigate how much this is actually needed
 	private final ProteusService proteusService;
 	private final ObjectMapper objectMapper;
 
 	public PushService(
     SourceService sourceService,
-		SourceRecordService sourceRecordService,
-    PushTaskService pushTaskService,
+		SourceRecordDatabaseService sourceRecordDatabaseService,
+    PushTaskDatabaseService pushTaskDatabaseService,
 		ProteusService proteusService,
     DestinationService destinationService,
     ObjectMapper objectMapper
 	) {
     this.sourceService = sourceService;
-		this.sourceRecordService = sourceRecordService;
-    this.pushTaskService = pushTaskService;
+		this.sourceRecordDatabaseService = sourceRecordDatabaseService;
+    this.pushTaskDatabaseService = pushTaskDatabaseService;
 		this.proteusService = proteusService;
     this.destinationService = destinationService;
 		this.objectMapper = objectMapper;
@@ -87,9 +88,10 @@ public class PushService {
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   protected Mono<PushTask> processChunkForPushTask(
     PushTask pt,
+    Destination destination,
+    DestinationClient<Destination> client,
     List<SourceRecord> sourceRecordChunk,
-    ComponentSpec<JsonNode> proteusSpec,
-    DestinationClient<Destination> client
+    ComponentSpec<JsonNode> proteusSpec
   ) {
     // First transform the whole sourceRecord
     return Flux.fromIterable(sourceRecordChunk)
@@ -156,7 +158,7 @@ public class PushService {
     
           log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
     
-          return Mono.from(destinationService.push(client, json))
+          return Mono.from(destinationService.push(destination, client, json))
             .flatMap(bool -> {
               // Should just be "true", idk why this would ever be false tbh
     
@@ -168,24 +170,43 @@ public class PushService {
                 // We have a new head pointer
                 pt.setDestinationHeadPointer(latestSeen);
               }
-              return Mono.from(pushTaskService.update(pt));
+              return Mono.from(pushTaskDatabaseService.update(pt));
             });
     
           //log.info("SENT RECORD: {}", sr.getId());
         }));
   }
 
+  public Mono<Tuple2<Destination, DestinationClient<Destination>>> getDestinationTupleFromPushTask(PushTask pt) {
+    return Mono.from(destinationService.findById(
+      pt.getDestinationType(),
+      pt.getDestinationId()
+    ))
+    .flatMap(destination -> {
+      return Mono.from(destinationService.getClient(destination))
+        .flatMap(client -> Mono.just(Tuples.of(destination, client)));
+    });
+  }
 
+
+  // Do the work to grab destination/client ONCE for this pushTask
   public Mono<PushTask> runPushTask(PushTask pt) {
+    return getDestinationTupleFromPushTask(pt)
+      .flatMap(TupleUtils.function((destination, client) -> runPushTask(pt, destination, client)));
+  }
+
+
+  // Now we have destination and client set up, so we don't need to do that per chunk
+  public Mono<PushTask> runPushTask(PushTask pt, Destination destination, DestinationClient<Destination> client) {
     // We potentially need to run this twice, once to zip up hole,
     //once to bring in line with latest changes
-    return Mono.from(runPushTaskSingle(pt))
+    return Mono.from(runPushTaskSingle(pt, destination, client))
       // At this point, we should ALWAYS have "zipped up" the gap in records, next check if any new ones exist ahead of DHP
 				// Go lookup head of stream (PT sourceid should never have changed...)
       .zipWith(
         // Grab sourceId from pt, and then use that to grab Instant head of source feed
         // Again we assume that id is unique acrosss sourceTypes
-        Mono.from(sourceRecordService.findMaxUpdatedBySourceId(pt.getSourceId()))
+        Mono.from(sourceRecordDatabaseService.findMaxUpdatedBySourceId(pt.getSourceId()))
       )
       .flatMap(tuple -> {
         PushTask lastPt = tuple.getT1();
@@ -194,7 +215,7 @@ public class PushService {
           // There are fresh records ahead of the footPointer, rerun from lastPT
           // ATM we do this specifically as a second run, we could recurse this, but honestly running once an hour should be fine
           log.info("Fresh records exist ahead of destinationHeadPointer, bringing in line");
-          return runPushTaskSingle(lastPt);
+          return runPushTaskSingle(lastPt, destination, client);
         }
 
         // No need to rerun, just 
@@ -202,7 +223,7 @@ public class PushService {
       });
   }
 
-  public Mono<PushTask> runPushTaskSingle(PushTask pt) {
+  public Mono<PushTask> runPushTaskSingle(PushTask pt, Destination destination, DestinationClient<Destination> client) {
     log.info("runPushTaskSingle called with {}", pt);
 
     final Instant lowerBound = pt.getFootPointer();
@@ -220,13 +241,13 @@ public class PushService {
     // FIXME this needs to come from the PT transform model somehow
     ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json");
 
-    return Mono.from(sourceRecordService.countSourceRecordFeedBySourceId(
+    return Mono.from(sourceRecordDatabaseService.countSourceRecordFeedBySourceId(
       pt.getSourceId(),
       lowerBound,
       finalUpperBound
     )).flatMapMany(count -> {
       log.info("Pushing {} records", count);
-      return Flux.from(sourceRecordService.getSourceRecordFeedBySourceId(
+      return Flux.from(sourceRecordDatabaseService.getSourceRecordFeedBySourceId(
         pt.getSourceId(),
         // TODO what happens if we have two records with the same timestamp? - Unlikely but possible I guess
         //Instant.EPOCH,
@@ -239,14 +260,7 @@ public class PushService {
     // Flux<SourceRecord> -> aiming for Tuple<SourceRecord, <JsonNode>>?
     // Parallelise transform within each buffered chunk (tracking earliest and latest so order within chunk doesn't matter)
     .buffer(BUNDLE_SIZE)
-    .concatMap(sourceRecordChunk -> {
-      return Mono.from(destinationService.findById(
-        pt.getDestinationType(),
-        pt.getDestinationId()
-      ))
-      .flatMap(destination -> Mono.from(destinationService.getClient(destination)))
-      .flatMap(client -> processChunkForPushTask(pt, sourceRecordChunk, proteusSpec, client));
-    })
+    .concatMap(sourceRecordChunk -> processChunkForPushTask(pt, destination, client, sourceRecordChunk, proteusSpec))
     .takeLast(1) // This will contain the PT as it stands after the LAST record in the stack
     .next() // This should be a passive version of last(), where if stream is empty we don't get a crash
     .flatMap(lastPt -> {
@@ -262,7 +276,7 @@ public class PushService {
       if (lastPt.getDestinationHeadPointer().compareTo(pt.getFootPointer()) > 0 ) {
         // We reached the end but never moved footPointer
         lastPt.setFootPointer(lastPt.getDestinationHeadPointer());
-        return Mono.from(pushTaskService.update(lastPt)); 
+        return Mono.from(pushTaskDatabaseService.update(lastPt)); 
       }
 
       // If nothing changed, just return PT as is

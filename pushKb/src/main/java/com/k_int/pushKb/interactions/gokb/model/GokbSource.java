@@ -50,12 +50,12 @@ public class GokbSource implements Source {
 
   // Should be unique up to type/gokb
   private static final String UUID5_PREFIX = "gokb_source";
-  public static UUID generateUUID(GokbSourceType gokbSourceType, Gokb gokb) {
-    final String concat = UUID5_PREFIX + ":" + ":" + gokbSourceType.toString() + ":" + Gokb.generateUUIDFromGoKB(gokb).toString();
+  public static UUID generateUUID(Gokb gokb, GokbSourceType gokbSourceType) {
+    final String concat = UUID5_PREFIX + ":" + ":" + Gokb.generateUUIDFromGoKB(gokb).toString() + ":" + gokbSourceType.toString();
     return UUIDUtils.nameUUIDFromNamespaceAndString(NAMESPACE_PUSHKB, concat);
   }
 
   public static UUID generateUUIDFromSource(GokbSource source) {
-    return generateUUID(source.getGokbSourceType(), source.getGokb());
+    return generateUUID(source.getGokb(), source.getGokbSourceType());
   }
 }

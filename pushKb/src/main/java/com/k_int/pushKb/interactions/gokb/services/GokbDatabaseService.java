@@ -28,10 +28,6 @@ public class GokbDatabaseService {
   @SingleResult
   @Transactional
   public Publisher<Gokb> ensureGokb( Gokb gokb ) {
-    // This will ensure a PushTask from the given data, but does NOT make sure that the Source/Destination exist first
-    /* TODO we could error out if the Destination/Source don't exist by using existsById
-     * on destinationService/sourceService, combined with the stored Class information
-     */
       UUID gen_id = Gokb.generateUUIDFromGoKB(gokb);
       gokb.setId(gen_id);
 
