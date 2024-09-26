@@ -1,5 +1,6 @@
 package com.k_int.pushKb.model;
 
+import java.time.Instant;
 import java.util.UUID;
 
 public interface Source {
@@ -8,4 +9,7 @@ public interface Source {
 
   // A source currently must have a URL
   public String getSourceUrl();
+
+  // Pointer for feeds to work from
+  public Instant getPointer();
 }

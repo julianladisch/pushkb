@@ -1,16 +1,11 @@
 package com.k_int.pushKb.model;
 
+import static com.k_int.pushKb.Constants.UUIDs.*;
+
 import java.time.Instant;
 import java.util.UUID;
 
 import com.k_int.pushKb.converters.ClassAttributeConverter;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-
-import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
-import services.k_int.utils.UUIDUtils;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.DateCreated;
@@ -18,10 +13,14 @@ import io.micronaut.data.annotation.DateUpdated;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.TypeDef;
-import io.micronaut.serde.annotation.Serdeable;
-import jakarta.validation.constraints.NotNull;
 import io.micronaut.data.model.DataType;
 import io.micronaut.json.tree.JsonNode;
+import io.micronaut.serde.annotation.Serdeable;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import services.k_int.utils.UUIDUtils;
 
 @Serdeable
 @Data

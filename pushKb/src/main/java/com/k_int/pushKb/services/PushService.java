@@ -4,13 +4,14 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
 import java.util.List;
+import java.util.Map;
 
+import com.k_int.proteus.ComponentSpec;
 import com.k_int.pushKb.interactions.DestinationClient;
 import com.k_int.pushKb.model.Destination;
+import com.k_int.pushKb.model.PushChunk;
+import com.k_int.pushKb.model.PushSession;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.proteus.ProteusService;
@@ -23,14 +24,9 @@ import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import reactor.function.TupleUtils;
-import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
-
-import com.k_int.proteus.ComponentSpec;
-import com.k_int.proteus.Context;
 
 @Singleton
 @Slf4j
@@ -39,6 +35,8 @@ public class PushService {
 	private final SourceRecordDatabaseService sourceRecordDatabaseService;
   private final PushTaskDatabaseService pushTaskDatabaseService;
   private final DestinationService destinationService;
+  private final PushSessionDatabaseService pushSessionDatabaseService;
+  private final PushChunkDatabaseService pushChunkDatabaseService;
 
   /* Keep bundleSize consistent between chunking for send and chunking for transform
    * IMPORTANT these cannot be allowed to drift because we're assuming a sequential order
@@ -58,11 +56,15 @@ public class PushService {
     PushTaskDatabaseService pushTaskDatabaseService,
 		ProteusService proteusService,
     DestinationService destinationService,
+    PushSessionDatabaseService pushSessionDatabaseService,
+    PushChunkDatabaseService pushChunkDatabaseService,
     ObjectMapper objectMapper
 	) {
     this.sourceService = sourceService;
 		this.sourceRecordDatabaseService = sourceRecordDatabaseService;
     this.pushTaskDatabaseService = pushTaskDatabaseService;
+    this.pushSessionDatabaseService = pushSessionDatabaseService;
+    this.pushChunkDatabaseService = pushChunkDatabaseService;
 		this.proteusService = proteusService;
     this.destinationService = destinationService;
 		this.objectMapper = objectMapper;
@@ -85,12 +87,33 @@ public class PushService {
 	//     Head of source_records list
 	//     For each record log out id, then either SENT (ID) or ERROR (ID) (10% failure)
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  // Separate out chunk creation?
+  // FIXME Might need refactor this is messy
   protected Mono<PushTask> processChunkForPushTask(
     PushTask pt,
     Destination destination,
     DestinationClient<Destination> client,
+    PushSession session,
     List<SourceRecord> sourceRecordChunk,
+    ComponentSpec<JsonNode> proteusSpec
+  ) {
+    return Mono.from(
+      pushChunkDatabaseService.save(
+        PushChunk.builder()
+          .session(session)
+          .build()
+      )
+    ).flatMap(pushChunk -> processChunkForPushTaskWithPushChunk(pt, destination, client, session, sourceRecordChunk, pushChunk, proteusSpec));
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  protected Mono<PushTask> processChunkForPushTaskWithPushChunk(
+    PushTask pt,
+    Destination destination,
+    DestinationClient<Destination> client,
+    PushSession session,
+    List<SourceRecord> sourceRecordChunk,
+    PushChunk chunk,
     ComponentSpec<JsonNode> proteusSpec
   ) {
     // First transform the whole sourceRecord
@@ -137,12 +160,12 @@ public class PushService {
             );
         })
         .flatMap(TupleUtils.function((recordsList, earliestSeen, latestSeen) -> {  // ConcatMap to ensure that we only start sending chunk B after chunk A has returned
-          // FIXME this isn't how we'll manage sessions and chunks
-          JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
-            new AbstractMap.SimpleEntry<String, JsonNode>("sessionId", JsonNode.createStringNode("test-session-1")),
-            new AbstractMap.SimpleEntry<String, JsonNode>("chunkId", JsonNode.createStringNode("chunk1")),
-            new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
-          ));
+          // Set up chunk here and save?
+            JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
+              new AbstractMap.SimpleEntry<String, JsonNode>("sessionId", JsonNode.createStringNode(session.getId().toString())),
+              new AbstractMap.SimpleEntry<String, JsonNode>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
+              new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
+            ));
           
           // Logging out what gets sent here, quite noisy
           /* try {
@@ -177,30 +200,43 @@ public class PushService {
         }));
   }
 
-  public Mono<Tuple2<Destination, DestinationClient<Destination>>> getDestinationTupleFromPushTask(PushTask pt) {
+  public Mono<Tuple3<Destination, DestinationClient<Destination>, PushSession>> getPushTaskTuple(PushTask pt) {
     return Mono.from(destinationService.findById(
       pt.getDestinationType(),
       pt.getDestinationId()
     ))
     .flatMap(destination -> {
       return Mono.from(destinationService.getClient(destination))
-        .flatMap(client -> Mono.just(Tuples.of(destination, client)));
+        .flatMap(client -> {
+          return Mono.from(pushSessionDatabaseService.save(
+            PushSession.builder()
+              .pushTask(pt)
+              .build()
+          ))
+          .flatMap(pushSession -> {
+            return Mono.just(Tuples.of(destination, client, pushSession));
+          });
+        });
     });
-  }
+  } // Nested flatMaps isn't very pretty here, but it brings them altogether without multiple Tuple setups and reads
 
 
-  // Do the work to grab destination/client ONCE for this pushTask
+  // Do the work to grab destination/client/session ONCE for this pushTask
   public Mono<PushTask> runPushTask(PushTask pt) {
-    return getDestinationTupleFromPushTask(pt)
-      .flatMap(TupleUtils.function((destination, client) -> runPushTask(pt, destination, client)));
+    return getPushTaskTuple(pt)
+      .flatMap(TupleUtils.function((destination, client, session) -> runPushTaskWithDestinationClientAndSession(pt, destination, client, session)));
   }
-
 
   // Now we have destination and client set up, so we don't need to do that per chunk
-  public Mono<PushTask> runPushTask(PushTask pt, Destination destination, DestinationClient<Destination> client) {
+  private Mono<PushTask> runPushTaskWithDestinationClientAndSession(
+    PushTask pt,
+    Destination destination,
+    DestinationClient<Destination> client,
+    PushSession session
+  ) {
     // We potentially need to run this twice, once to zip up hole,
     //once to bring in line with latest changes
-    return Mono.from(runPushTaskSingle(pt, destination, client))
+    return Mono.from(runPushTaskSingle(pt, destination, client, session))
       // At this point, we should ALWAYS have "zipped up" the gap in records, next check if any new ones exist ahead of DHP
 				// Go lookup head of stream (PT sourceid should never have changed...)
       .zipWith(
@@ -215,15 +251,15 @@ public class PushService {
           // There are fresh records ahead of the footPointer, rerun from lastPT
           // ATM we do this specifically as a second run, we could recurse this, but honestly running once an hour should be fine
           log.info("Fresh records exist ahead of destinationHeadPointer, bringing in line");
-          return runPushTaskSingle(lastPt, destination, client);
+          return runPushTaskSingle(lastPt, destination, client, session);
         }
 
-        // No need to rerun, just 
+        // No need to rerun, just
         return Mono.just(pt);
       });
   }
 
-  public Mono<PushTask> runPushTaskSingle(PushTask pt, Destination destination, DestinationClient<Destination> client) {
+  public Mono<PushTask> runPushTaskSingle(PushTask pt, Destination destination, DestinationClient<Destination> client, PushSession session) {
     log.info("runPushTaskSingle called with {}", pt);
 
     final Instant lowerBound = pt.getFootPointer();
@@ -260,7 +296,7 @@ public class PushService {
     // Flux<SourceRecord> -> aiming for Tuple<SourceRecord, <JsonNode>>?
     // Parallelise transform within each buffered chunk (tracking earliest and latest so order within chunk doesn't matter)
     .buffer(BUNDLE_SIZE)
-    .concatMap(sourceRecordChunk -> processChunkForPushTask(pt, destination, client, sourceRecordChunk, proteusSpec))
+    .concatMap(sourceRecordChunk -> processChunkForPushTask(pt, destination, client, session, sourceRecordChunk, proteusSpec))
     .takeLast(1) // This will contain the PT as it stands after the LAST record in the stack
     .next() // This should be a passive version of last(), where if stream is empty we don't get a crash
     .flatMap(lastPt -> {
@@ -268,7 +304,7 @@ public class PushService {
       /* If previous footPointer is updated
        * then the between logic will return a list NOT containing
        * a record equal to or below FootPointer.
-       * 
+       *
        * If we have reached the end of the list successfully then the destinationHeadPointer
        * should be the new footPointer. ASSUMES THAT THE BETWEEN WORKS AS EXPECTED
        */

@@ -1,15 +1,12 @@
 package com.k_int.pushKb.services;
 
-import java.util.UUID;
 import java.util.HashSet;
-import java.util.List;
+import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceRecord;
-//import com.k_int.pushKb.storage.SourceRepository;
 
 import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
@@ -82,7 +79,7 @@ public class SourceService {
     return Flux.fromIterable(sourceClasses);
   }
 
-  public Publisher<SourceRecord> triggerIngestForSource(Source source) {
+  public Publisher<Source> triggerIngestForSource(Source source) {
     SourceFeedService<Source> sourceFeedService = getFeedServiceForSourceType(source.getClass());
     return sourceFeedService.fetchSourceRecords(source);
   }
