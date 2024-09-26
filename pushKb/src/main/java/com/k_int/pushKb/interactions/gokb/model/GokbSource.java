@@ -1,23 +1,25 @@
 package com.k_int.pushKb.interactions.gokb.model;
 
-import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
+import static com.k_int.pushKb.Constants.UUIDs.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import com.k_int.pushKb.model.Source;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import services.k_int.utils.UUIDUtils;
 import io.micronaut.core.annotation.NonNull;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.annotation.TypeDef;
+import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
-import io.micronaut.data.model.DataType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import services.k_int.utils.UUIDUtils;
 
 @Serdeable
 @Data
@@ -36,6 +38,9 @@ public class GokbSource implements Source {
   @NotNull
   @NonNull
   Gokb gokb;
+
+  @Nullable
+  Instant pointer;
   
   // Scrolling api available here
   @Transient

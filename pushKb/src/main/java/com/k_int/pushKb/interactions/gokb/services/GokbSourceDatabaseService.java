@@ -4,14 +4,15 @@ import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.interactions.gokb.storage.GokbSourceRepository;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
+import com.k_int.pushKb.interactions.gokb.storage.GokbSourceRepository;
 import com.k_int.pushKb.services.SourceDatabaseService;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -60,5 +61,11 @@ public class GokbSourceDatabaseService implements SourceDatabaseService<GokbSour
         src.setGokb(gokb);
         return Mono.from(gokbSourceRepository.ensureSource(src));
       });
+  }
+
+  @Transactional
+  @SingleResult // Use when you use a Publisher representing a single result
+  public Publisher<GokbSource> saveOrUpdateRecord ( @NonNull @Valid GokbSource src ) {
+  	return gokbSourceRepository.saveOrUpdate(src);
   }
 }

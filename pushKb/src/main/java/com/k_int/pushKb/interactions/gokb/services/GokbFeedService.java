@@ -1,11 +1,10 @@
 package com.k_int.pushKb.interactions.gokb.services;
 
+import java.net.MalformedURLException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.List;
-
-import java.net.MalformedURLException;
 
 import com.k_int.pushKb.interactions.gokb.GokbApiClient;
 import com.k_int.pushKb.interactions.gokb.model.GokbScrollResponse;
@@ -31,13 +30,16 @@ import reactor.core.publisher.Mono;
 @Singleton
 public class GokbFeedService implements SourceFeedService<GokbSource> {
 	private final SourceRecordDatabaseService sourceRecordDatabaseService;
+	private final GokbSourceDatabaseService gokbSourceDatabaseService;
 	private final HttpClientService httpClientService;
 
 	public GokbFeedService(
 		SourceRecordDatabaseService sourceRecordDatabaseService,
+		GokbSourceDatabaseService gokbSourceDatabaseService,
 		HttpClientService httpClientService
   ) {
 		this.sourceRecordDatabaseService = sourceRecordDatabaseService;
+		this.gokbSourceDatabaseService = gokbSourceDatabaseService;
 		this.httpClientService = httpClientService;
 	}
 
@@ -52,30 +54,54 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 	
 
 	// The actual "Fetch a stream of sourceRecords" method
-	public Flux<SourceRecord> fetchSourceRecords(GokbSource source) {
+	public Mono<GokbSource> fetchSourceRecords(GokbSource source) {
 		log.info("GokbFeedService::fetchSourceRecords called for GokbSource: {}", source);
 		try {
 			GokbApiClient client = getGokbClient(source);
-			return Mono.from(sourceRecordDatabaseService.findMaxLastUpdatedAtSourceBySource(source))
+			return Mono.justOrEmpty(source.getPointer()) // Null safe this
 				.flatMapMany(maxVal -> {
 					return this.fetchSourceRecords(source, client, Optional.ofNullable(maxVal));
 				})
 				// Is switchIfEmpty the right thing to do here?
-				.switchIfEmpty(Flux.from(this.fetchSourceRecords(source, client, Optional.ofNullable(null))));
+				.switchIfEmpty(this.fetchSourceRecords(source, client, Optional.ofNullable(null)))
+				.takeLast(1)
+				.next() // takeLast(1).next goes from Flux -> Mono on last item
+				.flatMap(lastSource -> Mono.just(lastSource));
 		} catch (MalformedURLException e) {
-			return Flux.error(e);
+			return Mono.error(e);
 		}
 	}
 
-	public Flux<SourceRecord> saveSourceRecordChunk(List<JsonNode> incomingRecords, GokbSource source) {
+	public Mono<GokbSource> saveSourceRecordsFromPage(List<JsonNode> incomingRecords, GokbSource source) {
 		return Flux.fromIterable(incomingRecords)
 			.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source.getId()))
-			.flatMap( sourceRecordDatabaseService::saveOrUpdateRecord ) // Make sure we save the record (allow saves to happen)
-			.doOnComplete(() -> log.info("Saved {} records", incomingRecords.size()));
-			//.flatMap(sourceRecordDatabaseService::saveOrUpdateRecord);
+			// Make sure we save the record. This can happen in any order in theory,
+			// store max pointer from this page at end so if it dies midway we can pick up from _last_ page
+			// FIXME this assumes the feed is in "lastUpdatedDisplay" order, which does NOT seem to be the case for TIPPs :(
+			.flatMap( sourceRecordDatabaseService::saveOrUpdateRecord )
+			.reduce( // Reduce Flux down to Mono<Instant> for latestSeen record
+				Optional.ofNullable(source.getPointer()).orElse(Instant.EPOCH), // Only update pointer if we've moved _forward_.
+				// FIXME This WILL NOT WORK if feed is not in order of lastUpdatedAtSource, which appears to be the case for TIPP...
+				(acc, sourceRecord) -> {
+					Instant curr = sourceRecord.getLastUpdatedAtSource();
+					
+					// STORE LATEST SOURCE RECORD "updated" IN T2
+					if (curr.isAfter(acc)) {
+						return curr;
+					}
+					return acc;
+				}
+			).flatMap(latestUpdatedAtSource -> {
+				log.info("Saved {} records", incomingRecords.size()); // This is emitted after reduce finalises :)
+				log.info("LATEST SEEN UPDATED AT SOURCE: {}", latestUpdatedAtSource); // FIXME REMOVE THIS DEV LOGGING
+				source.setPointer(latestUpdatedAtSource);
+
+				return Mono.from(gokbSourceDatabaseService.saveOrUpdateRecord(source));
+			});
 	}
 
-	public Flux<SourceRecord> fetchSourceRecords(GokbSource source, GokbApiClient client, Optional<Instant> changedSince) {
+
+	public Flux<GokbSource> fetchSourceRecords(GokbSource source, GokbApiClient client, Optional<Instant> changedSince) {
 		Instant startTime = Instant.now();
 		log.info("LOGDEBUG RAN FOR SOURCE({}, {}) AT: {}", source.getId(), source.getGokbSourceType(), startTime);
 
@@ -83,19 +109,9 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 //			.doOnNext(page -> log.info("LOGDEBUG WHAT IS THING: {}", page)) // Log the single thing... // Do we log each page?
 			.expand(currResponse -> this.getNextPage(source, client, currResponse, changedSince))
 
-			.limitRate(3, 2) // What if we don't limit this rate?
-			.map( GokbScrollResponse::getRecords ) // Map returns a none reactive type. FlatMap return reactive types Mono/Flux.
-			.flatMapSequential( Flux::fromIterable )
-			.buffer( 1000 )
-			.concatMap(jsonRecords -> saveSourceRecordChunk(jsonRecords, source));
-			// Convert this JsonNode into a Source record
-			//.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source.getId()) ) // Map the JsonNode to a source record
-			//.concatMap( sourceRecordDatabaseService::saveOrUpdateRecord )    // FlatMap the SourceRecord to a Publisher of a SourceRecord (the save)			
-			//.buffer( 1000 )
-			//.doOnNext( chunk -> {
-			//	log.info("Saved {} records", chunk.size());
-			//})
-			//.flatMap(chunk -> Flux.fromIterable(chunk)); // Return from chunk back to regular flux at the end for return type reasons
+			.limitRate(3, 2) // What if we don't limit this rate? -- I think it's slower...
+			.map(GokbScrollResponse::getRecords)
+			.concatMap(responsePage -> saveSourceRecordsFromPage(responsePage, source));
 	}
 
 	protected Mono<GokbScrollResponse> fetchPage(@NonNull GokbSource source, @NonNull GokbApiClient client, @NonNull Optional<String> scrollId, Optional<Instant> changedSince ) {
@@ -117,7 +133,12 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 		return fetchPage(source, Optional.empty(), Optional.empty());
 	} */
   
-  protected Mono<GokbScrollResponse> getNextPage(final GokbSource source, final GokbApiClient client, final @NonNull GokbScrollResponse currentResponse, Optional<Instant> changedSince) {
+  protected Mono<GokbScrollResponse> getNextPage(
+		final GokbSource source,
+		final GokbApiClient client,
+		final @NonNull GokbScrollResponse currentResponse,
+		Optional<Instant> changedSince
+	) {
   	log.info("Generating next page subscription");
   	boolean more = currentResponse.isHasMoreRecords() && currentResponse.getSize() > 0;
   	

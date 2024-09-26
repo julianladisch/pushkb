@@ -1,18 +1,12 @@
 package com.k_int.pushKb.services;
 
-import java.time.Instant;
-
-import com.k_int.pushKb.Boostraps;
-import com.k_int.pushKb.interactions.folio.model.FolioDestination;
-import com.k_int.pushKb.model.Source;
+//import java.time.Instant;
 
 import io.micronaut.scheduling.annotation.Scheduled;
-
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 @Singleton
 @Slf4j
 public class SchedulingService {
@@ -23,6 +17,8 @@ public class SchedulingService {
 	// TODO Are we using this in the end?
 	private final DestinationService destinationService;
 
+	// These are here to make sure that if this is running an ingest or a push
+	// we don't try to trigger another one, eg if the scheduler refires before finishing
 	private Disposable pushTaskRunnerDisposable;
 	private Disposable ingestRunnerDisposable;
 
@@ -46,14 +42,16 @@ public class SchedulingService {
 		ingestRunnerDisposable = null;
 	}
 
-/* 	@Scheduled(initialDelay = "30s", fixedDelay = "1h")
+	// Run 30 mins out of sync with ingest -- idea is that it shouldn't care if things are already running etc.
+	// THIS WILL NOT WORK RN UNTIL GOKB FIX EXPECTED 10th OCT 2024
+	/* @Scheduled(initialDelay = "30m", fixedDelay = "1h")
 	public void pushRunner() {
 		if (pushTaskRunnerDisposable == null) {
 			// Iterate over all PushTasks, maybe want to be smarter about this in future
 			pushTaskRunnerDisposable = Flux.from(pushTaskDatabaseService.getPushTaskFeed())
 				.concatMap(pushService::runPushTask)
 				.subscribe(
-					pt -> log.info("PushTask({}) completed at {}", pt, Instant.now()), // Consumer (doOnNext)
+					pt -> log.info("PushTask({}) completed at {}", pt.getId(), Instant.now()), // Consumer (doOnNext)
 					e -> {
 						log.error("Something went wrong in pushTaskScheduler: {}", e);
 						resetPushRunner();
@@ -65,7 +63,6 @@ public class SchedulingService {
 		}
 	} */
 
-  // FIXME need to work on delay here
   @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void ingestRunner() {
 		if (ingestRunnerDisposable == null) {
@@ -75,7 +72,7 @@ public class SchedulingService {
 				// PushTasks may rely on whether these have completed or not...
 				.flatMap(sourceService::list)
 				// For each source, trigger an ingest of all records
-				.concatMap(sourceService::triggerIngestForSource)
+				.concatMap(sourceService::triggerIngestForSource) // OUTPUT is final saved source.
 				.subscribe(
 					sr -> {}, // Consumer (doOnNext)
 					e -> {
@@ -88,27 +85,4 @@ public class SchedulingService {
 			log.warn("Ingest in progress, skipping");
 		}
 	}
-
-	// FETCHING FROM FOLIO---?
-/* 	@Scheduled(initialDelay = "1s", fixedDelay = "1h")
-	public void scheduledTask() {
-		// For now, grab our FolioDestination from Bootstraps directly
-		Mono.from(destinationService.findById(
-			FolioDestination.class,
-			//FolioDestination.generateUUIDFromDestination(
-			//	(FolioDestination) Boostraps.destinations.get("LOCAL_RANCHER_FOLIO")
-			//)
-			//FolioDestination.generateUUIDFromDestination(
-			//	(FolioDestination) Boostraps.destinations.get("SNAPSHOT")
-			//)
-			FolioDestination.generateUUIDFromDestination(
-				(FolioDestination) Boostraps.destinations.get("LOCAL_DC_FOLIO")
-			)
-			//FolioDestination.generateUUIDFromDestination(
-			//	(FolioDestination) Boostraps.destinations.get("SNAPSHOT")
-			//)
-		))
-			.flatMapMany(destinationService::testMethod)
-			.subscribe();
-	} */
 }
