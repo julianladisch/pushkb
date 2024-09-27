@@ -16,6 +16,7 @@ import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Singleton
 @Slf4j
@@ -79,8 +80,18 @@ public class SourceService {
     return Flux.fromIterable(sourceClasses);
   }
 
+  // Expects to return the source AFTER feed completes with all fields saved and up to date
   public Publisher<Source> triggerIngestForSource(Source source) {
     SourceFeedService<Source> sourceFeedService = getFeedServiceForSourceType(source.getClass());
-    return sourceFeedService.fetchSourceRecords(source);
+    SourceDatabaseService<Source> sourceDatabaseService = getSourceDatabaseServiceForSourceType(source.getClass());
+
+    // Set lastIngestStarted
+    return Mono.from(sourceDatabaseService.setLastIngestStarted(source))
+      .flatMap(src -> {
+        return sourceFeedService.fetchSourceRecords(src);
+      }).flatMap(src -> {
+        // Set lastIngestCompleted
+        return Mono.from(sourceDatabaseService.setLastIngestCompleted(src));
+      });
   }
 }

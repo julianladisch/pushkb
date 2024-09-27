@@ -65,7 +65,7 @@ public class GokbSourceDatabaseService implements SourceDatabaseService<GokbSour
 
   @Transactional
   @SingleResult // Use when you use a Publisher representing a single result
-  public Publisher<GokbSource> saveOrUpdateRecord ( @NonNull @Valid GokbSource src ) {
-  	return gokbSourceRepository.saveOrUpdate(src);
+  public Publisher<GokbSource> saveOrUpdate ( @NonNull @Valid GokbSource src ) {
+    return gokbSourceRepository.saveOrUpdate(src);
   }
 }
