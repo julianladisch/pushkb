@@ -41,7 +41,13 @@ public class GokbSource implements Source {
 
   @Nullable
   Instant pointer;
-  
+
+  @Nullable
+  Instant lastIngestStarted;
+
+  @Nullable
+  Instant lastIngestCompleted;
+
   // Scrolling api available here
   @Transient
   public String getSourceUrl() {

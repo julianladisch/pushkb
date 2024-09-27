@@ -58,12 +58,10 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 		log.info("GokbFeedService::fetchSourceRecords called for GokbSource: {}", source);
 		try {
 			GokbApiClient client = getGokbClient(source);
-			return Mono.justOrEmpty(source.getPointer()) // Null safe this
-				.flatMapMany(maxVal -> {
-					return this.fetchSourceRecords(source, client, Optional.ofNullable(maxVal));
+			return Mono.just(Optional.ofNullable(source.getPointer()))
+				.flatMapMany(pointer -> { // Pointer may be Optional(null)
+					return this.fetchSourceRecords(source, client, pointer);
 				})
-				// Is switchIfEmpty the right thing to do here?
-				.switchIfEmpty(this.fetchSourceRecords(source, client, Optional.ofNullable(null)))
 				.takeLast(1)
 				.next() // takeLast(1).next goes from Flux -> Mono on last item
 				.flatMap(lastSource -> Mono.just(lastSource));
@@ -77,7 +75,7 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 			.map(jsonNode -> this.handleSourceRecordJson(jsonNode, source.getId()))
 			// Make sure we save the record. This can happen in any order in theory,
 			// store max pointer from this page at end so if it dies midway we can pick up from _last_ page
-			// FIXME this assumes the feed is in "lastUpdatedDisplay" order, which does NOT seem to be the case for TIPPs :(
+			// FIXME this assumes the feed is in "lastUpdatedDisplay" order, which does NOT seem to be the case for TIPPs
 			.flatMap( sourceRecordDatabaseService::saveOrUpdateRecord )
 			.reduce( // Reduce Flux down to Mono<Instant> for latestSeen record
 				Optional.ofNullable(source.getPointer()).orElse(Instant.EPOCH), // Only update pointer if we've moved _forward_.
@@ -92,11 +90,11 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 					return acc;
 				}
 			).flatMap(latestUpdatedAtSource -> {
-				log.info("Saved {} records", incomingRecords.size()); // This is emitted after reduce finalises :)
+				log.info("Saved {} records", incomingRecords.size()); // This is emitted after reduce finalises
 				log.info("LATEST SEEN UPDATED AT SOURCE: {}", latestUpdatedAtSource); // FIXME REMOVE THIS DEV LOGGING
 				source.setPointer(latestUpdatedAtSource);
 
-				return Mono.from(gokbSourceDatabaseService.saveOrUpdateRecord(source));
+				return Mono.from(gokbSourceDatabaseService.saveOrUpdate(source));
 			});
 	}
 
@@ -139,17 +137,17 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 		final @NonNull GokbScrollResponse currentResponse,
 		Optional<Instant> changedSince
 	) {
-  	log.info("Generating next page subscription");
-  	boolean more = currentResponse.isHasMoreRecords() && currentResponse.getSize() > 0;
-  	
-  	if (!more) {
-  		Instant endTime = Instant.now();
+		log.info("Generating next page subscription");
+		boolean more = currentResponse.isHasMoreRecords() && currentResponse.getSize() > 0;
+
+		if (!more) {
+			Instant endTime = Instant.now();
 			// Not sure about logging this tbh
-  		log.info( "Fetched last page: {}", endTime);
-  		return Mono.empty();
-  	}
-  	return fetchPage(source, client, Optional.ofNullable(currentResponse.getScrollId()), changedSince )
-  		.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
+			log.info( "Fetched last page: {}", endTime);
+			return Mono.empty();
+		}
+		return fetchPage(source, client, Optional.ofNullable(currentResponse.getScrollId()), changedSince )
+			.doOnSubscribe(_s -> log.info("Fetching next GOKB page") );
   }
 
 	private SourceRecord handleSourceRecordJson ( @NonNull JsonNode jsonNode, UUID sourceId ) {
