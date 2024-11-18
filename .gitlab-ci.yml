@@ -62,6 +62,8 @@ build-native-image:
     - ki-onprem
   script: 
     - mkdir ~/.docker
+    - pwd
+    - ls
     - cp ./config.json ~/.docker/config.json
     - ./gradlew nativeCompile
     - ./gradlew dockerPushNative
