@@ -14,7 +14,7 @@ gantt
     Keycloak                         :t3-3, after t3-2, 5d
     API                              :t3-4, after t3-3, 5d
 		V1                               :milestone, after t3-4, 0d
-		Final                            :milestone, 2024-01-20, 0d
+		Final                            :milestone, 2025-01-20, 0d
 
     section Devops
     Devops accounts EF, OS           :t4-1, after t3-0, 1d
