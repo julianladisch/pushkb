@@ -22,7 +22,7 @@ gantt
     Install R1                       :t4-2, after t4-1, 3d
 
     section Testing
-    QA R1                            :t5-1, after t4-1, 10d
+    QA R1                            :t5-1, after t4-2, 10d
     holidays                         :t5-2, after t5-1, 10d
     UAT R1                           :t5-3, after t5-2, 20d
 
