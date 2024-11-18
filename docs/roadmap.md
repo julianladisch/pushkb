@@ -9,17 +9,20 @@ gantt
     section Development
     Make Release R1                  :t3-0, 2024-11-18, 9d
     R1                               :milestone, after t3-0, 0d
-    Valut                            :t3-1, after t3-0, 5d
-    Scaling                          :t3-2, after t3-1, 2d
-    Keycloak                         :t3-3, after t3-2, 1d
-    API                              :t3-4, after t3-2, 1d
+    Vault                            :t3-1, after t3-0, 5d
+    Scaling                          :t3-2, after t3-1, 5d
+    Keycloak                         :t3-3, after t3-2, 5d
+    API                              :t3-4, after t3-2, 5d
 		V1                               :milestone, after t3-4, 0d
 
     section Devops
-    Install R1                       :t4-1, after t3-0, 5d
+    Devops accounts EF, OS           :t4-1, after t3-0, 1d
+    Install R1                       :t4-2, after t4-1, 3d
 
     section Testing
     QA R1                            :t5-1, after t4-1, 10d
+    holidays                         :t5-2, after t5-1, 10d
+    UAT R1                           :t5-3, after t5-2, 20d
 
 ```
 
