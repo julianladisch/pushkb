@@ -12,7 +12,7 @@ gantt
     Vault                            :t3-1, after t3-0, 5d
     Scaling                          :t3-2, after t3-1, 5d
     Keycloak                         :t3-3, after t3-2, 5d
-    API                              :t3-4, after t3-2, 5d
+    API                              :t3-4, after t3-3, 5d
 		V1                               :milestone, after t3-4, 0d
 
     section Devops
