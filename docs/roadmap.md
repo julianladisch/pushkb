@@ -23,7 +23,8 @@ gantt
 
     section Devops
     Devops accounts EF, OS             :t4-1, after t3-0, 1d
-    Install R1                         :t4-2, after t4-1, 3d
+    Hands on Install                   :t4-2, after t4-1, 1d
+    Install R1                         :t4-3, after t4-1, 3d
 
     section Testing
     QA R1                              :t5-1, after t4-2, 10d
