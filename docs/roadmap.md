@@ -8,6 +8,9 @@ gantt
 
     section Development
     Make Release R1                  :t3-0, 2024-11-18, 9d
+    refactoring (EF)                 :t3-0-1, 2024-11-18, 3d
+    docker (II/SO)                   :t3-0-2, after t3-0-1, 3d
+    devops documentation (II/SO)     :t3-0-3, after t3-0-1, 3d
     R1                               :milestone, after t3-0, 0d
     Vault                            :t3-1, after t3-0, 5d
     Scaling                          :t3-2, after t3-1, 5d
