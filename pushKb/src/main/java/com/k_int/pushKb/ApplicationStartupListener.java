@@ -7,7 +7,7 @@ import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.services.DestinationService;
-import com.k_int.pushKb.services.PushTaskDatabaseService;
+import com.k_int.pushKb.services.PushableService;
 import com.k_int.pushKb.services.SourceService;
 
 import io.micronaut.context.env.Environment;
@@ -25,7 +25,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 	private final Environment environment;
 	private final DestinationService destinationService;
   private final SourceService sourceService;
-	private final PushTaskDatabaseService pushTaskDatabaseService;
+	private final PushableService pushableService;
  
   private static final String BOOSTRAP_SOURCES_VAR = "BOOSTRAP_SOURCES";
   private static final String BOOSTRAP_DESTINATIONS_VAR = "BOOSTRAP_DESTINATIONS";
@@ -35,13 +35,13 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
     Environment environment,
 		DestinationService destinationService,
 		SourceService sourceService,
-		PushTaskDatabaseService pushTaskDatabaseService,
+		PushableService pushableService,
 		GokbRepository gokbRepository // This is obviously implementation specific unlike "source".
  	) {
 		this.environment = environment;
 		this.destinationService = destinationService;
 		this.sourceService = sourceService;
-		this.pushTaskDatabaseService = pushTaskDatabaseService;
+		this.pushableService = pushableService;
 	}
 
 	@Override
@@ -95,7 +95,8 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		return Flux.fromIterable(Boostraps.pushTasks.values())
 			.flatMapSequential(pt -> {
 				try {
-					return Mono.from(pushTaskDatabaseService.ensurePushTask(pt));
+					return Mono.from(pushableService.ensurePushable(pt))
+						.map(PushTask.class::cast);
 				} catch (Exception e) {
 					e.printStackTrace();
 					return Mono.empty();

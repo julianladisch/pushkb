@@ -36,8 +36,7 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 			HttpClient client = httpClientService.create(destination.getDestinationUrl());
 			return Mono.just(new FolioApiClient(
 				client,
-				destination.getFolioTenant(),
-				destination.getDestinationType()
+				destination.getFolioTenant()
 			));
 		} catch (MalformedURLException e) {
 			return Mono.error(e);

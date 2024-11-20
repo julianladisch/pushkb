@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
+import com.k_int.pushKb.converters.ClassAttributeConverter;
+
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.AutoPopulated;
 import io.micronaut.data.annotation.DateCreated;
@@ -36,7 +38,12 @@ public class PushSession {
 
   @NotNull
   @NonNull
-  PushTask pushTask;
+  private UUID pushableId; // Store EITHER a temporary pushTask or a PushTask (Maybe in future grouped push tasks etc etc)
+
+  @TypeDef(type = DataType.STRING, converter = ClassAttributeConverter.class)
+  @NotNull
+  @NonNull
+  private Class<? extends Pushable> pushableType;
 
   @NotNull
   @NonNull

@@ -1,6 +1,5 @@
 package com.k_int.pushKb.storage;
 
-import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.model.PushTask;
 
 import java.util.UUID;

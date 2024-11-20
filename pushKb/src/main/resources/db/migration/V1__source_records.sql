@@ -6,7 +6,8 @@ CREATE TABLE source_record (
 	created TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	updated TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	last_updated_at_source TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-	json_record jsonb NOT NULL
+	json_record jsonb NOT NULL,
+	filter_context VARCHAR(255)
 );
 
 CREATE INDEX IF NOT EXISTS source_record_source_idx ON source_record (source_id);
@@ -28,3 +29,7 @@ CREATE INDEX IF NOT EXISTS source_record_updated_idx ON source_record (updated);
 CREATE INDEX IF NOT EXISTS source_record_source_updated_idx ON source_record (source_id, updated);
 CREATE INDEX IF NOT EXISTS source_record_source_type_source_updated_idx ON source_record (source_type, source_id, updated);
 
+CREATE INDEX IF NOT EXISTS source_record_filter_context_idx ON source_record (filter_context);
+CREATE INDEX IF NOT EXISTS source_record_source_filter_context_idx ON source_record (source_id, filter_context);
+CREATE INDEX IF NOT EXISTS source_record_source_type_source_filter_context_idx ON source_record (source_type, source_id, filter_context);
+CREATE INDEX IF NOT EXISTS source_record_source_type_source_filter_context_updated_idx ON source_record (source_type, source_id, filter_context, updated);

@@ -39,9 +39,12 @@ public class GokbApiClient extends BaseApiClient {
 	// Append relative instead of absolute -- Trusting that the HttpClient client is set up with `/gokb/api/` ahead of time
 	public static final String SCROLL_URL = "scroll";
 	public static final String SCROLL_ID_QUERY_PARAM = "scrollId";
+	public static final String SORT_QUERY_PARAM = "sort";
 	public static final String CHANGED_SINCE_QUERY_PARAM = "changedSince";
 
 	public static final String QUERY_PARAM_COMPONENT_TYPE = "component_type";
+
+	public static final String LAST_UPDATED_DISPLAY = "lastUpdatedDisplay";
 
 	public static final List<HttpMethod> acceptedMethods = Arrays.asList(GET);
 
@@ -107,6 +110,7 @@ public class GokbApiClient extends BaseApiClient {
 				uri.queryParam(QUERY_PARAM_COMPONENT_TYPE, type);
 				uri.queryParam(SCROLL_ID_QUERY_PARAM, scrollId);
 				uri.queryParam(CHANGED_SINCE_QUERY_PARAM, changedSince);
+				uri.queryParam(SORT_QUERY_PARAM, LAST_UPDATED_DISPLAY);
 			}),
 			Optional.empty()
 		).map(resp -> resp.body());

@@ -3,6 +3,7 @@ package com.k_int.pushKb.interactions.folio;
 import io.micronaut.core.async.annotation.SingleResult;
 
 import io.micronaut.http.HttpMethod;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpHeaders;
 import io.micronaut.http.MutableHttpRequest;
 import io.micronaut.http.client.HttpClient;
@@ -21,9 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import com.k_int.pushKb.interactions.BaseApiClient;
 import com.k_int.pushKb.interactions.DestinationClient;
-import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
-import com.k_int.pushKb.interactions.folio.model.FolioDestinationType;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginBody;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 import com.k_int.pushKb.interactions.folio.model.FolioLoginResponseBody;
@@ -37,21 +36,20 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 public class FolioApiClient extends BaseApiClient implements DestinationClient<FolioDestination> {
-	public final static String X_OKAPI_TENANT = "X-Okapi-Tenant";
-	public final static String FOLIO_ACCESS_TOKEN = "folioAccessToken";
-	public final static String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
+	public static final String X_OKAPI_TENANT = "X-Okapi-Tenant";
+	public static final String FOLIO_ACCESS_TOKEN = "folioAccessToken";
+	public static final String FOLIO_REFRESH_TOKEN = "folioRefreshToken";
 
 	// Static paths
 	// Auth Urls
-	public final static String LOGIN_URI = "/authn/login-with-expiry";
+	public static final String LOGIN_URI = "/authn/login-with-expiry";
 
 	// PushKB Urls
-	public final static String PUSHKB_BASE_URL = "/erm/pushKB";
-	public final static String PUSHKB_PKG_URL = PUSHKB_BASE_URL + "/pkg";
-	public final static String PUSHKB_PCI_URL = PUSHKB_BASE_URL + "/pci";
+	public static final String PUSHKB_BASE_URL = "/erm/pushKB";
+	public static final String PUSHKB_PKG_URL = PUSHKB_BASE_URL + "/pkg";
+	public static final String PUSHKB_PCI_URL = PUSHKB_BASE_URL + "/pci";
 
 	private final FolioTenant folioTenant;
-	private final FolioDestinationType destinationType;
 
 
 	// Keep a current token for login etc
@@ -62,12 +60,10 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 
 	public FolioApiClient(
 		HttpClient client,
-		FolioTenant folioTenant,
-		FolioDestinationType destinationType
+		FolioTenant folioTenant
 	) {
 		super(client);
 		this.folioTenant = folioTenant;
-		this.destinationType = destinationType;
 	}
 
 	public Class<? extends Destination> getDestinationClass() {
@@ -85,12 +81,11 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 		switch (folioTenant.getAuthType()) {
 			case OKAPI:
 				return Mono.justOrEmpty(currentToken).filter(token -> !token.isExpired()).switchIfEmpty(acquireAccessToken())
-				.map(validToken -> {
-					// Uncomment to get token information in log
-					//log.debug("Using Cookie token: {}", validToken);
-
-					return request.cookie(validToken.returnToCookie());
-				}).defaultIfEmpty(request);
+				// Uncomment to get token information in log
+				//.doOnNext(validToken -> log.debug("Using Cookie token: {}", validToken))
+				.map(CookieToken::returnToCookie)
+				.map(request::cookie)
+				.defaultIfEmpty(request);
 			case NONE:
 			default:
 				return Mono.just(request);
@@ -121,7 +116,14 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
     Optional<Consumer<UriBuilder>> uriBuilderConsumer,
     Optional<Consumer<MutableHttpHeaders>> httpHeaderConsumer
   ) {
-		return super.createRequest(method, path, uriBuilderConsumer, setFolioHeaders(httpHeaderConsumer)).flatMap(req -> ensureToken(req));
+		return super
+			.createRequest(
+				method,
+				path,
+				uriBuilderConsumer,
+				setFolioHeaders(httpHeaderConsumer)
+			)
+			.flatMap(this::ensureToken);
 	}
 
 	@SingleResult
@@ -166,7 +168,8 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 				uri.queryParam("stats", true);
 			}),
 			Optional.empty()
-		).map(resp -> resp.body());
+		)
+		.map(HttpResponse::body);
 	}
 
 	// Specific requests
@@ -181,7 +184,8 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 				uri.queryParam("stats", true);
 			}),
 			Optional.empty()
-		).map(resp -> resp.body());
+		)
+		.map(HttpResponse::body);
 	}
 
 	// TODO we need a better return shape here
@@ -195,7 +199,8 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 			Optional.of(String.class),
 			Optional.empty(),
 			Optional.empty()
-		).map(resp -> resp.body());
+		)
+		.map(HttpResponse::body);
 		//return Mono.just("DONE");
 	}
 
@@ -209,7 +214,8 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 			Optional.of(String.class),
 			Optional.empty(),
 			Optional.empty()
-		).map(resp -> resp.body());
+		)
+		.map(HttpResponse::body);
 		//return Mono.just("DONE");
 	}
 }

@@ -10,6 +10,7 @@ import com.k_int.pushKb.converters.ClassAttributeConverter;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
+import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
@@ -25,7 +26,7 @@ import services.k_int.utils.UUIDUtils;
 @AllArgsConstructor
 @MappedEntity
 @Builder(toBuilder = true)
-public class PushTask {
+public class PushTask implements Pushable {
   @Id
 	@TypeDef(type = DataType.UUID)
   @NotNull
@@ -67,9 +68,16 @@ public class PushTask {
   public static UUID generateUUIDFromPushTask(PushTask pt) {
     return generateUUID(pt.getSourceId(), pt.getDestinationId());
   }
+
+
+  // FIXME is there a better way to ensure PushTask and TemporaryPushTask both surface a filterContext?
+  @Transient
+  public String getFilterContext() {
+    return null;
+  }
 }
 
- /*
+  /*
    * -- POINTER EXAMPLE --
    *
    * Record 13 * head (implicit, can be fetched from DB)
@@ -77,21 +85,21 @@ public class PushTask {
    * Record 11
    * Record 10 * destinationHeadPointer
    * Record 9
-   * Record 8 
+   * Record 8
    * Record 7 * lastSentPointer
-   * Record 6 
-   * Record 5 
+   * Record 6
+   * Record 5
    * Record 4
    * Record 3 * footPointer
    * Record 2
    * Record 1
-   * 
+   *
    * would mean that the destination has successfully recieved records 1-3, and also 7-10.
    * We need to iterate through 6-4, then move up to record 13.
    *
    * This *should* only look like this mid-process, but this tracking
    * will also allow us to cope with failed pushes.
-   * 
+   *
    * NOTE pointers actually point at "updated" timestamp for those records right now,
    * not the records themselves. This may need thought. On the one hand if there is a
    * duplicated timestamp we could have an issue. On the other hand if we point at a record

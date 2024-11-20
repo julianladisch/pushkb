@@ -8,6 +8,7 @@ import java.util.UUID;
 import com.k_int.pushKb.converters.ClassAttributeConverter;
 
 import io.micronaut.core.annotation.NonNull;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.annotation.DateCreated;
 import io.micronaut.data.annotation.DateUpdated;
 import io.micronaut.data.annotation.Id;
@@ -56,6 +57,12 @@ public class SourceRecord {
   @NotNull
   @NonNull
   JsonNode jsonRecord;
+
+  // For V1 we're going to assume that there's only one filterContext for each sourceRecord
+  // In future we may move to a "generic" sourceRecord vs a GokbTippSourceRecord etc, and
+  // there may be more filter fields. But for now, this delivers what we want in the least complex way.
+  @Nullable
+  String filterContext;
 
   private static final String UUID5_PREFIX = "source_record";
   public static UUID generateUUID(Class<? extends Source> sourceType, UUID sourceId, String sourceUUID) {
