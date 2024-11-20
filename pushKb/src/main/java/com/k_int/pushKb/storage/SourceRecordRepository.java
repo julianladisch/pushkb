@@ -30,11 +30,11 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
 
   @Nullable
   @SingleResult
-  Publisher<Instant> findMaxLastUpdatedAtSourceBySourceId(UUID sourceId);
+  Publisher<Instant> findMaxUpdatedBySourceId(UUID sourceId);
 
   @Nullable
   @SingleResult
-  Publisher<Instant> findMaxUpdatedBySourceId(UUID sourceId);
+  Publisher<Instant> findMaxUpdatedBySourceIdAndFilterContext(UUID sourceId, String context);
 
   @SingleResult
 	Publisher<Void> delete(UUID id);
@@ -43,9 +43,6 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   @SingleResult
   Publisher<Boolean> existsById(@Nullable UUID id);
 
-  @NonNull
-  Publisher<SourceRecord> findTop2OrderByCreatedDesc();
-
   // Between is inclusive of end
 /*   @NonNull
   @Join(value="source")
@@ -53,10 +50,36 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
  */
 
   @NonNull
-  Publisher<Long> countBySourceIdAndUpdatedGreaterThanAndUpdatedLessThan(UUID sourceId, Instant footTimestamp, Instant headTimestamp);
+  Publisher<Long> countBySourceIdAndUpdatedGreaterThanAndUpdatedLessThan(
+    UUID sourceId,
+    Instant footTimestamp,
+    Instant headTimestamp
+  );
 
   @NonNull
-  Publisher<SourceRecord> findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(UUID sourceId, Instant footTimestamp, Instant headTimestamp);
+  Publisher<Long> countBySourceIdAndFilterContextAndUpdatedGreaterThanAndUpdatedLessThan(
+    UUID sourceId,
+    String context,
+    Instant footTimestamp,
+    Instant headTimestamp
+  );
+
+
+  @NonNull
+  Publisher<SourceRecord> findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(
+    UUID sourceId,
+    Instant footTimestamp,
+    Instant headTimestamp
+  );
+
+  
+  @NonNull
+  Publisher<SourceRecord> findAllBySourceIdAndFilterContextAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(
+    UUID sourceId,
+    String context,
+    Instant footTimestamp,
+    Instant headTimestamp
+  );
 
   // Finds values STRICTLY between foot and head timestamps
   // Having to manually input these fields is a dealbreaker for me, using automagical Query above instead
@@ -84,7 +107,7 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
 	default Publisher<SourceRecord> saveOrUpdate(@Valid @NotNull SourceRecord sr) {
     return Mono.from(this.existsById(sr.getId()))
       .flatMap( update -> {
-        if (update) {
+        if (Boolean.TRUE.equals(update)) {
           log.info("Record with id({}) already exists, updating", sr.getId());
           return Mono.from(this.update(sr));
         }

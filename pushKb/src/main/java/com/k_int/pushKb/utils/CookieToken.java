@@ -49,7 +49,7 @@ public record CookieToken(
 		return String.format("%s %s", this.name, this.value);
 	}
 
-	/* 
+	/*
 	 * Bit hacky but this returns us from a controlled CookieToken
 	 * (where we have direct expiry data etc) back to a Cookie we
 	 * can glue onto a request

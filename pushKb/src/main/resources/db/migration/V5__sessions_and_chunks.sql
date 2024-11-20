@@ -1,12 +1,15 @@
 CREATE TABLE push_session (
   id uuid PRIMARY KEY,
-  push_task_id uuid,
+  pushable_id uuid, -- references either a TemporaryPushTask or a PushTask
+  pushable_type VARCHAR(255) NOT NULL, -- Stores the pushable implementing class
   created TIMESTAMP WITHOUT TIME ZONE NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS ps_push_task ON push_session (push_task_id);
+CREATE INDEX IF NOT EXISTS ps_pushable ON push_session (pushable_id);
+CREATE INDEX IF NOT EXISTS ps_pushable_type_pushable_idx ON push_session (pushable_type, pushable_id);
 CREATE INDEX IF NOT EXISTS ps_created ON push_session (created);
-CREATE INDEX IF NOT EXISTS ps_push_task_created ON push_session (push_task_id, created);
+CREATE INDEX IF NOT EXISTS ps_pushable_created ON push_session (pushable_id, created);
+CREATE INDEX IF NOT EXISTS ps_pushable_type_pushable_created ON push_session (pushable_type, pushable_id, created);
 
 CREATE TABLE push_chunk (
   id uuid PRIMARY KEY,

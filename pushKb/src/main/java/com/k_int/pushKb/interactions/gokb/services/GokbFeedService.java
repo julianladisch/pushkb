@@ -152,7 +152,17 @@ public class GokbFeedService implements SourceFeedService<GokbSource> {
 
 	private SourceRecord handleSourceRecordJson ( @NonNull JsonNode jsonNode, UUID sourceId ) {
 		String sourceUUID = jsonNode.get("uuid").getStringValue();
+
+		// We can shortcut the "is this a package or a tipp source" work here
+		// by simply checking if the "tippPackageUUID" node is null
+		JsonNode packageUUIDNode = jsonNode.get("tippPackageUuid");
+		String packageUUID = null;
+		if (packageUUIDNode != null) {
+			packageUUID = packageUUIDNode.getStringValue();
+		}
+
 		SourceRecord sr = SourceRecord.builder()
+		.filterContext(packageUUID) // This will be null for package source records.
 		.jsonRecord(jsonNode)
 		.lastUpdatedAtSource(Instant.parse(jsonNode.get("lastUpdatedDisplay").getStringValue()))
 		.sourceUUID(sourceUUID)
