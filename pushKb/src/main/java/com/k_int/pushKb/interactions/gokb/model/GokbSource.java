@@ -16,9 +16,11 @@ import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.ToString;
 import services.k_int.utils.UUIDUtils;
 
 @Serdeable
@@ -38,6 +40,12 @@ public class GokbSource implements Source {
   @NotNull
   @NonNull
   Gokb gokb;
+
+  @NotNull
+  @NonNull
+  @ToString.Include
+	@Size(max = 200)
+  String name;
 
   @Nullable
   Instant pointer;

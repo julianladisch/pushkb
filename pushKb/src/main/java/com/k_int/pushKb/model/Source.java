@@ -16,6 +16,9 @@ public interface Source {
   // USE UUID5 FOR SOURCE IDs, ENSURE THAT TWO SOURCES CANNOT SHARE AN ID
   public UUID getId();
 
+  // Name is really only useful for connecting these things together later
+  public String getName();
+
   // A source currently must have a URL
   public String getSourceUrl();
 

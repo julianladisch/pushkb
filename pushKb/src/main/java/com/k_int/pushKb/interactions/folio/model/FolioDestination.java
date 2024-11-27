@@ -17,6 +17,7 @@ import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import io.micronaut.data.model.DataType;
 
 @Serdeable
@@ -36,6 +37,11 @@ public class FolioDestination implements Destination {
   @NotNull
   @NonNull
   FolioTenant folioTenant;
+
+  @NotNull
+  @NonNull
+  @Size(max = 200)
+  String name;
   
   // FIXME work out whether url should be here as part of destination itself... GOKB only goes to "/golb/api" level so maybe not
   @Transient

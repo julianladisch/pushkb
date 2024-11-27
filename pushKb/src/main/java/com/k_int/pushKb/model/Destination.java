@@ -6,5 +6,7 @@ public interface Destination {
   UUID getId();
   String getDestinationUrl();
 
+  String getName();
+
   String toString();
 }

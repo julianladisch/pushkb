@@ -40,6 +40,12 @@ public class Gokb {
 	@Size(max = 200)
   String baseUrl;
 
+  @NotNull
+  @NonNull
+  @ToString.Include
+	@Size(max = 200)
+  String name;
+
   // Should be unique up to url
   private static final String UUID5_PREFIX = "gokb_object";
   public static UUID generateUUID(String baseUrl) {
