@@ -19,3 +19,5 @@ data-store/
 /infrastructure/backups
 
 *.txt
+
+application-local.yml

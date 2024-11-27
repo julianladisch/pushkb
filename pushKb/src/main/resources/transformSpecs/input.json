@@ -8,7 +8,7 @@
   "uuid": "07362454-ec78-4646-9eff-fd8e8a3330c6",
   "updater": "tipp",
   "curatoryGroups": [
-      "HeBIS"
+    "HeBIS"
   ],
   "dateCreated": "2019-09-05T13:10:24Z",
   "hostPlatformName": "www.bioone.org",
@@ -16,16 +16,16 @@
   "prices": [],
   "titleHistory": [],
   "coverage": [
-      {
-          "coverageDepth": "Fulltext",
-          "startIssue": "",
-          "endVolume": "",
-          "startVolume": "7",
-          "coverageNote": "",
-          "embargo": "",
-          "endIssue": "",
-          "startDate": "2005-01-01"
-      }
+    {
+      "coverageDepth": "Fulltext",
+      "startIssue": "",
+      "endVolume": "",
+      "startVolume": "7",
+      "coverageNote": "",
+      "embargo": "",
+      "endIssue": "",
+      "startDate": "2005-01-01"
+    }
   ],
   "componentType": "TitleInstancePackagePlatform",
   "hostPlatformUuid": "46cb5ee0-2de7-4a51-9909-755aa292fe9e",

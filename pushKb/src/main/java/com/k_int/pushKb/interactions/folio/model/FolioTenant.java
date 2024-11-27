@@ -45,6 +45,13 @@ public class FolioTenant {
 	@Size(max = 200)
   private final String tenant;
 
+  @NotNull
+  @NonNull
+  @ToString.Include
+  @Size(max = 200)
+  private final String name;
+
+  // FIXME Creds shouold NOT be stored like this
   @Nullable
   @Size(max = 200)
   private final String loginUser;

@@ -143,11 +143,11 @@ java {
 
 run {
 	systemProperties([
-		'micronaut.environments': 'development'
+		'micronaut.environments': 'development, local',
 	]);
 	jvmArgs(
     '-Xms512m',
-    '-Xmx1g' 
+    '-Xmx1g'
 	);
 }
 
