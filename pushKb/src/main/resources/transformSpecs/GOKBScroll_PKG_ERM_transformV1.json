@@ -1,178 +1,186 @@
 {
   "header": {
-      "lifecycleStatus": "$.status",
-      "availability": {
-          "type": "general"
-      },
-      "packageProvider": {
-          "name": "$.providerName"
-      },
-      "packageSource": "GOKb",
-      "packageName": "$.name",
-      "packageSlug": "$.uuid",
-      "sourceDataCreated": "$.dateCreated",
-      "sourceDataUpdated": "$.lastUpdatedDisplay",
-      "sourceTitleCount": "$.titleCount",
-      "availabilityScope": "$.global",
-      "availabilityConstraints": {
-          "#type": "fallback",
-          "strategies": [
-              {
-                  "#type": "require",
-                  "require": "$.[?(@.global == 'Regional' || @.global == 'Consortium')]",
-                  "value": {
-                      "#type": "require",
-                      "require": "$.globalNote",
-                      "value": [{ "body": "$.globalNote" }]
-                  }
-              },
-              {
-                  "#type": "require",
-                  "require": "$.[?(@.global == 'Local')]",
-                  "value": {
-                      "#type": "for_each",
-                      "values": "$.curatoryGroups[?(@ empty false)]",
-                      "spec": {
-                          "body": "$"
-                      }
-                  }
-              },
-              []
-          ]
-      },
-      "contentTypes": {
+    "lifecycleStatus": "$.status",
+    "availability": {
+      "type": "general"
+    },
+    "packageProvider": {
+      "name": "$.providerName"
+    },
+    "packageSource": "GOKb",
+    "packageName": "$.name",
+    "packageSlug": "$.uuid",
+    "sourceDataCreated": "$.dateCreated",
+    "sourceDataUpdated": "$.lastUpdatedDisplay",
+    "sourceTitleCount": "$.titleCount",
+    "availabilityScope": "$.global",
+    "availabilityConstraints": {
+      "#type": "fallback",
+      "strategies": [
+        {
           "#type": "require",
-          "require": "$.[?(@.contentType empty false)]",
-          "value": [
+          "require": "$.[?(@.global == 'Regional' || @.global == 'Consortium')]",
+          "value": {
+            "#type": "require",
+            "require": "$.globalNote",
+            "value": [
               {
-                  "contentType": "$.contentType"
+                "body": "$.globalNote"
               }
-          ]
+            ]
+          }
+        },
+        {
+          "#type": "require",
+          "require": "$.[?(@.global == 'Local')]",
+          "value": {
+            "#type": "for_each",
+            "values": "$.curatoryGroups[?(@ empty false)]",
+            "spec": {
+              "body": "$"
+            }
+          }
+        },
+        []
+      ]
+    },
+    "contentTypes": {
+      "#type": "require",
+      "require": "$.[?(@.contentType empty false)]",
+      "value": [
+        {
+          "contentType": "$.contentType"
+        }
+      ]
+    },
+    "alternateResourceNames": {
+      "#type": "for_each",
+      "values": "$.altname[?(@ empty false)]",
+      "spec": {
+        "name": "$"
+      }
+    },
+    "alternateSlugs": [
+      {
+        "#type": "require",
+        "require": "$.shortcode",
+        "value": {
+          "slug": "$.shortcode"
+        }
+      }
+    ],
+    "packageDescriptionUrls": [
+      {
+        "#type": "require",
+        "require": "$.uuid",
+        "value": {
+          "url": {
+            "#type": "string_join",
+            "delimiter": "/",
+            "values": [
+              "theGOKBURL",
+              "$.uuid"
+            ]
+          }
+        }
       },
-      "alternateResourceNames": {
-          "#type": "for_each",
-          "values": "$.altname[?(@ empty false)]",
-          "spec": {
-              "name": "$"
-          }
-      },
-      "alternateSlugs": [
-          {
-              "#type": "require",
-              "require": "$.shortcode",
-              "value": { "slug": "$.shortcode" }
-          }
-      ],
-      "packageDescriptionUrls": [
-          {
-              "#type": "require",
-              "require": "$.uuid",
-              "value": {
-                  "url": {
-                      "#type": "string_join",
-                      "delimiter": "/",
-                      "values": [
-                          "theGOKBURL",
-                          "$.uuid"
-                      ]
-                  }
-              }
-          },
-          {
-              "#type": "require",
-              "require": "$.descriptionURL",
-              "value": { "url": "$.descriptionURL" }
-          }
-      ],
-      "description": "$.description"
+      {
+        "#type": "require",
+        "require": "$.descriptionURL",
+        "value": {
+          "url": "$.descriptionURL"
+        }
+      }
+    ],
+    "description": "$.description"
   },
   "identifiers": {
-      "#type": "flatten",
-      "values": [
-          {
-              "#type": "for_each",
-              "values": "$.identifiers",
-              "spec": {
-                  "namespace": {
+    "#type": "flatten",
+    "values": [
+      {
+        "#type": "for_each",
+        "values": "$.identifiers",
+        "spec": {
+          "namespace": {
+            "#type": "fallback",
+            "strategies": [
+              {
+                "#type": "require",
+                "require": "$.[?(@.type == 'ttl_prv')]",
+                "value": {
+                  "#type": "string_join",
+                  "delimiter": "_",
+                  "values": [
+                    "ttl_prv",
+                    {
                       "#type": "fallback",
                       "strategies": [
-                          {
-                              "#type": "require",
-                              "require": "$.[?(@.type == 'ttl_prv')]",
-                              "value": {
-                                  "#type": "string_join",
-                                  "delimiter": "_",
-                                  "values": [
-                                      "ttl_prv",
-                                      {
-                                          "#type": "fallback",
-                                          "strategies": [
-                                              {
-                                                  "#type": "require",
-                                                  "require": "$.[?(@.namespace empty false)]",
-                                                  "value": {
-                                                      "#type": "regex_replace",
-                                                      "value": "$.namespace",
-                                                      "pattern": "(\\s+)",
-                                                      "replacement": "_"
-                                                  }
-                                              },
-                                              {
-                                                  "#type": "require",
-                                                  "require": "$.[?(@.namespaceName empty false)]",
-                                                  "value": {
-                                                      "#type": "regex_replace",
-                                                      "value": "$.namespaceName",
-                                                      "pattern": "(\\s+)",
-                                                      "replacement": "_"
-                                                  }
-                                              }
-                                          ]
-                                      }
-                                  ]
-                              }
-                          },
-                          {
-                              "#type": "require",
-                              "require": "$.[?(@.namespace empty false)]",
-                              "value": {
-                                  "#type": "regex_replace",
-                                  "value": "$.namespace",
-                                  "pattern": "(\\s+)",
-                                  "replacement": "_"
-                              }
-                          },
-                          {
-                              "#type": "require",
-                              "require": "$.[?(@.namespaceName empty false)]",
-                              "value": {
-                                  "#type": "regex_replace",
-                                  "value": "$.namespaceName",
-                                  "pattern": "(\\s+)",
-                                  "replacement": "_"
-                              }
+                        {
+                          "#type": "require",
+                          "require": "$.[?(@.namespace empty false)]",
+                          "value": {
+                            "#type": "regex_replace",
+                            "value": "$.namespace",
+                            "pattern": "(\\s+)",
+                            "replacement": "_"
                           }
+                        },
+                        {
+                          "#type": "require",
+                          "require": "$.[?(@.namespaceName empty false)]",
+                          "value": {
+                            "#type": "regex_replace",
+                            "value": "$.namespaceName",
+                            "pattern": "(\\s+)",
+                            "replacement": "_"
+                          }
+                        }
                       ]
-                  },
-                  "value": "$.value"
+                    }
+                  ]
+                }
+              },
+              {
+                "#type": "require",
+                "require": "$.[?(@.namespace empty false)]",
+                "value": {
+                  "#type": "regex_replace",
+                  "value": "$.namespace",
+                  "pattern": "(\\s+)",
+                  "replacement": "_"
+                }
+              },
+              {
+                "#type": "require",
+                "require": "$.[?(@.namespaceName empty false)]",
+                "value": {
+                  "#type": "regex_replace",
+                  "value": "$.namespaceName",
+                  "pattern": "(\\s+)",
+                  "replacement": "_"
+                }
               }
+            ]
           },
-          {
-              "#type": "require",
-              "require": "$.id",
-              "value": {
-                  "namespace": "gokb_id",
-                  "value": {
-                      "#type": "as_string",
-                      "value": "$.id"
-                  }
-              }
-          },
-          {
-              "namespace": "gokb_uuid",
-              "value": "$.uuid"
+          "value": "$.value"
+        }
+      },
+      {
+        "#type": "require",
+        "require": "$.id",
+        "value": {
+          "namespace": "gokb_id",
+          "value": {
+            "#type": "as_string",
+            "value": "$.id"
           }
-      ]
+        }
+      },
+      {
+        "namespace": "gokb_uuid",
+        "value": "$.uuid"
+      }
+    ]
   },
   "packageContents": []
 }
