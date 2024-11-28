@@ -34,7 +34,7 @@
   },
   "contentItemPackage": {
     "header": {
-      "packageSource": "PushKB::GOKb",
+      "packageSource": "GOKb",
       "packageSlug": "$.tippPackageUuid",
       "packageName": "$.tippPackageName"
     }

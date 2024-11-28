@@ -3,9 +3,10 @@ package com.k_int.pushKb.proteus;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
-//import io.micronaut.serde.ObjectMapper;
+import io.micronaut.serde.ObjectMapper;
 import io.micronaut.json.tree.JsonNode;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +24,12 @@ public class ProteusService {
   public static final String TRANSFORM_SPEC_PATH = "src/main/resources/transformSpecs";
   private static final JacksonDatabindMapper jacksonDatabindMapper = new JacksonDatabindMapper();
 
+  private final ObjectMapper objectMapper;
+
   public ProteusService(
+    ObjectMapper objectMapper
 	) {
+    this.objectMapper = objectMapper;
 	}
 
   static final Config config = Config.builder()
@@ -36,6 +41,15 @@ public class ProteusService {
                                       .pathNotFoundToNull(true)
                                       .build();
 
+  public ComponentSpec<JsonNode> loadSpec(JsonNode jsonNode) {
+    try {
+      return ComponentSpec.load(JsonNode.class, new ByteArrayInputStream(objectMapper.writeValueAsBytes(jsonNode)));
+    } catch (Exception e) {
+      log.error("Something went wrong reading json", e);
+      return null;
+    }
+  }
+                                    
   public ComponentSpec<JsonNode> loadSpec(String specName) {
     return ComponentSpec.loadFile(JsonNode.class, TRANSFORM_SPEC_PATH + "/" + specName);
   }

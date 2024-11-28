@@ -16,6 +16,7 @@ import org.reactivestreams.Publisher;
 import com.k_int.pushKb.interactions.DestinationClient;
 import com.k_int.pushKb.interactions.folio.FolioApiClient;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
+import com.k_int.pushKb.interactions.folio.model.FolioDestinationType;
 // import com.k_int.pushKb.interactions.folio.model.FolioLoginError;
 
 @Singleton
@@ -68,12 +69,20 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 
 	// WIP... I'm not sure about the return shape here
 	// Should we be passing destintation in here?
-	public Mono<Boolean> push(FolioDestination destination, DestinationClient<FolioDestination> client, JsonNode json) {
+	public Mono<Boolean> push(
+		FolioDestination destination,
+		DestinationClient<FolioDestination> client,
+		JsonNode json
+	) {
 		// FIXME Not thrilled about this cast, but can't figure out the typing to do this directly
 		if (client instanceof FolioApiClient) {
 			FolioApiClient folioClient = (FolioApiClient) client;
 
-			return Mono.from(folioClient.pushPCIs(json))
+			return Mono.from(
+				destination.getDestinationType() == FolioDestinationType.PCI ?
+					folioClient.pushPCIs(json) :
+					folioClient.pushPKGs(json)
+			)
 			.doOnNext(resp -> {
 				log.info("WHAT IS RESP? {}", resp);
 			})

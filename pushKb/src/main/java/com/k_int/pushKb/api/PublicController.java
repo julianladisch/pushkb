@@ -6,14 +6,16 @@ import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.json.tree.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.UUID;
 
+import com.k_int.proteus.ComponentSpec;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.model.TemporaryPushTask;
-
+import com.k_int.pushKb.proteus.ProteusService;
 import com.k_int.pushKb.services.PushableService;
 
 // This will be a non-authenticated endpoint,
@@ -24,10 +26,14 @@ import com.k_int.pushKb.services.PushableService;
 public class PublicController {
   private final PushableService pushableService;
 
+  private final ProteusService proteusService;
+
   public PublicController(
-    PushableService pushableService
+    PushableService pushableService,
+    ProteusService proteusService
   ) {
     this.pushableService = pushableService;
+    this.proteusService = proteusService;
 	}
 
   @Post(uri = "/temporaryPushTask", produces = MediaType.APPLICATION_JSON)
@@ -50,5 +56,26 @@ public class PublicController {
         "Filter context", (filterContext != null ? filterContext : "No filter context provided"),
         "TemporaryPushTask id", temporaryPushTask.getId().toString()
       ));
+  }
+
+
+  // FIXME This shouldn't be a public API call -- should be protected
+  @Post(uri = "/proteus", produces = MediaType.APPLICATION_JSON)
+  public Mono<Map<String, JsonNode>> proteus(
+    JsonNode record,
+    JsonNode schema
+  ) {
+    ComponentSpec<JsonNode> spec = proteusService.loadSpec(schema);
+
+    try {
+      JsonNode output = proteusService.convert(spec, record);
+      return Mono.just(Map.of(
+        "input", record,
+        "output", output
+      ));
+    } catch (Exception e) {
+      log.error("Something went wrong in proteus convert", e);
+      return Mono.empty();
+    }
   }
 }

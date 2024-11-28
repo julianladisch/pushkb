@@ -10,15 +10,18 @@ import java.util.Optional;
 
 import com.k_int.proteus.ComponentSpec;
 import com.k_int.pushKb.interactions.DestinationClient;
+import com.k_int.pushKb.interactions.gokb.model.GokbSource;
+import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.PushChunk;
 import com.k_int.pushKb.model.PushSession;
 import com.k_int.pushKb.model.Pushable;
+import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.proteus.ProteusService;
 
 import io.micronaut.json.tree.JsonNode;
-// import io.micronaut.serde.ObjectMapper;
+import io.micronaut.serde.ObjectMapper;
 import io.micronaut.transaction.TransactionDefinition.Propagation;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
@@ -26,7 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.function.TupleUtils;
-import reactor.util.function.Tuple3;
+
+import reactor.util.function.Tuple4;
 import reactor.util.function.Tuples;
 
 @Singleton
@@ -49,7 +53,7 @@ public class PushService {
 
   // FIXME investigate how much this is actually needed
 	private final ProteusService proteusService;
-	// private final ObjectMapper objectMapper;
+	private final ObjectMapper objectMapper;
 
 	public PushService(
 		SourceRecordDatabaseService sourceRecordDatabaseService,
@@ -57,8 +61,8 @@ public class PushService {
 		ProteusService proteusService,
     DestinationService destinationService,
     PushSessionDatabaseService pushSessionDatabaseService,
-    PushChunkDatabaseService pushChunkDatabaseService
-    // ObjectMapper objectMapper
+    PushChunkDatabaseService pushChunkDatabaseService,
+    ObjectMapper objectMapper
 	) {
 		this.sourceRecordDatabaseService = sourceRecordDatabaseService;
     this.pushableService = pushableService;
@@ -66,7 +70,7 @@ public class PushService {
     this.pushChunkDatabaseService = pushChunkDatabaseService;
 		this.proteusService = proteusService;
     this.destinationService = destinationService;
-		// this.objectMapper = objectMapper;
+		this.objectMapper = objectMapper;
 	}
 
   // TO TEST ALGORITHM
@@ -180,7 +184,6 @@ public class PushService {
         .flatMap(TupleUtils.function((json, earliestSeen, latestSeen) -> {
     
           log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
-    
           return Mono.from(destinationService.push(destination, client, json))
             .flatMap(bool -> {
               // Should just be "true", idk why this would ever be false tbh
@@ -201,12 +204,9 @@ public class PushService {
   }
 
   // This is useable from the point of view of TemporaryPushTasks AND PushTasks
-  public Mono<Tuple3<Destination, DestinationClient<Destination>, PushSession>> getPushableTuple(Pushable p) {
-    return Mono.from(destinationService.findById(
-      p.getDestinationType(),
-      p.getDestinationId()
-    ))
-    .flatMap(destination -> {
+  public Mono<Tuple4<Source, Destination, DestinationClient<Destination>, PushSession>> getPushableTuple(Pushable p) {
+    return Mono.from(pushableService.getSourceAndDestination(p))
+    .flatMap(TupleUtils.function((source, destination) -> {
       return Mono.from(destinationService.getClient(destination))
         .flatMap(client -> {
           return Mono.from(pushSessionDatabaseService.save(
@@ -216,19 +216,20 @@ public class PushService {
               .build()
           ))
           .flatMap(pushSession -> {
-            return Mono.just(Tuples.of(destination, client, pushSession));
+            return Mono.just(Tuples.of(source, destination, client, pushSession));
           });
         });
-    });
+    }));
   } // Nested flatMaps isn't very pretty here, but it brings them altogether without multiple Tuple setups and reads
 
   public Mono<Pushable> runPushable(Pushable p) {
     return getPushableTuple(p)
-      .flatMap(TupleUtils.function((destination, client, session) -> runPushable(p, destination, client, session)));
+      .flatMap(TupleUtils.function((source, destination, client, session) -> runPushable(p, source, destination, client, session)));
   }
 
   private Mono<Pushable> runPushable(
     Pushable psh,
+    Source source,
     Destination destination,
     DestinationClient<Destination> client,
     PushSession session
@@ -236,7 +237,7 @@ public class PushService {
     //log.info("runPushable called for {}", psh);
     // We potentially need to run this twice, once to zip up hole,
     //once to bring in line with latest changes
-    return Mono.from(runPushableSingle(psh, destination, client, session))
+    return Mono.from(runPushableSingle(psh, source, destination, client, session))
       // At this point, we should ALWAYS have "zipped up" the gap in records, next check if any new ones exist ahead of DHP
 				// Go lookup head of stream (Pushable sourceId should never have changed...)
       .zipWith(
@@ -254,7 +255,7 @@ public class PushService {
           // There are fresh records ahead of the footPointer, rerun from lastPT
           // ATM we do this specifically as a second run, we could recurse this, but honestly running once an hour should be fine
           log.info("Fresh records exist ahead of destinationHeadPointer, bringing in line");
-          return runPushableSingle(lastPsh, destination, client, session);
+          return runPushableSingle(lastPsh, source, destination, client, session);
         }
 
         // No need to rerun, just
@@ -264,6 +265,7 @@ public class PushService {
 
   public Mono<Pushable> runPushableSingle(
     Pushable psh,
+    Source source,
     Destination destination,
     DestinationClient<Destination> client,
     PushSession session
@@ -283,7 +285,12 @@ public class PushService {
     log.info("LOWER BOUND: {}", lowerBound);
 
     // FIXME this needs to come from the Pushable transform model somehow
-    ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec("GOKBScroll_TIPP_ERM6_transform.json");
+    // FIXME but for now we'll do a direct (domain specific) switch on GokbSourceType (DO NOT DO THIS IN FINAL VERSION)
+    ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec(
+      GokbSource.class.cast(source).getGokbSourceType() == GokbSourceType.TIPP ?
+      "GOKBScroll_TIPP_ERM_transformV1.json" :
+      "GOKBScroll_PKG_ERM_transformV1.json"
+    );
 
     return Mono.from(sourceRecordDatabaseService.countFeed(
       psh.getSourceId(),
