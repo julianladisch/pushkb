@@ -4,7 +4,9 @@ import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
+import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.Pushable;
+import com.k_int.pushKb.model.Source;
 
 import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
@@ -13,16 +15,25 @@ import io.micronaut.core.type.Argument;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 @Singleton
 @Slf4j
 public class PushableService {
   private final BeanContext beanContext;
+  private final DestinationService destinationService;
+  private final SourceService sourceService;
 
   public PushableService (
-    BeanContext beanContext
+    BeanContext beanContext,
+    DestinationService destinationService,
+    SourceService sourceService
     ) {
     this.beanContext = beanContext;
+    this.destinationService = destinationService;
+    this.sourceService = sourceService;
   }
 
   @SuppressWarnings("unchecked")
@@ -68,5 +79,28 @@ public class PushableService {
   @Transactional
   public Publisher<Boolean> complete( Pushable psh ) {
     return getPushableDatabaseServiceForPushableType(psh.getClass()).complete(psh);
+  }
+
+  @NonNull
+  @Transactional
+  public Publisher<Source> getSource(Pushable psh) {
+    return Mono.from(sourceService.findById(psh.getSourceType(), psh.getSourceId()));
+  }
+
+  @NonNull
+  @Transactional
+  public Publisher<Destination> getDestination(Pushable psh) {
+    return Mono.from(destinationService.findById(psh.getDestinationType(), psh.getDestinationId()));
+  }
+
+  @NonNull
+  @Transactional
+  public Publisher<Tuple2<Source, Destination>> getSourceAndDestination(Pushable psh) {
+    return Mono.from(getSource(psh))
+      .flatMap(src -> {
+        return Mono.from(getDestination(psh)).flatMap(dest -> {
+          return Mono.just(Tuples.of(src, dest));
+        });
+      });
   }
 }
