@@ -1,5 +1,17 @@
 # Changelog
 
+## Version 1.0.0-alpha.3
+
+### Fixes
+* [General]
+	* ProteusService was reading from path not classpath... fixed this with ResourceLoader
+
+## Version 1.0.0-alpha.2
+
+### Changes
+* [Chore]
+	* Added local_docker.env to gitignore and tweaked README
+
 ## Version 1.0.0-alpha.1
 
 ### Additions
@@ -42,6 +54,7 @@
 	* Added application-development.yml
 	* Commented problem dep
 * [Chore]
+	* Changelog - Generate the changelog
 	* Try without the specific file.
 	* Build file
 	* Comments and whitespacing
