@@ -170,9 +170,15 @@ tasks {
 	dockerfile {
 		baseImage 'eclipse-temurin:17-alpine'
 		label(labels)
-		environmentVariable 'JAVA_OPTIONS',
+		environmentVariable 'MICRONAUT_CONFIG_FILES', ''
+		environmentVariable 'DB_HOST', ''
+		environmentVariable 'DB_PORT', ''
+		environmentVariable 'DB_DATABASE', ''
+		environmentVariable 'DB_USERNAME', ''
+		environmentVariable 'DB_PASSWORD', ''
 			'-XX:+UseContainerSupport -XX:MinRAMPercentage=50.0 -XX:MaxRAMPercentage=80.0 -XX:InitialRAMPercentage=50.0 -XX:+PrintFlagsFinal'
 		environmentVariable 'JAVA_TOOL_OPTIONS', '$JAVA_OPTIONS $JAVA_TOOL_OPTIONS'
+
 		entryPoint('java', '-server', '-jar', '/home/app/application.jar')
 	}
 
@@ -196,7 +202,7 @@ tasks {
 	// If this is a pre-release (including Snapshots) then add "next" tag. Otherwise, use latest
 	tags << (isPre ? 'next' : 'latest')
 
-	final imageAndRepo = "${System.env.DOCKER_IMAGE ?: project.name}"
+	final imageAndRepo = "${System.env.DOCKER_IMAGE ?: 'docker.libsdev.k-int.com/' + project.name.toLowerCase()}"
 
 	Set<String> imageNames = tags.collect { "${imageAndRepo}:${it}" }
 	Set<String> nativeImageNames = tags.collect { "${imageAndRepo}:native-${it}" }

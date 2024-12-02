@@ -65,10 +65,11 @@ datasources:
     schema-generate: NONE
     db-type: postgresql
     minimumIdle: 0
-    maximumPoolSize: 2
+    maximumPoolSize: 12
     reconnect: true
-    #username: "${db.username:}"
-    #password: "${db.password:}"
+    username: ${db.username}
+    password: ${db.password}
+    url: "jdbc:postgresql://${db.host}:${db.port}/${db.database}"
 
 r2dbc:
   datasources:
@@ -80,15 +81,17 @@ r2dbc:
       # db-type: postgresql
       db-type: postgres
       reconnect: true
-      # url: ${DB_URL:`r2dbc:postgresql://localhost:5432/postgres`}
+      url: "r2dbc:postgresql://${db.host}:${db.port}/${db.database}"
+      username: ${db.username}
+      password: ${db.password}
       # username: ${DB_USER:`postgres`}
       # password: ${DB_PASSWORD:`pass`}
       options:
         driver: pool
         protocol: postgres
         poolName: r2dbc
-        maxSize: 20
-        initialSize: 5
+        maxSize: 10
+        initialSize: 10
         # maxLifeTime: PT120M
         # maxLifeTime: PT20M
         maxIdleTime: PT240S
