@@ -16,20 +16,24 @@ import com.k_int.proteus.Config;
 import com.k_int.proteus.Context;
 import com.k_int.proteus.Input;
 
+import io.micronaut.core.io.ResourceLoader;
 import io.micronaut.jackson.databind.JacksonDatabindMapper;
 
 @Slf4j
 @Singleton
 public class ProteusService {
-  public static final String TRANSFORM_SPEC_PATH = "src/main/resources/transformSpecs";
+  public static final String TRANSFORM_SPEC_PATH = "classpath:transformSpecs";
   private static final JacksonDatabindMapper jacksonDatabindMapper = new JacksonDatabindMapper();
 
   private final ObjectMapper objectMapper;
+  private final ResourceLoader resourceLoader;
 
   public ProteusService(
-    ObjectMapper objectMapper
+    ObjectMapper objectMapper,
+    ResourceLoader resourceLoader
 	) {
     this.objectMapper = objectMapper;
+    this.resourceLoader = resourceLoader;
 	}
 
   static final Config config = Config.builder()
@@ -51,7 +55,7 @@ public class ProteusService {
   }
                                     
   public ComponentSpec<JsonNode> loadSpec(String specName) {
-    return ComponentSpec.loadFile(JsonNode.class, TRANSFORM_SPEC_PATH + "/" + specName);
+    return ComponentSpec.load(JsonNode.class, resourceLoader.getResourceAsStream(TRANSFORM_SPEC_PATH + "/" + specName).get());
   }
 
   public Context getContextFromSpec(String specName) {
