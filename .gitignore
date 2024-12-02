@@ -21,3 +21,4 @@ data-store/
 *.txt
 
 application-local.yml
+local_docker.env
