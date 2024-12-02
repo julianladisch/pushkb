@@ -6,7 +6,7 @@ buildscript {
 }
 
 plugins {
-	id("org.openrewrite.rewrite") version("latest.release")
+//	id("org.openrewrite.rewrite") version("latest.release")
 	id("com.github.johnrengelman.shadow") version "8.1.1"
 	// See https://plugins.gradle.org/plugin/io.micronaut.application
 	id("io.micronaut.application") version "$micronautGradleVersion"
@@ -44,7 +44,7 @@ dependencies {
 	compileOnly('io.micronaut:micronaut-core-processor')
 	
 	compileOnly("org.graalvm.nativeimage:svm")
-	rewrite("org.openrewrite.recipe:rewrite-micronaut:2.1.1")
+//	rewrite("org.openrewrite.recipe:rewrite-micronaut:2.1.1")
 
 	// Implementation
 	implementation("io.micronaut.validation:micronaut-validation")
@@ -127,9 +127,9 @@ dependencies {
 	testImplementation("io.micronaut.testresources:micronaut-test-resources-elasticsearch") */
 }
 
-rewrite {
-	activeRecipe("org.openrewrite.java.micronaut.Micronaut3to4Migration")
-}
+//rewrite {
+//	activeRecipe("org.openrewrite.java.micronaut.Micronaut3to4Migration")
+//}
 
 
 application {
@@ -176,9 +176,8 @@ tasks {
 		environmentVariable 'DB_DATABASE', ''
 		environmentVariable 'DB_USERNAME', ''
 		environmentVariable 'DB_PASSWORD', ''
-			'-XX:+UseContainerSupport -XX:MinRAMPercentage=50.0 -XX:MaxRAMPercentage=80.0 -XX:InitialRAMPercentage=50.0 -XX:+PrintFlagsFinal'
+		environmentVariable 'JAVA_OPTIONS','-XX:+UseContainerSupport -XX:MinRAMPercentage=50.0 -XX:MaxRAMPercentage=80.0 -XX:InitialRAMPercentage=50.0 -XX:+PrintFlagsFinal'
 		environmentVariable 'JAVA_TOOL_OPTIONS', '$JAVA_OPTIONS $JAVA_TOOL_OPTIONS'
-
 		entryPoint('java', '-server', '-jar', '/home/app/application.jar')
 	}
 
