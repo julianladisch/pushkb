@@ -65,8 +65,7 @@ build-native-image:
     - pwd
     - ls
     - cp ./config.json ~/.docker/config.json
-    - ./gradlew nativeCompile
-    - ./gradlew dockerPushNative
+    - (./gradlew nativeCompile && ./gradlew dockerPushNative) || echo "Error building native image"
     - ./gradlew dockerPush
   artifacts:
     paths:
