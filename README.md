@@ -33,7 +33,7 @@ destinations:
       tenant: tenant-name
       baseurl: http://the-folio-url.com
       user: usernamegoeshere
-      passenvvar: passwordgoeshere
+      password: passwordgoeshere
   foliodestinations:
     -
       name: EXAMPLE_FOLIO_PACKAGE
