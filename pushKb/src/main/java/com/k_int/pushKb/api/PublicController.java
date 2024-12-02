@@ -36,11 +36,13 @@ public class PublicController {
     this.proteusService = proteusService;
 	}
 
-  @Post(uri = "/temporaryPushTask", produces = MediaType.APPLICATION_JSON)
+  // TODO add @Body binding shape
+  @Post(uri = "/temporarypushtask", produces = MediaType.APPLICATION_JSON)
   public Mono<Map<String, Object>> temporaryPushTask(
     String pushTaskId,
     @Nullable String filterContext
   ) {
+    // FIXME If we don't find the push task by id we will return 404 right now, which isn't super helpful
     return Mono.from(pushableService.findById(PushTask.class, UUID.fromString(pushTaskId)))
       .map(PushTask.class::cast)
       .flatMap(pushTask -> Mono.from(pushableService.ensurePushable(
