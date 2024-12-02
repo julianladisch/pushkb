@@ -21,17 +21,17 @@ micronaut:
   security:
     # FIXME Re-enable this later
     enabled: false
-    authentication: idtoken 
+    authentication: idtoken
     oauth2:
       clients:
-        keycloak: 
+        keycloak:
           client-secret: '${OAUTH_CLIENT_SECRET:secret}'
-          client-id: '${OAUTH_CLIENT_ID:pushKB}' 
+          client-id: '${OAUTH_CLIENT_ID:pushKB}'
           openid:
             issuer: '${OIDC_ISSUER_DOMAIN:`http://localhost:8060`}/realms/${KEYCLOAK_REALM:master}' 
     endpoints:
       logout:
-        get-allowed: true 
+        get-allowed: true
   #router:
   #  static-resources:
   #    swagger:
