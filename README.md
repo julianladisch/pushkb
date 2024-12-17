@@ -72,3 +72,42 @@ Migration files are usually named in the following way `V(migration_number)__nam
 
 ### Strategy
 The aim is to keep migration files relatively minimal. Flyway will handle the running in increasing order, we should aim to keep migration files small so that they are easily parseable by a dev scanning through them, and easy to see what each file is doing. Also allows easier use of "undo" migrations should they become necessary.
+
+# Implementor Information
+
+## Infrastructure
+- Resources
+  - A single instance of PushKB requires roughly 
+    - 150mb * (number of concurrent jobs) + 250mb to be safe
+    - 2 threads * (number of concurrentjobs) + 2 threads
+    - (Numbers subject to change, difficult to test atm)
+- Scaling
+  - A single pushKB can handle multiple pushes (not in alpha v1)
+  - Multiple pushKBs can also be run to allow horizontal scaling (not in alpha v1)
+  - NOTE - alpha 1 version is NOT scalable vertically or horizontally
+- It also is currently ONLY compatible fully with Ramsons or beyond versions of mod-agreements.
+  - Q may work but with significant bugs/degraded performance
+- mod-agreements instances will need env var `INGRESS_TYPE=PushKB` configured
+  - There should be a significantly lower strain placed on mod-agreements now it is not running the harvest.
+  - Locally it has been observed running 30 tenants and accepting pushes to 15 of those in just under 1.5GB RAM.
+  - With some investigation, it should be possible to cut the number of mod-agreements instances needed for large numbers of tenants DRAMATICALLY (without increasing RAM per instance) and save a considerable amount of resources.
+    - 200 tenants using mod-agreements ingest with 5 tenants per instance and 4GB per instance would use 160GB
+    - With PushKB one could deploy 20 instances running 10 pushes each and run 5 mod-agreements tenants each taking on 40 tenants, each using 4GB for a total of (1.75x20) + (4x5) = 55GB
+    - Numbers are very rough there, could do with more testing and accurate feedback
+
+## Config
+In order to get data into PushKB there will eventually be a protected API (INFORMATION TO FOLLOW HERE) In early alpha versions however there instead must be a mounted `yml` file containing the GOKB(s), folio tenants etc as above, and pointed at with env var `MICRONAUT_CONFIG_FILES`.
+
+## Env Vars
+PushKB accepts multiple env vars
+- MICRONAUT_CONFIG_FILES
+  - Accepts a path string pointing at a YML file for bootstrapping as above
+  - This will likely be removed once there is a proper API
+- TASKSCHEDULER_INTERVAL
+  - Accepts a Duration-parseable-string such as `PT10S` (10 seconds -- the default)
+  - This allows configuration of how often the module requests a new task (if concurrency is not full)
+    - This means that concurrency of 15 would regularly take 150 seconds to "fill up"
+  - Duration string documentation [here](https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-)
+- TASKSCHEDULER_REACTIVE_CONCURRENCY (Not available in alpha 1)
+  - Configures the number of tasks the singular instance can carry out simultaneously (default 1)
+  - RAM and thread resources need to increase with this setting.
