@@ -131,3 +131,10 @@ endpoints:
   info:
     enabled: true
     sensitive: false
+
+taskscheduler:
+  reactive:
+    concurrency: ${TASKSCHEDULER_REACTIVE_CONCURRENCY:"1"}
+  synchronous:
+    concurrency: ${TASKSCHEDULER_SYNCHRONOUS_CONCURRENCY:"1"}
+  interval: ${TASKSCHEDULER_INTERVAL:"PT10S"}
