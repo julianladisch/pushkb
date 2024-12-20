@@ -16,6 +16,9 @@ image:
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
   GIT_SUBMODULE_STRATEGY: normal
+  GIT_SUBMODULE_FORCE_HTTPS: "true"
+
+
 
 before_script:
   - GRADLE_USER_HOME="$(pwd)/.gradle"
