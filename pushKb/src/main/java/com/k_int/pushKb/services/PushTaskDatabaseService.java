@@ -20,6 +20,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class PushTaskDatabaseService implements PushableDatabaseService<PushTask> {
   private final PushTaskRepository pushTaskRepository;
+
 	public PushTaskDatabaseService(
     PushTaskRepository pushTaskRepository
   ) {
@@ -55,11 +56,12 @@ public class PushTaskDatabaseService implements PushableDatabaseService<PushTask
 
     return Mono.from(pushTaskRepository.existsById(gen_id))
       .flatMap(doesItExist -> {
-        return Mono.from(doesItExist ?
-        pushTaskRepository.findById(gen_id) :
-        pushTaskRepository.save(pt)
-        );
-    });
+        if (doesItExist) {
+          return Mono.from(pushTaskRepository.findById(gen_id));
+        }
+
+        return Mono.from(pushTaskRepository.save(pt));
+      });
   };
 
 

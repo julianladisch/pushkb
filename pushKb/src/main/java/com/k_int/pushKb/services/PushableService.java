@@ -1,5 +1,6 @@
 package com.k_int.pushKb.services;
 
+import java.util.Map;
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
@@ -7,6 +8,8 @@ import org.reactivestreams.Publisher;
 import com.k_int.pushKb.model.Destination;
 import com.k_int.pushKb.model.Pushable;
 import com.k_int.pushKb.model.Source;
+import com.k_int.taskscheduler.model.DutyCycleTask;
+import com.k_int.taskscheduler.services.ReactiveDutyCycleTaskRunner;
 
 import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
@@ -26,14 +29,32 @@ public class PushableService {
   private final DestinationService destinationService;
   private final SourceService sourceService;
 
+  private final ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner;
+
   public PushableService (
     BeanContext beanContext,
     DestinationService destinationService,
-    SourceService sourceService
+    SourceService sourceService,
+    ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner
     ) {
     this.beanContext = beanContext;
     this.destinationService = destinationService;
     this.sourceService = sourceService;
+    this.reactiveDutyCycleTaskRunner = reactiveDutyCycleTaskRunner;
+  }
+
+  // Fast way to register pushables directly
+  public Mono<DutyCycleTask> registerPushableTask(Class<? extends Pushable> type, Pushable p) {
+    String pushableId = p.getId().toString();
+    return reactiveDutyCycleTaskRunner.registerTask(
+      Long.valueOf(1000*60*60),
+      pushableId,
+      "PushableScheduledTask",
+      Map.of(
+        "pushable", pushableId,
+        "pushable_class", type.getName()
+      )
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -65,7 +86,11 @@ public class PushableService {
   @NonNull
   @Transactional
   public Publisher<? extends Pushable> ensurePushable( Pushable psh ) {
-    return getPushableDatabaseServiceForPushableType(psh.getClass()).ensurePushable(psh);
+    return Mono.from(getPushableDatabaseServiceForPushableType(psh.getClass()).ensurePushable(psh))
+      .flatMap(persistedPushable -> {
+        return registerPushableTask(psh.getClass(), psh)
+          .flatMap(dct -> Mono.just(persistedPushable));
+      });
   }
 
   @NonNull

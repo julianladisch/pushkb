@@ -11,10 +11,12 @@ import com.k_int.pushKb.storage.SourceRecordRepository;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.transaction.annotation.ReadOnly;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 @Singleton
 @Slf4j
@@ -34,15 +36,15 @@ public class SourceRecordDatabaseService {
   }
 
   // Full count, not sure we'll need this v often
-  @Transactional
   @SingleResult
+  @ReadOnly
   protected Publisher<Long> countRecords () {
     return sourceRecordRepository.count();
   }
 
   // THIS ASSUMES THAT SOURCES OF TWO DIFFERENT TYPES WILL NOT SHARE AN ID...
   // BE VERY CAREFUL WITH UUID5
-  @Transactional
+  @ReadOnly
   protected Publisher<SourceRecord> getSourceRecordFeed (
     UUID sourceId,
     Instant footTimestamp,
@@ -50,13 +52,27 @@ public class SourceRecordDatabaseService {
     Optional<String> context
   ) {
     if (context.isPresent()) {
-      return sourceRecordRepository.findAllBySourceIdAndFilterContextAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(sourceId, context.get(), footTimestamp, headTimestamp);
+      return Flux.defer(() -> sourceRecordRepository.findTop1000BySourceIdAndFilterContextAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(sourceId, context.get(), footTimestamp, headTimestamp));
     }
   
-    return sourceRecordRepository.findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(sourceId, footTimestamp, headTimestamp);
+    return Flux.defer(() -> sourceRecordRepository.findTop1000BySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(sourceId, footTimestamp, headTimestamp));
   }
 
-  @Transactional
+  @ReadOnly
+  protected Publisher<SourceRecord> getSourceRecordFeedForUpdated (
+    UUID sourceId,
+    Instant updatedInstance,
+    Optional<String> context
+  ) {
+    if (context.isPresent()) {
+      return Flux.defer(() -> sourceRecordRepository.findBySourceIdAndFilterContextAndUpdatedOrderByUpdatedDescAndIdAsc(sourceId, context.get(), updatedInstance));
+    }
+  
+    return Flux.defer(() -> sourceRecordRepository.findBySourceIdAndUpdatedOrderByUpdatedDescAndIdAsc(sourceId, updatedInstance));
+  }
+
+  @SingleResult
+  @ReadOnly
   protected Publisher<Long> countFeed (UUID sourceId, Instant footTimestamp, Instant headTimestamp, Optional<String> context) {
     if (context.isPresent()) {
       return sourceRecordRepository.countBySourceIdAndFilterContextAndUpdatedGreaterThanAndUpdatedLessThan(sourceId, context.get(), footTimestamp, headTimestamp);
@@ -65,8 +81,8 @@ public class SourceRecordDatabaseService {
     return sourceRecordRepository.countBySourceIdAndUpdatedGreaterThanAndUpdatedLessThan(sourceId, footTimestamp, headTimestamp);
   }
 
-  @Transactional
   @SingleResult
+  @ReadOnly
   public Publisher<Instant> findTopOfFeed (UUID sourceId, Optional<String> context) {
     if (context.isPresent()) {
       return sourceRecordRepository.findMaxUpdatedBySourceIdAndFilterContext(sourceId, context.get());

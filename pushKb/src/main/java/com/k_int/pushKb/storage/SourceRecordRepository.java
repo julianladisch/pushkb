@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.data.model.Pageable;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
@@ -19,11 +20,10 @@ import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Singleton
-@Transactional
 @R2dbcRepository(dialect = Dialect.POSTGRES)
 public interface SourceRecordRepository extends ReactiveStreamsPageableRepository<SourceRecord, UUID> {
   Logger log = org.slf4j.LoggerFactory.getLogger(SourceRecordRepository.class);
@@ -36,6 +36,7 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   @SingleResult
   Publisher<Instant> findMaxUpdatedBySourceIdAndFilterContext(UUID sourceId, String context);
 
+  @Transactional
   @SingleResult
 	Publisher<Void> delete(UUID id);
 
@@ -50,6 +51,7 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
  */
 
   @NonNull
+  @SingleResult
   Publisher<Long> countBySourceIdAndUpdatedGreaterThanAndUpdatedLessThan(
     UUID sourceId,
     Instant footTimestamp,
@@ -57,6 +59,7 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   );
 
   @NonNull
+  @SingleResult
   Publisher<Long> countBySourceIdAndFilterContextAndUpdatedGreaterThanAndUpdatedLessThan(
     UUID sourceId,
     String context,
@@ -64,21 +67,33 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
     Instant headTimestamp
   );
 
-
   @NonNull
-  Publisher<SourceRecord> findAllBySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(
+  Publisher<SourceRecord> findTop1000BySourceIdAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(
     UUID sourceId,
     Instant footTimestamp,
     Instant headTimestamp
   );
 
-  
   @NonNull
-  Publisher<SourceRecord> findAllBySourceIdAndFilterContextAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(
+  Publisher<SourceRecord> findTop1000BySourceIdAndFilterContextAndUpdatedGreaterThanAndUpdatedLessThanOrderByUpdatedDescAndIdAsc(
     UUID sourceId,
     String context,
     Instant footTimestamp,
     Instant headTimestamp
+  );
+
+  @NonNull
+  Publisher<SourceRecord> findBySourceIdAndUpdatedOrderByUpdatedDescAndIdAsc(
+    UUID sourceId,
+    Instant updated
+  );
+
+
+  @NonNull
+  Publisher<SourceRecord> findBySourceIdAndFilterContextAndUpdatedOrderByUpdatedDescAndIdAsc(
+    UUID sourceId,
+    String context,
+    Instant updated
   );
 
   // Finds values STRICTLY between foot and head timestamps
@@ -101,7 +116,7 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
     """, nativeQuery = true)
 	Publisher<SourceRecord> getSourceRecordFeedBySource(Source source, Instant footTimestamp, Instant headTimestamp); */
 
-
+  @Transactional
   @NonNull
   @SingleResult
 	default Publisher<SourceRecord> saveOrUpdate(@Valid @NotNull SourceRecord sr) {

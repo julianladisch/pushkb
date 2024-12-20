@@ -1,3 +1,4 @@
+// ESSENTIALLY COPIED FROM DCB SERVICE -- SHOULD BE CENTRALISED
 package services.k_int.utils;
 
 import java.nio.ByteBuffer;

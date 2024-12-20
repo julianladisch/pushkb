@@ -1,5 +1,6 @@
 package com.k_int.pushKb.services;
 
+import java.beans.Transient;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.AbstractMap;
@@ -29,8 +30,10 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.function.TupleUtils;
-
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuple3;
 import reactor.util.function.Tuple4;
+import reactor.util.function.Tuple5;
 import reactor.util.function.Tuples;
 
 @Singleton
@@ -91,27 +94,20 @@ public class PushService {
 	//     For each record log out id, then either SENT (ID) or ERROR (ID) (10% failure)
 
 
-  // Separate out chunk creation?
-  // FIXME Might need refactor this is messy
-  protected Mono<Pushable> processChunkForPushable(
-    Pushable psh,
-    Destination destination,
-    DestinationClient<Destination> client,
-    PushSession session,
-    List<SourceRecord> sourceRecordChunk,
-    ComponentSpec<JsonNode> proteusSpec
+  protected Mono<PushChunk> setUpPushChunk(
+    PushSession session
   ) {
-    return Mono.from(
-      pushChunkDatabaseService.save(
-        PushChunk.builder()
-          .session(session)
-          .build()
-      )
-    ).flatMap(pushChunk -> processChunkForPushableWithPushChunk(psh, destination, client, session, sourceRecordChunk, pushChunk, proteusSpec));
+    return Mono.from(pushChunkDatabaseService.save(
+      PushChunk.builder()
+        .session(session)
+        .build()
+    ));
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
-  protected Mono<Pushable> processChunkForPushableWithPushChunk(
+  // Process 1000 records and send to target
+  // TODO Can I do this more neatly, transforming the records one by one in a flux and then chunking at the end?
+  // RETURNS earliestSeen, latestSeen and remainingCount (naive)
+  protected Mono<Tuple3<Instant, Instant, Long>> processAndPushRecords(
     Pushable psh,
     Destination destination,
     DestinationClient<Destination> client,
@@ -120,93 +116,103 @@ public class PushService {
     PushChunk chunk,
     ComponentSpec<JsonNode> proteusSpec
   ) {
+    // TODO this might be a bit noisy in general
+    log.info("PushService::processAndPushRecords called with {} records", sourceRecordChunk.size());
     // First transform the whole sourceRecord
     return Flux.fromIterable(sourceRecordChunk)
-        .flatMap(sourceRecord -> {
-          try {
-            JsonNode transformedRecord = proteusService.convert(
-              proteusSpec,
-              sourceRecord.getJsonRecord()
-            );
-            return Mono.just(Tuples.of(sourceRecord, transformedRecord));
-          } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            return Mono.error(e);
-          }
-        })
-        .collectList()
-        // Change List<Tuple2<SourceRecord, JsonNode>> into Tuple3<List<JsonNode>, Instant, Instant>
-        // where instants are earliest and latest timestamp in chunk
-        .flatMap(list -> {
-          return Flux.fromIterable(list)
-            .reduce(
-              Tuples.of(new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
-              (acc, tuple) -> {
-                Instant sourceRecordUpdated = tuple.getT1().getUpdated();
-                Instant earliestSeen = acc.getT2();
-                Instant latestSeen = acc.getT3();
-                
-                // STORE EARLIEST SOURCE RECORD "updated" IN T3
-                if (sourceRecordUpdated.isBefore(earliestSeen)) {
-                  earliestSeen = sourceRecordUpdated;
-                }
-                // STORE LATEST SOURCE RECORD "updated" IN T4
-                if (sourceRecordUpdated.isAfter(latestSeen)) {
-                  latestSeen = sourceRecordUpdated;
-                }
-                
-                acc.getT1().add(tuple.getT2());
-                
-                // I think this works... Tuples are immutable so return list
-                return Tuples.of(acc.getT1(), earliestSeen, latestSeen);
+      .flatMap(sourceRecord -> {
+        try {
+          JsonNode transformedRecord = proteusService.convert(
+            proteusSpec,
+            sourceRecord.getJsonRecord()
+          );
+          return Mono.just(Tuples.of(sourceRecord, transformedRecord));
+        } catch (IOException e) {
+          e.printStackTrace();
+          return Mono.error(e);
+        }
+      })
+      .collectList()
+      // Change List<Tuple2<SourceRecord, JsonNode>> into Tuple3<List<JsonNode>, Instant, Instant>
+      // where instants are earliest and latest timestamp in chunk
+      .flatMap(list -> {
+        //log.info("Handled list of 1000 {}", list.size());
+        return Flux.fromIterable(list)
+          .reduce(
+            Tuples.of(new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
+            (acc, tuple) -> {
+              Instant sourceRecordUpdated = tuple.getT1().getUpdated();
+              Instant earliestSeen = acc.getT2();
+              Instant latestSeen = acc.getT3();
+              
+              // STORE EARLIEST SOURCE RECORD "updated" IN T3
+              if (sourceRecordUpdated.isBefore(earliestSeen)) {
+                earliestSeen = sourceRecordUpdated;
               }
-            );
-        })
-        .flatMap(TupleUtils.function((recordsList, earliestSeen, latestSeen) -> {  // ConcatMap to ensure that we only start sending chunk B after chunk A has returned
-          // Set up chunk here and save?
-            JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
-              new AbstractMap.SimpleEntry<String, JsonNode>("sessionId", JsonNode.createStringNode(session.getId().toString())),
-              new AbstractMap.SimpleEntry<String, JsonNode>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
-              new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
-            ));
-          
-          // Logging out what gets sent here, quite noisy
-          /* try {
-            // Just logging out the output here
-            log.info("SENDING JSON OUTPUT: {}", objectMapper.writeValueAsString(pushKBJsonOutput));
-          } catch (Exception e) {
-            e.printStackTrace();
-          } */
+              // STORE LATEST SOURCE RECORD "updated" IN T4
+              if (sourceRecordUpdated.isAfter(latestSeen)) {
+                latestSeen = sourceRecordUpdated;
+              }
+              
+              acc.getT1().add(tuple.getT2());
+              
+              // I think this works... Tuples are immutable so return list
+              return Tuples.of(acc.getT1(), earliestSeen, latestSeen);
+            }
+          );
+      })
+      .flatMap(TupleUtils.function((recordsList, earliestSeen, latestSeen) -> {  // ConcatMap to ensure that we only start sending chunk B after chunk A has returned
+        // Set up chunk here and save?
+          JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
+            new AbstractMap.SimpleEntry<String, JsonNode>("sessionId", JsonNode.createStringNode(session.getId().toString())),
+            new AbstractMap.SimpleEntry<String, JsonNode>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
+            new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
+          ));
+        
+        // Logging out what gets sent here, quite noisy
+        /* try {
+          // Just logging out the output here
+          log.info("SENDING JSON OUTPUT: {}", objectMapper.writeValueAsString(pushKBJsonOutput));
+        } catch (Exception e) {
+          e.printStackTrace();
+        } */
 
-          return Mono.just(Tuples.of(pushKBJsonOutput, earliestSeen, latestSeen));
-        }))
-        .flatMap(TupleUtils.function((json, earliestSeen, latestSeen) -> {
-    
-          log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
-          return Mono.from(destinationService.push(destination, client, json))
-            .flatMap(bool -> {
-              // Should just be "true", idk why this would ever be false tbh
-    
-              // The earliest record "successfully sent" was the "last sent" timestamp, as we're moving _down_ the list
-              psh.setLastSentPointer(earliestSeen);
-    
-              // Now compare the latest updated record sent in this chunk to the DHP
-              if (latestSeen.compareTo(psh.getDestinationHeadPointer()) > 0) {
-                // We have a new head pointer
-                psh.setDestinationHeadPointer(latestSeen);
-              }
-              return Mono.from(pushableService.update(psh));
-            });
-    
-          //log.info("SENT RECORD: {}", sr.getId());
-        }));
+        return Mono.just(Tuples.of(pushKBJsonOutput, earliestSeen, latestSeen));
+      }))
+      .flatMap(TupleUtils.function((json, earliestSeen, latestSeen) -> {
+  
+        log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
+        return Mono.from(destinationService.push(destination, client, json)).flatMap(bool -> {
+          // bool should just be true, we're only interested in outputting earliestSeen/latestSeen
+
+          // Get a grasp on remainingCount
+          return Mono.from(
+            sourceRecordDatabaseService.countFeed(
+            psh.getSourceId(),
+            psh.getFootPointer(),
+            earliestSeen,
+            Optional.ofNullable(psh.getFilterContext())
+          )).flatMap(remainingCount -> {
+            return Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount));
+          });
+        });
+
+        //log.info("SENT RECORD: {}", sr.getId());
+      }));
   }
 
   // This is useable from the point of view of TemporaryPushTasks AND PushTasks
-  public Mono<Tuple4<Source, Destination, DestinationClient<Destination>, PushSession>> getPushableTuple(Pushable p) {
+  public Mono<Tuple5<Source, Destination, DestinationClient<Destination>, PushSession, ComponentSpec<JsonNode>>> getPushableTuple(Pushable p) {
     return Mono.from(pushableService.getSourceAndDestination(p))
     .flatMap(TupleUtils.function((source, destination) -> {
+      // FIXME this needs to come from the Pushable transform model somehow
+      // FIXME but for now we'll do a direct (domain specific) switch on GokbSourceType (DO NOT DO THIS IN FINAL VERSION)
+      ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec(
+        GokbSource.class.cast(source).getGokbSourceType() == GokbSourceType.TIPP ?
+        "GOKBScroll_TIPP_ERM_transformV1.json" :
+        "GOKBScroll_PKG_ERM_transformV1.json"
+      );
+
       return Mono.from(destinationService.getClient(destination))
         .flatMap(client -> {
           return Mono.from(pushSessionDatabaseService.save(
@@ -216,7 +222,7 @@ public class PushService {
               .build()
           ))
           .flatMap(pushSession -> {
-            return Mono.just(Tuples.of(source, destination, client, pushSession));
+            return Mono.just(Tuples.of(source, destination, client, pushSession, proteusSpec));
           });
         });
     }));
@@ -224,54 +230,96 @@ public class PushService {
 
   public Mono<Pushable> runPushable(Pushable p) {
     return getPushableTuple(p)
-      .flatMap(TupleUtils.function((source, destination, client, session) -> runPushable(p, source, destination, client, session)));
+      .flatMap(TupleUtils.function((source, destination, client, session, proteusSpec) -> runPushableRecursive(p, source, destination, client, session, proteusSpec)));
   }
 
-  private Mono<Pushable> runPushable(
+  public Mono<List<SourceRecord>> get1000SourceRecords(Pushable psh, Instant upperBound, Instant lowerBound) {
+    return Flux.from(sourceRecordDatabaseService.getSourceRecordFeed(
+      psh.getSourceId(),
+      // TODO what happens if we have two records with the same timestamp? - Unlikely but possible I guess
+      //Instant.EPOCH,
+      lowerBound,
+      //Instant.now()
+      upperBound,
+      Optional.ofNullable(psh.getFilterContext())
+    )).collectList();
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW) // Set in its own transaction so it can rollback all together if anything fails
+  public Mono<Pushable> processChunk(
+    Pushable psh,
+    Instant upperBound,
+    Instant lowerBound,
+    Destination destination,
+    Source source,
+    DestinationClient<Destination> client,
+    PushChunk chunk,
+    PushSession session,
+    ComponentSpec<JsonNode> proteusSpec,
+    Long initialCount
+  ) {
+    return get1000SourceRecords(psh, upperBound, lowerBound)
+      .flatMap(sourceRecordChunk -> {
+        return processAndPushRecords(psh, destination, client, session, sourceRecordChunk, chunk, proteusSpec)
+          // ----- CATCH UP IF WE MISSED ANY SOURCE RECORDS -----
+          // FIXME This is the only place we can't recover from a dropped instance -- we'd be missing some records
+          .flatMap(TupleUtils.function((earliestSeen, latestSeen, remainingCount1) -> {
+            // First things first, let's check whether we're potentially skipping any records
+              log.info("{} records remaining in this queue", remainingCount1);
+              Long expectedCount = Long.max(initialCount - 1000L, 0L);
+              if (!remainingCount1.equals(expectedCount)) {
+                log.warn("We're potentially missing records (remainingCount: {}, expectedCount: {}), specifically fetch and send those.", remainingCount1, expectedCount);
+
+                // We want to process and send a much smaller chunk here by itself
+                return getCatchUpSourceRecords(psh, earliestSeen).flatMap(catchUpChunk -> {
+                  return processAndPushRecords(psh, destination, client, session, catchUpChunk, chunk, proteusSpec);
+                });
+              }
+
+              // If no catch up is needed, just send down the earliestSeen/latestSeen again
+              return Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount1));
+          }));
+    })
+    .flatMap(TupleUtils.function((earliestSeen, latestSeen, remainingCount2) -> {
+      // Should just be "true", idk why this would ever be false tbh
+
+      // The earliest record "successfully sent" was the "last sent" timestamp, as we're moving _down_ the list
+      psh.setLastSentPointer(earliestSeen);
+
+      // Now compare the latest updated record sent in this chunk to the DHP
+      if (latestSeen.compareTo(psh.getDestinationHeadPointer()) > 0) {
+        // We have a new head pointer
+        psh.setDestinationHeadPointer(latestSeen);
+      }
+
+      if (remainingCount2 == 0) {
+        // We have no more records to send between lastSentPointer and footPointer,
+        // bring footPointer up to destination head pointer
+        psh.setFootPointer(psh.getDestinationHeadPointer());
+      }
+      return Mono.from(pushableService.update(psh));
+    }));
+  }
+
+  // Fetch those records which specifically match a SINGLE updated timestamp.
+  // TODO I'm betting that there'll never be enough of these to cause memory issues -- this might be foolish
+  public Mono<List<SourceRecord>> getCatchUpSourceRecords(Pushable psh, Instant exactUpdated) {
+    return Flux.from(sourceRecordDatabaseService.getSourceRecordFeedForUpdated(
+      psh.getSourceId(),
+      exactUpdated,
+      Optional.ofNullable(psh.getFilterContext())
+    )).collectList();
+  }
+
+  // This method will do a SINGLE chunk of 1000 and then call itself
+  private Mono<Pushable> runPushableRecursive(
     Pushable psh,
     Source source,
     Destination destination,
     DestinationClient<Destination> client,
-    PushSession session
+    PushSession session,
+    ComponentSpec<JsonNode> proteusSpec
   ) {
-    //log.info("runPushable called for {}", psh);
-    // We potentially need to run this twice, once to zip up hole,
-    //once to bring in line with latest changes
-    return Mono.from(runPushableSingle(psh, source, destination, client, session))
-      // At this point, we should ALWAYS have "zipped up" the gap in records, next check if any new ones exist ahead of DHP
-				// Go lookup head of stream (Pushable sourceId should never have changed...)
-      .zipWith(
-        // Grab sourceId from pushable, and then use that to grab Instant head of source feed
-        // Again we assume that id is unique across sourceTypes
-        Mono.from(sourceRecordDatabaseService.findTopOfFeed(
-          psh.getSourceId(),
-          Optional.ofNullable(psh.getFilterContext())
-        ))
-      )
-      .flatMap(tuple -> {
-        Pushable lastPsh = tuple.getT1();
-        Instant sourceRecordHead = tuple.getT2();
-        if (sourceRecordHead.compareTo(lastPsh.getDestinationHeadPointer()) > 0) {
-          // There are fresh records ahead of the footPointer, rerun from lastPT
-          // ATM we do this specifically as a second run, we could recurse this, but honestly running once an hour should be fine
-          log.info("Fresh records exist ahead of destinationHeadPointer, bringing in line");
-          return runPushableSingle(lastPsh, source, destination, client, session);
-        }
-
-        // No need to rerun, just
-        return Mono.just(psh);
-      });
-  }
-
-  public Mono<Pushable> runPushableSingle(
-    Pushable psh,
-    Source source,
-    Destination destination,
-    DestinationClient<Destination> client,
-    PushSession session
-  ) {
-    //log.info("runPushableSingle called with {}", psh);
-
     final Instant lowerBound = psh.getFootPointer();
     Instant upperBound = Instant.now();
 
@@ -281,63 +329,37 @@ public class PushService {
     } // Otherwise, use head of stack with Instant.now()
     final Instant finalUpperBound = upperBound;
 
-    log.info("UPPER BOUND: {}", upperBound);
+    log.info("UPPER BOUND: {}", finalUpperBound);
     log.info("LOWER BOUND: {}", lowerBound);
 
-    // FIXME this needs to come from the Pushable transform model somehow
-    // FIXME but for now we'll do a direct (domain specific) switch on GokbSourceType (DO NOT DO THIS IN FINAL VERSION)
-    ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec(
-      GokbSource.class.cast(source).getGokbSourceType() == GokbSourceType.TIPP ?
-      "GOKBScroll_TIPP_ERM_transformV1.json" :
-      "GOKBScroll_PKG_ERM_transformV1.json"
-    );
+    // The plan here is to first check if there are "zip up" records.
+    // If so, fetch 1k of them, process, send and then recurse this method.
+    // If not, run from head of records queue downwards fetching 1k and then recurse this method.
 
+    // Should mean we always do full ingest even if it's ingesting while we push.
+    // Also keeps each transaction down to 1k in from DB, process/send and then update Pushable.
+    // Hopefully 30s-1m at most.
+    // This will ALSO prevent loading all ~1.1m records into memory at once.
+    // It _will_ still have a lock on the DutyCycleTask for the whole duration,
+    // to be checked whether that causes any postgres issues
     return Mono.from(sourceRecordDatabaseService.countFeed(
-      psh.getSourceId(),
-      lowerBound,
-      finalUpperBound,
-      Optional.ofNullable(psh.getFilterContext())
-    )).flatMapMany(count -> {
-      log.info("Pushing {} records", count);
-      return Flux.from(sourceRecordDatabaseService.getSourceRecordFeed(
         psh.getSourceId(),
-        // TODO what happens if we have two records with the same timestamp? - Unlikely but possible I guess
-        //Instant.EPOCH,
         lowerBound,
-        //Instant.now()
         finalUpperBound,
         Optional.ofNullable(psh.getFilterContext())
-      ));
-    })
-    //.limitRate(3000, 2000) // Ensure we don't have massive backpressure causing enormous memory strain (?)
-    // Flux<SourceRecord> -> aiming for Tuple<SourceRecord, <JsonNode>>?
-    // Parallelise transform within each buffered chunk (tracking earliest and latest so order within chunk doesn't matter)
-    .buffer(BUNDLE_SIZE)
-    .concatMap(sourceRecordChunk -> processChunkForPushable(psh, destination, client, session, sourceRecordChunk, proteusSpec))
-    .takeLast(1) // This will contain the PT as it stands after the LAST record in the stack
-    .next() // This should be a passive version of last(), where if stream is empty we don't get a crash
-    .flatMap(lastPsh -> {
-      /* If previous footPointer is updated
-       * then the between logic will return a list NOT containing
-       * a record equal to or below FootPointer.
-       *
-       * If we have reached the end of the list successfully then the destinationHeadPointer
-       * should be the new footPointer. ASSUMES THAT THE BETWEEN WORKS AS EXPECTED
-       */
-      // Is this if necessary? DHP should always be ahead of FP
-      if (lastPsh.getDestinationHeadPointer().compareTo(psh.getFootPointer()) > 0 ) {
-        // We reached the end but never moved footPointer
-        lastPsh.setFootPointer(lastPsh.getDestinationHeadPointer());
-        return Mono.from(pushableService.update(lastPsh));
-      }
+      )).flatMap(initialCount -> {
+        if (initialCount != 0) {
+          log.info("PushService::runPushableRecursive with {} records in queue", initialCount);
+          return Mono.from(setUpPushChunk(session))
+            // Separated this part of the stream out ONLY so I can wrap it in a single transaction we can roll back
+            .flatMap(chunk -> processChunk(psh, finalUpperBound, lowerBound, destination, source, client, chunk, session, proteusSpec, initialCount))
+            .flatMap(persistedPsh -> {
+              return runPushableRecursive(persistedPsh, source, destination, client, session, proteusSpec);
+            });
+        }
 
-      // If nothing changed, just return PT as is
-      return Mono.just(lastPsh);
-      /*
-       * TODO
-       * DOWNSTREAM will need to inspect the changed Pushable and make decisions
-       * about continuing/moving on based on pointers and head of record stack
-       */
-    });
+        log.info("PushService::runPushableRecursive has reached end of queue");
+        return Mono.just(psh);
+      });
   }
 }

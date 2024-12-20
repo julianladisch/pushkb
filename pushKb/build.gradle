@@ -10,7 +10,9 @@ plugins {
 	id("com.github.johnrengelman.shadow") version "8.1.1"
 	// See https://plugins.gradle.org/plugin/io.micronaut.application
 	id("io.micronaut.application") version "$micronautGradleVersion"
-	id("io.micronaut.test-resources") version "$micronautGradleVersion"
+
+	// Turn off testresources starting every run
+	//id("io.micronaut.test-resources") version "$micronautGradleVersion"
 	id("io.micronaut.aot") version "$micronautGradleVersion"
 	id("jacoco")
 	id("com.k_int.pushKb.pushKb-bom")
@@ -105,6 +107,9 @@ dependencies {
 	runtimeOnly("io.r2dbc:r2dbc-pool")
 
 	implementation("io.micronaut.flyway:micronaut-flyway")
+	// This is now necessary for flyway v10
+	runtimeOnly("org.flywaydb:flyway-database-postgresql")
+
 	implementation("com.k-int.proteus:proteus-core")
 
 	// Tests
@@ -113,7 +118,7 @@ dependencies {
 	testAnnotationProcessor("io.micronaut.data:micronaut-data-processor")
 
 	testImplementation("io.micronaut.test:micronaut-test-junit5")
-	testImplementation('org.mock-server:mockserver-junit-jupiter')
+//	testImplementation('org.mock-server:mockserver-junit-jupiter')
 	testImplementation('org.hamcrest:hamcrest')
 	testImplementation('org.awaitility:awaitility')
 	testImplementation("org.junit.jupiter:junit-jupiter-params")
@@ -125,6 +130,8 @@ dependencies {
 	// Don't need ES (yet?)
 	/* testImplementation("org.testcontainers:elasticsearch")
 	testImplementation("io.micronaut.testresources:micronaut-test-resources-elasticsearch") */
+	// implementation project(':taskscheduler:taskscheduler')
+	implementation 'com.k_int:taskscheduler'
 }
 
 //rewrite {
@@ -170,6 +177,9 @@ tasks {
 	dockerfile {
 		baseImage 'eclipse-temurin:17-alpine'
 		label(labels)
+		environmentVariable 'TASKSCHEDULER_REACTIVE_CONCURRENCY', ''
+		environmentVariable 'TASKSCHEDULER_SYNCHRONOUS_CONCURRENCY', ''
+		environmentVariable 'TASKSCHEDULER_INTERVAL', ''
 		environmentVariable 'MICRONAUT_CONFIG_FILES', ''
 		environmentVariable 'DB_HOST', ''
 		environmentVariable 'DB_PORT', ''

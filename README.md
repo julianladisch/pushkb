@@ -1,5 +1,8 @@
 # Developer information
 
+## Cloning
+At the moment, this module relies on an as-yet unreleased module "taskscheduler". This is included as a git submodule, and so the options are _either_ to clone with submodules `git clone <this repo> --recurse-submodules` or after running `git clone` to also run `git submodule init` followed by `git submodule update`.
+
 ## Bootstrapping
 As a temporary measure, Sources, Destinations and PushTasks must be bootstrapped into the module by way of `micronaut.config.files` (Or running with a custom profile yml)
 
@@ -58,7 +61,7 @@ pushables:
       destination: EXAMPLE_FOLIO_PCI
 ```
 
-## Running as dev
+## Running
 To run the module as a developer, first navigate to `/infrastructure` and run `docker compose up`. This will configure a testing DB with a postgres and a keycloak (WIP, kKC is not in use right now... to be worked on).
 
 Postgres should start on port `6543` to avoid clashes with any local postgres instances for FOLIO or such.
@@ -111,3 +114,6 @@ PushKB accepts multiple env vars
 - TASKSCHEDULER_REACTIVE_CONCURRENCY (Not available in alpha 1)
   - Configures the number of tasks the singular instance can carry out simultaneously (default 1)
   - RAM and thread resources need to increase with this setting.
+  
+## Docker images
+ "Alpha 1" as referenced above can be found at https://docker.libsdev.k-int.com/pushkb:1.0-alpha.3

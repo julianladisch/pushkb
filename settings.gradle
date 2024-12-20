@@ -1,2 +1,3 @@
 rootProject.name = 'pushKb-project'
 include 'pushKb'
+includeBuild 'taskscheduler'

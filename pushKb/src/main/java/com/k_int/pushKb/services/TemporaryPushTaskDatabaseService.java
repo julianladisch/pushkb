@@ -20,6 +20,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class TemporaryPushTaskDatabaseService implements PushableDatabaseService<TemporaryPushTask> {
   private final TemporaryPushTaskRepository temporaryPushTaskRepository;
+  
 	public TemporaryPushTaskDatabaseService(
     TemporaryPushTaskRepository temporaryPushTaskRepository
   ) {
@@ -51,11 +52,12 @@ public class TemporaryPushTaskDatabaseService implements PushableDatabaseService
 
     return Mono.from(temporaryPushTaskRepository.existsById(gen_id))
       .flatMap(doesItExist -> {
-        return Mono.from(doesItExist ?
-          temporaryPushTaskRepository.findById(gen_id) :
-          temporaryPushTaskRepository.save(tpt)
-        );
-    });
+        if (doesItExist) {
+          return Mono.from(temporaryPushTaskRepository.findById(gen_id));
+        }
+
+        return Mono.from(temporaryPushTaskRepository.save(tpt));
+      });
   };
 
   @Transactional
@@ -69,6 +71,7 @@ public class TemporaryPushTaskDatabaseService implements PushableDatabaseService
     return temporaryPushTaskRepository.update(tpt);
   }
 
+  // FIXME right now this needs to delete the registered DCT as well
   @Transactional
   public Publisher<Boolean> complete (@Valid TemporaryPushTask tpt) {
     log.info("{}({}) completed at {}", tpt.getClass(), tpt.getId(), Instant.now());
