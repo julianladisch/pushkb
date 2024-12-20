@@ -106,12 +106,12 @@ PushKB accepts multiple env vars
 - MICRONAUT_CONFIG_FILES
   - Accepts a path string pointing at a YML file for bootstrapping as above
   - This will likely be removed once there is a proper API
-- TASKSCHEDULER_INTERVAL
+- TASKSCHEDULER_INTERVAL (As of newest SNAPSHOT image this is mandatory, defaulting not behaving as expected -- Not available in alpha 1)
   - Accepts a Duration-parseable-string such as `PT10S` (10 seconds -- the default)
   - This allows configuration of how often the module requests a new task (if concurrency is not full)
     - This means that concurrency of 15 would regularly take 150 seconds to "fill up"
   - Duration string documentation [here](https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-)
-- TASKSCHEDULER_REACTIVE_CONCURRENCY (Not available in alpha 1)
+- TASKSCHEDULER_REACTIVE_CONCURRENCY (As of newest SNAPSHOT image this is mandatory, defaulting not behaving as expected -- Not available in alpha 1)
   - Configures the number of tasks the singular instance can carry out simultaneously (default 1)
   - RAM and thread resources need to increase with this setting.
   
