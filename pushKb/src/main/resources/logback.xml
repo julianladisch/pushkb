@@ -17,6 +17,9 @@
 
 	<logger name="com.k_int.pushKb" level="DEBUG"/>
 
+	<!-- TODO These can be pretty noisy, we will eventually want to tone these down -->
+	<logger name="com.k_int.taskscheduler" level="DEBUG"/>
+
 	<!-- SQL - uncomment for very verbose logs -->
 	<!--
 		<logger name="io.micronaut.data.query" level="TRACE"/>
