@@ -15,6 +15,7 @@ image:
 
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  GIT_SUBMODULE_STRATEGY: normal
 
 before_script:
   - GRADLE_USER_HOME="$(pwd)/.gradle"
