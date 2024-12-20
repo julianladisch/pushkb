@@ -43,7 +43,7 @@ public class SchedulingService {
 		ingestRunnerDisposable = null;
 	}
 
-	// Run 30 mins out of sync with ingest -- idea is that it shouldn't care if things are already running etc.
+/* 	// Run 30 mins out of sync with ingest -- idea is that it shouldn't care if things are already running etc.
 	@Scheduled(initialDelay = "30m", fixedDelay = "1h")
 	//@Scheduled(initialDelay = "2m", fixedDelay = "1h")
 	public void pushRunner() {
@@ -68,10 +68,10 @@ public class SchedulingService {
 		} else {
 			log.warn("Pushes in progress, skipping");
 		}
-	}
+	} */
 
-
-  @Scheduled(initialDelay = "1s", fixedDelay = "1h")
+	// FIXME turn ingest into a taskScheduler Task too?
+  /* @Scheduled(initialDelay = "1s", fixedDelay = "1h")
 	public void ingestRunner() {
 		if (ingestRunnerDisposable == null) {
 			// Fetch all source implementers from sourceService
@@ -92,5 +92,5 @@ public class SchedulingService {
 		} else {
 			log.warn("Ingest in progress, skipping");
 		}
-	}
+	} */
 }

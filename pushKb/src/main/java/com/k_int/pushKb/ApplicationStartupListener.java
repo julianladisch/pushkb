@@ -1,6 +1,9 @@
 package com.k_int.pushKb;
 
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.reactivestreams.Publisher;
 
@@ -18,7 +21,8 @@ import com.k_int.pushKb.bootstrap.ConfigBootstrapDestinations.ConfigBootstrapFol
 
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.services.SourceService;
-
+import com.k_int.taskscheduler.model.DutyCycleTask;
+import com.k_int.taskscheduler.services.ReactiveDutyCycleTaskRunner;
 import com.k_int.pushKb.interactions.gokb.model.Gokb;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
@@ -27,7 +31,6 @@ import com.k_int.pushKb.interactions.gokb.storage.GokbRepository;
 import com.k_int.pushKb.bootstrap.ConfigBootstrapSources;
 import com.k_int.pushKb.bootstrap.ConfigBootstrapSources.ConfigBootstrapGokb;
 import com.k_int.pushKb.bootstrap.ConfigBootstrapSources.ConfigBootstrapGokbSource;
-
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.services.PushableService;
 
@@ -36,7 +39,6 @@ import com.k_int.pushKb.bootstrap.ConfigBootstrapPushables;
 import io.micronaut.context.env.Environment;
 import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.context.event.StartupEvent;
-
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 
@@ -56,7 +58,10 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 	private final ConfigBootstrapDestinations configBootstrapDestinations;
 	private final ConfigBootstrapPushables configBootstrapPushables;
 
+	// private final ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner;
+
 	public ApplicationStartupListener(
+		//ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner,
     Environment environment,
 		DestinationService destinationService,
 		SourceService sourceService,
@@ -73,6 +78,8 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		this.configBootstrapSources = configBootstrapSources;
 		this.configBootstrapDestinations = configBootstrapDestinations;
 		this.configBootstrapPushables = configBootstrapPushables;
+
+		//this.reactiveDutyCycleTaskRunner = reactiveDutyCycleTaskRunner;
 	}
 
 	@Override
@@ -83,6 +90,9 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 				.thenMany(Flux.from(bootstrapDestinations()))
 				.thenMany(Flux.from(bootstrapPushTasks()))
 			.subscribe();
+
+			// TODO Quick and dirty task testing -- move to test file for job runner
+			// Flux.from(bootstrapTestTasks()).subscribe();
 
 		log.info("Exit onApplicationEvent");
 	}
@@ -115,7 +125,10 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		// TODO this is obviously quite domain specific -- if we ever want this in prod maybe move it to GOKB class type and have that worked into bootstrapping
 		return Flux.fromIterable(configBootstrapSources.getGokbsources()).concatMap(src -> {
 			try {
-				return sourceService.ensureSource(getGokbSourceFromConfig(src));
+				GokbSource gkbSource = getGokbSourceFromConfig(src);
+				UUID srcId = GokbSource.generateUUIDFromSource(gkbSource);
+
+				return Mono.from(sourceService.ensureSource(gkbSource));
 			} catch (Exception e) {
 				log.error("ERROR BOOTSTRAPPING SRC {}", src, e);
 				//e.printStackTrace();
@@ -205,4 +218,18 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 			}
 		});
 	}
+
+	// TODO this should be commented out (or gone) for prod -- move to test file
+	/* private Publisher<DutyCycleTask> bootstrapTestTasks() {
+		log.debug("bootstrapPushTasks");
+		return Flux.fromStream(IntStream.range(0, 100).boxed())
+			.flatMap(ind -> {
+				return reactiveDutyCycleTaskRunner.registerTask(
+					Long.valueOf(1000*60),
+					String.join(": ", "index", ind.toString()),
+					"ReactiveTestTask",
+					Map.of("index", ind)
+				);
+			});
+	} */
 }
