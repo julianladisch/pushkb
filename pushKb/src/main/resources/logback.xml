@@ -19,6 +19,7 @@
 
 	<!-- TODO These can be pretty noisy, we will eventually want to tone these down -->
 	<logger name="com.k_int.taskscheduler" level="DEBUG"/>
+	<!-- <logger name="com.k_int.taskscheduler" level="INFO"/> -->
 
 	<!-- SQL - uncomment for very verbose logs -->
 	<!--
