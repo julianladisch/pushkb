@@ -88,7 +88,7 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 			})
 			.flatMap(string -> Mono.just(Boolean.TRUE));
 			//.doOnError(HttpClientException.class, getErrorHandler(client));
-			// TODO this probably isn't right, but it'll do for now
+			// This probably isn't right, but it'll do for now
 			//.onErrorResume(HttpClientException.class, hce -> Mono.just(Boolean.FALSE));
 		} else {
 			return Mono.error(new IllegalArgumentException("Client must be a FolioApiClient"));

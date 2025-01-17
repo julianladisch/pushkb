@@ -105,7 +105,6 @@ public class PushService {
   }
 
   // Process 1000 records and send to target
-  // TODO Can I do this more neatly, transforming the records one by one in a flux and then chunking at the end?
   // RETURNS earliestSeen, latestSeen and remainingCount (naive)
   protected Mono<Tuple3<Instant, Instant, Long>> processAndPushRecords(
     Pushable psh,
@@ -236,7 +235,9 @@ public class PushService {
   public Mono<List<SourceRecord>> get1000SourceRecords(Pushable psh, Instant upperBound, Instant lowerBound) {
     return Flux.from(sourceRecordDatabaseService.getSourceRecordFeed(
       psh.getSourceId(),
-      // TODO what happens if we have two records with the same timestamp? - Unlikely but possible I guess
+      // If we have two records with the same timestamp we miss records.
+      // This is actually quite common, so there's an "overlap" resend after a push.
+      // This means the destination WILL get some files twice, and it's expected that they will handle this
       //Instant.EPOCH,
       lowerBound,
       //Instant.now()
@@ -262,7 +263,8 @@ public class PushService {
       .flatMap(sourceRecordChunk -> {
         return processAndPushRecords(psh, destination, client, session, sourceRecordChunk, chunk, proteusSpec)
           // ----- CATCH UP IF WE MISSED ANY SOURCE RECORDS -----
-          // FIXME This is the only place we can't recover from a dropped instance -- we'd be missing some records
+          // This is the only place we can't recover from a dropped instance -- we'd be missing some records
+          // TODO If we handle the transaction boundaries here better we could rollback all the saves in one go?
           .flatMap(TupleUtils.function((earliestSeen, latestSeen, remainingCount1) -> {
             // First things first, let's check whether we're potentially skipping any records
               log.info("{} records remaining in this queue", remainingCount1);
@@ -302,7 +304,7 @@ public class PushService {
   }
 
   // Fetch those records which specifically match a SINGLE updated timestamp.
-  // TODO I'm betting that there'll never be enough of these to cause memory issues -- this might be foolish
+  // I'm betting that there'll never be enough of these to cause memory issues -- this might be foolish
   public Mono<List<SourceRecord>> getCatchUpSourceRecords(Pushable psh, Instant exactUpdated) {
     return Flux.from(sourceRecordDatabaseService.getSourceRecordFeedForUpdated(
       psh.getSourceId(),

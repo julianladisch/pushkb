@@ -13,7 +13,11 @@
     "sourceDataCreated": "$.dateCreated",
     "sourceDataUpdated": "$.lastUpdatedDisplay",
     "sourceTitleCount": "$.titleCount",
-    "availabilityScope": "$.global",
+    "availabilityScope": {
+      "#type": "string_to_case",
+      "value": "$.global",
+      "case": "LOWER_SNAKE"
+    },
     "availabilityConstraints": {
       "#type": "fallback",
       "strategies": [
@@ -117,22 +121,20 @@
                       "strategies": [
                         {
                           "#type": "require",
-                          "require": "$.[?(@.namespace empty false)]",
+                          "require": "$.[?(@.namespaceName empty false)]",
                           "value": {
-                            "#type": "regex_replace",
-                            "value": "$.namespace",
-                            "pattern": "(\\s+)",
-                            "replacement": "_"
+                            "#type": "string_to_case",
+                            "case": "LOWER_SNAKE",
+                            "value": "$.namespaceName"
                           }
                         },
                         {
                           "#type": "require",
-                          "require": "$.[?(@.namespaceName empty false)]",
+                          "require": "$.[?(@.namespace empty false)]",
                           "value": {
-                            "#type": "regex_replace",
-                            "value": "$.namespaceName",
-                            "pattern": "(\\s+)",
-                            "replacement": "_"
+                            "#type": "string_to_case",
+                            "case": "LOWER_SNAKE",
+                            "value": "$.namespace"
                           }
                         }
                       ]
@@ -142,22 +144,20 @@
               },
               {
                 "#type": "require",
-                "require": "$.[?(@.namespace empty false)]",
+                "require": "$.[?(@.namespaceName empty false)]",
                 "value": {
-                  "#type": "regex_replace",
-                  "value": "$.namespace",
-                  "pattern": "(\\s+)",
-                  "replacement": "_"
+                  "#type": "string_to_case",
+                  "case": "LOWER_SNAKE",
+                  "value": "$.namespaceName"
                 }
               },
               {
                 "#type": "require",
-                "require": "$.[?(@.namespaceName empty false)]",
+                "require": "$.[?(@.namespace empty false)]",
                 "value": {
-                  "#type": "regex_replace",
-                  "value": "$.namespaceName",
-                  "pattern": "(\\s+)",
-                  "replacement": "_"
+                  "#type": "string_to_case",
+                  "case": "LOWER_SNAKE",
+                  "value": "$.namespace"
                 }
               }
             ]
@@ -183,4 +183,4 @@
     ]
   },
   "packageContents": []
-}
+},
