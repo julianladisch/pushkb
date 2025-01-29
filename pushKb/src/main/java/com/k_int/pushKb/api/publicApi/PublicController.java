@@ -1,4 +1,4 @@
-package com.k_int.pushKb.api;
+package com.k_int.pushKb.api.publicApi;
 
 import reactor.core.publisher.Mono;
 import io.micronaut.core.annotation.Nullable;

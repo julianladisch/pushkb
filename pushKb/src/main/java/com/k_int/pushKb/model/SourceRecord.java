@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.k_int.pushKb.converters.ClassAttributeConverter;
+import com.k_int.pushKb.crud.HasId;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
@@ -28,7 +29,7 @@ import services.k_int.utils.UUIDUtils;
 @AllArgsConstructor
 @MappedEntity
 @Builder(toBuilder = true)
-public class SourceRecord {
+public class SourceRecord implements HasId {
 	@Id
 	@TypeDef(type = DataType.UUID)
   @NotNull

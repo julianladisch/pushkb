@@ -1,10 +1,12 @@
 package com.k_int.pushKb.services;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.interactions.DestinationClient;
+import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import com.k_int.pushKb.model.Destination;
 
 import io.micronaut.context.BeanContext;
@@ -15,6 +17,9 @@ import jakarta.inject.Singleton;
 // This is the place to do any generic destination MODEL stuff, with specific model work being handled by the repositories
 @Singleton
 public class DestinationService {
+  // static to return all destination implementing classes -- not sure if this belongs here tbh
+  public static final Set<Class<? extends Destination>> destinationImplementors = Set.of(FolioDestination.class);
+
   private final BeanContext beanContext;
   public DestinationService ( BeanContext beanContext ) {
 

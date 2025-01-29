@@ -4,6 +4,7 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.util.UUID;
 
+import com.k_int.pushKb.crud.HasId;
 import com.k_int.pushKb.model.Destination;
 
 import lombok.AllArgsConstructor;
@@ -25,7 +26,7 @@ import io.micronaut.data.model.DataType;
 @AllArgsConstructor
 @MappedEntity("folio_destination")
 @Builder(toBuilder = true)
-public class FolioDestination implements Destination {
+public class FolioDestination implements Destination, HasId {
   @Id
 	@TypeDef(type = DataType.UUID)
 	private UUID id;

@@ -4,6 +4,8 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.util.UUID;
 
+import com.k_int.pushKb.crud.HasId;
+
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.annotation.Id;
@@ -28,7 +30,7 @@ import services.k_int.utils.UUIDUtils;
 @MappedEntity("folio_tenant")
 @AllArgsConstructor
 @Builder(toBuilder = true)
-public class FolioTenant {
+public class FolioTenant implements HasId {
   @Id
 	@TypeDef(type = DataType.UUID)
 	private UUID id;

@@ -75,7 +75,7 @@ public class SchedulingService {
 	public void ingestRunner() {
 		if (ingestRunnerDisposable == null) {
 			// Fetch all source implementers from sourceService
-			ingestRunnerDisposable = Flux.from(sourceService.getSourceImplementors())
+			ingestRunnerDisposable = Flux.from(sourceService.getSourceImplementors()) // FIXME this is changed for a static I believe
 				// For each class implementing Source, list all actual Sources in DB
 				// PushTasks may rely on whether these have completed or not...
 				.flatMap(sourceService::list)

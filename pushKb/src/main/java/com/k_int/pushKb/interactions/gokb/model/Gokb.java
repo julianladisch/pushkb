@@ -4,6 +4,8 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.util.UUID;
 
+import com.k_int.pushKb.crud.HasId;
+
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
@@ -28,7 +30,7 @@ import services.k_int.utils.UUIDUtils;
 @AllArgsConstructor
 @MappedEntity("gokb")
 @Builder(toBuilder = true)
-public class Gokb {
+public class Gokb implements HasId { // FIXME not a huge fan of this HasId interface, would prefer an annotation but idk how to do that
   @Id
 	@TypeDef(type = DataType.UUID)
 	private UUID id;

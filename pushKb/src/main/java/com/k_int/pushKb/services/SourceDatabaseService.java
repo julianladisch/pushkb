@@ -9,6 +9,7 @@ import com.k_int.pushKb.model.Source;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.json.tree.JsonNode;
 import io.micronaut.transaction.annotation.Transactional;
 
 public interface SourceDatabaseService<T extends Source> {
@@ -35,6 +36,21 @@ public interface SourceDatabaseService<T extends Source> {
   @SingleResult
   @Transactional
   public Publisher<T> saveOrUpdate( T src );
+
+  @NonNull
+  @SingleResult
+  @Transactional
+  public Publisher<T> save( T src );
+
+  @NonNull
+  @SingleResult
+  @Transactional
+  public Publisher<T> update( T src );
+
+  // Not techinically a DB thingy hmmm
+  @NonNull
+  @SingleResult
+  Publisher<T> castToSource(JsonNode src);
 
   default Publisher<T> setLastIngestStarted(T src, Instant time) {
     src.setLastIngestStarted(time);
