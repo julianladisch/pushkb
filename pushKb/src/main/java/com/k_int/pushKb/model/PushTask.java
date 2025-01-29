@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.k_int.pushKb.converters.ClassAttributeConverter;
+import com.k_int.pushKb.crud.HasId;
+import com.k_int.pushKb.serde.ClassSerde;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.Id;
@@ -14,6 +16,8 @@ import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
+import io.micronaut.serde.annotation.Serdeable.Deserializable;
+import io.micronaut.serde.annotation.Serdeable.Serializable;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,11 +30,9 @@ import services.k_int.utils.UUIDUtils;
 @AllArgsConstructor
 @MappedEntity
 @Builder(toBuilder = true)
-public class PushTask implements Pushable {
+public class PushTask implements Pushable, HasId {
   @Id
 	@TypeDef(type = DataType.UUID)
-  @NotNull
-  @NonNull
 	private UUID id;
 
   // TODO we will eventually need to model transform "properly"
@@ -40,10 +42,14 @@ public class PushTask implements Pushable {
 
   private UUID sourceId;
   @TypeDef(type = DataType.STRING, converter = ClassAttributeConverter.class)
+  @Serializable(using=ClassSerde.class)
+  @Deserializable(using=ClassSerde.class)
   private Class<? extends Source> sourceType;
 
   private UUID destinationId;
   @TypeDef(type = DataType.STRING, converter = ClassAttributeConverter.class)
+  @Serializable(using=ClassSerde.class)
+  @Deserializable(using=ClassSerde.class)
   private Class<? extends Destination> destinationType;
 
   /* This record will hold pointers indicating which source_records have been successfully sent.
@@ -68,6 +74,12 @@ public class PushTask implements Pushable {
   public static UUID generateUUIDFromPushTask(PushTask pt) {
     return generateUUID(pt.getSourceId(), pt.getDestinationId());
   }
+
+	public void resetPointer() {
+		this.destinationHeadPointer = Instant.EPOCH;
+		this.lastSentPointer = Instant.EPOCH;
+		this.footPointer = Instant.EPOCH;
+	}
 
 
   // FIXME is there a better way to ensure PushTask and TemporaryPushTask both surface a filterContext?

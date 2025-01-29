@@ -1,5 +1,6 @@
 package com.k_int.pushKb.storage;
 
+import com.k_int.pushKb.crud.ReactiveStreamsPageableRepositoryUUID5;
 import com.k_int.pushKb.model.SourceRecord;
 
 import java.time.Instant;
@@ -11,21 +12,18 @@ import org.slf4j.Logger;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
-import io.micronaut.data.model.Pageable;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
-import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
 import io.micronaut.transaction.annotation.Transactional;
 
 import jakarta.inject.Singleton;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Singleton
 @R2dbcRepository(dialect = Dialect.POSTGRES)
-public interface SourceRecordRepository extends ReactiveStreamsPageableRepository<SourceRecord, UUID> {
+public interface SourceRecordRepository extends ReactiveStreamsPageableRepositoryUUID5<SourceRecord, UUID> {
   Logger log = org.slf4j.LoggerFactory.getLogger(SourceRecordRepository.class);
 
   @Nullable
@@ -49,6 +47,19 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   @Join(value="source")
   Publisher<SourceRecord> findAllBySourceAndUpdatedBetweenOrderByUpdatedDescAndIdAsc(Source source, Instant footTimestamp, Instant headTimestamp);
  */
+
+  @NonNull
+  @SingleResult
+  Publisher<Long> countBySourceIdAndFilterContext(
+    UUID sourceId,
+    String context
+  );
+
+  @NonNull
+  @SingleResult
+  Publisher<Long> countBySourceId(
+    UUID sourceId
+  );
 
   @NonNull
   @SingleResult
@@ -130,4 +141,9 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
         return Mono.from(this.save(sr));
       });
 	}
+
+  @Override
+  default UUID generateUUIDFromObject(SourceRecord obj) {
+    return SourceRecord.generateUUIDFromSourceRecord(obj);
+  }
 }

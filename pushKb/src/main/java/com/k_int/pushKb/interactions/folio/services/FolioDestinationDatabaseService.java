@@ -1,5 +1,6 @@
 package com.k_int.pushKb.interactions.folio.services;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
@@ -10,8 +11,11 @@ import com.k_int.pushKb.services.DestinationDatabaseService;
 
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.data.model.Page;
+import io.micronaut.data.model.Pageable;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -44,6 +48,19 @@ public class FolioDestinationDatabaseService implements DestinationDatabaseServi
   }
 
   @NonNull
+  @SingleResult
+  @Transactional
+  public Publisher<Long> deleteById( UUID id ) {
+    return folioDestinationRepository.deleteById(id);
+  }
+
+  @NonNull
+  @Transactional
+  public Publisher<List<FolioDestination>> findAll(Pageable pageable) {
+    return Mono.from(folioDestinationRepository.findAll(pageable)).map(Page::getContent);
+  }
+
+  @NonNull
   @Transactional
   public Publisher<FolioDestination> list() {
     return folioDestinationRepository.list();
@@ -60,4 +77,16 @@ public class FolioDestinationDatabaseService implements DestinationDatabaseServi
         return Mono.from(folioDestinationRepository.ensureDestination(destination));
       });
     };
+  
+  @Transactional
+  @SingleResult
+  public Publisher<FolioDestination> update ( @NonNull @Valid FolioDestination dest ) {
+    return folioDestinationRepository.update(dest);
+  }
+
+  @Transactional
+  @SingleResult
+  public Publisher<FolioDestination> save ( @NonNull @Valid FolioDestination dest ) {
+    return folioDestinationRepository.save(dest);
+  }
 }

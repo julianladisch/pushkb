@@ -2,6 +2,7 @@ package com.k_int.pushKb.services;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.reactivestreams.Publisher;
@@ -15,6 +16,7 @@ import io.micronaut.context.BeanContext;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.core.type.Argument;
+import io.micronaut.json.tree.JsonNode;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,8 @@ import reactor.core.publisher.Mono;
 public class SourceService {
   private final BeanContext beanContext;
   private final ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner;
+
+  public static final Set<Class<? extends Source>> sourceImplementers = Set.of(GokbSource.class);
 
   public SourceService (
     BeanContext beanContext,
@@ -60,6 +64,7 @@ public class SourceService {
     return (SourceRepository<Source>) beanContext.getBean( Argument.of(SourceRepository.class, sourceType) ); // Use argument specify core type plus any generic...
   } */
 
+
   @SuppressWarnings("unchecked")
   protected <T extends Source> SourceFeedService<Source> getFeedServiceForSourceType( Class<T> sourceType ) {
     return (SourceFeedService<Source>) beanContext.getBean( Argument.of(SourceFeedService.class, sourceType) ); // Use argument specify core type plus any generic...
@@ -70,6 +75,13 @@ public class SourceService {
   @Transactional
   public Publisher<? extends Source> findById( Class<? extends Source> type, UUID id ) {
     return getSourceDatabaseServiceForSourceType(type).findById(id);
+  }
+
+  @NonNull
+  @SingleResult
+  @Transactional
+  public Publisher<? extends Source> castToSource( Class<? extends Source> type, JsonNode sourceObject ) {
+    return getSourceDatabaseServiceForSourceType(type).castToSource(sourceObject);
   }
 
   @NonNull
@@ -89,19 +101,37 @@ public class SourceService {
   @SingleResult
   @Transactional
   public Publisher<? extends Source> ensureSource( Source src ) {
+    log.debug("SourceService::ensureSource called with({})", src);
     return Mono.from(getSourceDatabaseServiceForSourceType(src.getClass()).ensureSource(src))
     .flatMap(persistedSource -> {
       return registerIngestTask(src.getClass(), src)
-        .flatMap(dct -> Mono.just(persistedSource));
+        .flatMap(dct -> Mono.just(persistedSource))
+        .switchIfEmpty(Mono.just(persistedSource)); // Make sure even if task was already registered we still get back the source
     });
   }
 
-  public Publisher<Class<? extends Source>> getSourceImplementors() {
-    HashSet<Class<? extends Source>> sourceClasses = new HashSet<Class<? extends Source>>();
-    // TODO For now manually return set of all Source implementing classes (??)
-    sourceClasses.add(GokbSource.class);
+  @NonNull
+  @SingleResult
+  @Transactional
+  public Publisher<? extends Source> save( Source src ) {
+    log.debug("SourceService::save called with({})", src);
+    return Mono.from(getSourceDatabaseServiceForSourceType(src.getClass()).save(src));
+  }
 
-    return Flux.fromIterable(sourceClasses);
+  @NonNull
+  @SingleResult
+  @Transactional
+  public Publisher<? extends Source> update( Source src ) {
+    log.debug("SourceService::update called with({})", src);
+    return Mono.from(getSourceDatabaseServiceForSourceType(src.getClass()).update(src));
+  }
+
+  @NonNull
+  @SingleResult
+  @Transactional
+  public Publisher<? extends Source> saveOrUpdate( Source src ) {
+    log.debug("SourceService::saveOrUpdate called with({})", src);
+    return Mono.from(getSourceDatabaseServiceForSourceType(src.getClass()).saveOrUpdate(src));
   }
 
   // Expects to return the source AFTER feed completes with all fields saved and up to date
