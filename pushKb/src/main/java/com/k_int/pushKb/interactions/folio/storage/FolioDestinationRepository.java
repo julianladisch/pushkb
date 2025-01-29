@@ -24,7 +24,6 @@ import reactor.core.publisher.Mono;
 
 // Place for any FolioDestination specific logic
 @Singleton
-@Transactional
 @R2dbcRepository(dialect = Dialect.POSTGRES)
 public interface FolioDestinationRepository extends DestinationRepository<FolioDestination> {
 
@@ -59,6 +58,7 @@ public interface FolioDestinationRepository extends DestinationRepository<FolioD
 
   @NonNull
   @SingleResult
+	@Transactional
 	@Join("folioTenant")
   Publisher<FolioDestination> save(@Valid @NotNull FolioDestination dest);
 
@@ -69,11 +69,11 @@ public interface FolioDestinationRepository extends DestinationRepository<FolioD
 
   @NonNull
   @SingleResult
+	@Transactional
 	@Join("folioTenant")
   Publisher<FolioDestination> update(@Valid @NotNull FolioDestination dest);
 
   @NonNull
-  @Transactional
   @Join("folioTenant")
   Publisher<Page<FolioDestination>> findAll(Pageable pageable);
 
