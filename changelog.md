@@ -1,6 +1,36 @@
 # Changelog
 
+## Version 1.0.0-alpha.4
+
+### Additions
+* [General]
+	* API (WIP)
+	* scaling
+
+### Changes
+* [Build]
+	* Bump proteus version to 3.0.0 (Seems to be working right now)
+	* Small tweak to defaults on taskscheduler stuff
+	* Accidental addition of quote marks into config variables where they don't belong
+	* Include taskscheduler environment variable passthroughs in application.yml
+* [Chore]
+	* Tweaks to spec (using new proteus features) and comment tweaks
+	* Taskscheduler minor  commit bump
+	* Taskscheduler logging
+	* Update .gitlab-ci.yml file to force submodules to HTTPS
+* [Docs]
+	* env var README update
+	* README section for implementor information
+
+### Fixes
+* [General]
+	* FolioDestination Transactions
+
 ## Version 1.0.0-alpha.3
+
+### Changes
+* [Chore]
+	* Changelog - Generate the changelog
 
 ### Fixes
 * [General]
