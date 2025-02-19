@@ -114,6 +114,8 @@ PushKB accepts multiple env vars
 - TASKSCHEDULER_REACTIVE_CONCURRENCY (As of newest SNAPSHOT image this is mandatory, defaulting not behaving as expected -- Not available in alpha 1)
   - Configures the number of tasks the singular instance can carry out simultaneously (default 1)
   - RAM and thread resources need to increase with this setting.
+- ACCESSIBLE_URL (Not available in alpha 1 -- not mandatory but needed for V1 package sync work)
+	- This is to allow the pushes from pushKB to contain information about where to send http requests
   
 ## Docker images
  "Alpha 1" as referenced above can be found at https://docker.libsdev.k-int.com/pushkb:1.0-alpha.3
