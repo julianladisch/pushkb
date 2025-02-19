@@ -133,7 +133,7 @@ endpoints:
     sensitive: false
 
 applicationdetails:
-  accessibleurl: ${ACCESSIBLE_ENDPOINT}
+  accessibleurl: ${ACCESSIBLE_URL}
 
 taskscheduler:
   reactive:
