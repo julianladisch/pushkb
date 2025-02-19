@@ -1,6 +1,5 @@
 package com.k_int.pushKb.services;
 
-import java.beans.Transient;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.AbstractMap;
@@ -21,8 +20,9 @@ import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.proteus.ProteusService;
 
+import io.micronaut.context.annotation.Value;
 import io.micronaut.json.tree.JsonNode;
-import io.micronaut.serde.ObjectMapper;
+// import io.micronaut.serde.ObjectMapper;
 import io.micronaut.transaction.TransactionDefinition.Propagation;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
@@ -30,9 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.function.TupleUtils;
-import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple3;
-import reactor.util.function.Tuple4;
 import reactor.util.function.Tuple5;
 import reactor.util.function.Tuples;
 
@@ -51,29 +49,33 @@ public class PushService {
    * that these are being sent in. The chunks can be internally ordered however, but each chunk
    * MUST be in the right order when sent so that we can maintain pointer positions.
    */
-  private static final int BUNDLE_SIZE = 1000;
+  // private static final int BUNDLE_SIZE = 1000;
 
 
   // FIXME investigate how much this is actually needed
 	private final ProteusService proteusService;
-	private final ObjectMapper objectMapper;
+	// private final ObjectMapper objectMapper;
+
+	private final String accessibleUrl;
 
 	public PushService(
+		@Value("${applicationdetails.accessibleurl}") String accessibleUrl,
 		SourceRecordDatabaseService sourceRecordDatabaseService,
     PushableService pushableService,
 		ProteusService proteusService,
     DestinationService destinationService,
     PushSessionDatabaseService pushSessionDatabaseService,
-    PushChunkDatabaseService pushChunkDatabaseService,
-    ObjectMapper objectMapper
+    PushChunkDatabaseService pushChunkDatabaseService
+    // ObjectMapper objectMapper
 	) {
+		this.accessibleUrl = accessibleUrl;
 		this.sourceRecordDatabaseService = sourceRecordDatabaseService;
     this.pushableService = pushableService;
     this.pushSessionDatabaseService = pushSessionDatabaseService;
     this.pushChunkDatabaseService = pushChunkDatabaseService;
 		this.proteusService = proteusService;
     this.destinationService = destinationService;
-		this.objectMapper = objectMapper;
+		// this.objectMapper = objectMapper;
 	}
 
   // TO TEST ALGORITHM
@@ -127,7 +129,8 @@ public class PushService {
           );
           return Mono.just(Tuples.of(sourceRecord, transformedRecord));
         } catch (IOException e) {
-          e.printStackTrace();
+					log.error("Failed to convert record to proteus spec", e);
+          //e.printStackTrace();
           return Mono.error(e);
         }
       })
@@ -163,9 +166,11 @@ public class PushService {
       .flatMap(TupleUtils.function((recordsList, earliestSeen, latestSeen) -> {  // ConcatMap to ensure that we only start sending chunk B after chunk A has returned
         // Set up chunk here and save?
           JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
-            new AbstractMap.SimpleEntry<String, JsonNode>("sessionId", JsonNode.createStringNode(session.getId().toString())),
-            new AbstractMap.SimpleEntry<String, JsonNode>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
-            new AbstractMap.SimpleEntry<String, JsonNode>("records", JsonNode.createArrayNode(recordsList))
+						new AbstractMap.SimpleEntry<>("sessionId", JsonNode.createStringNode(session.getId().toString())),
+            new AbstractMap.SimpleEntry<>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
+						new AbstractMap.SimpleEntry<>("pushableId", JsonNode.createStringNode(psh.getId().toString())),
+						new AbstractMap.SimpleEntry<>("pushKbUrl", JsonNode.createStringNode(accessibleUrl)),
+						new AbstractMap.SimpleEntry<>("records", JsonNode.createArrayNode(recordsList))
           ));
         
         // Logging out what gets sent here, quite noisy
@@ -191,9 +196,7 @@ public class PushService {
             psh.getFootPointer(),
             earliestSeen,
             Optional.ofNullable(psh.getFilterContext())
-          )).flatMap(remainingCount -> {
-            return Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount));
-          });
+          )).flatMap(remainingCount -> Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount)));
         });
 
         //log.info("SENT RECORD: {}", sr.getId());
@@ -207,23 +210,19 @@ public class PushService {
       // FIXME this needs to come from the Pushable transform model somehow
       // FIXME but for now we'll do a direct (domain specific) switch on GokbSourceType (DO NOT DO THIS IN FINAL VERSION)
       ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec(
-        GokbSource.class.cast(source).getGokbSourceType() == GokbSourceType.TIPP ?
+				((GokbSource) source).getGokbSourceType() == GokbSourceType.TIPP ?
         "GOKBScroll_TIPP_ERM_transformV1.json" :
         "GOKBScroll_PKG_ERM_transformV1.json"
       );
 
       return Mono.from(destinationService.getClient(destination))
-        .flatMap(client -> {
-          return Mono.from(pushSessionDatabaseService.save(
-            PushSession.builder()
-              .pushableId(p.getId())
-              .pushableType(p.getClass())
-              .build()
-          ))
-          .flatMap(pushSession -> {
-            return Mono.just(Tuples.of(source, destination, client, pushSession, proteusSpec));
-          });
-        });
+        .flatMap(client -> Mono.from(pushSessionDatabaseService.save(
+						PushSession.builder()
+							.pushableId(p.getId())
+							.pushableType(p.getClass())
+							.build()
+					))
+					.flatMap(pushSession -> Mono.just(Tuples.of(source, destination, client, pushSession, proteusSpec))));
     }));
   } // Nested flatMaps isn't very pretty here, but it brings them altogether without multiple Tuple setups and reads
 
@@ -252,7 +251,7 @@ public class PushService {
     Instant upperBound,
     Instant lowerBound,
     Destination destination,
-    Source source,
+    Source ignoredSource,
     DestinationClient<Destination> client,
     PushChunk chunk,
     PushSession session,
@@ -260,28 +259,25 @@ public class PushService {
     Long initialCount
   ) {
     return get1000SourceRecords(psh, upperBound, lowerBound)
-      .flatMap(sourceRecordChunk -> {
-        return processAndPushRecords(psh, destination, client, session, sourceRecordChunk, chunk, proteusSpec)
-          // ----- CATCH UP IF WE MISSED ANY SOURCE RECORDS -----
-          // This is the only place we can't recover from a dropped instance -- we'd be missing some records
-          // TODO If we handle the transaction boundaries here better we could rollback all the saves in one go?
-          .flatMap(TupleUtils.function((earliestSeen, latestSeen, remainingCount1) -> {
-            // First things first, let's check whether we're potentially skipping any records
-              log.info("{} records remaining in this queue", remainingCount1);
-              Long expectedCount = Long.max(initialCount - 1000L, 0L);
-              if (!remainingCount1.equals(expectedCount)) {
-                log.warn("We're potentially missing records (remainingCount: {}, expectedCount: {}), specifically fetch and send those.", remainingCount1, expectedCount);
+      .flatMap(sourceRecordChunk -> processAndPushRecords(psh, destination, client, session, sourceRecordChunk, chunk, proteusSpec)
+				// ----- CATCH UP IF WE MISSED ANY SOURCE RECORDS -----
+				// This is the only place we can't recover from a dropped instance -- we'd be missing some records
+				// TODO If we handle the transaction boundaries here better we could rollback all the saves in one go?
+				.flatMap(TupleUtils.function((earliestSeen, latestSeen, remainingCount1) -> {
+					// First things first, let's check whether we're potentially skipping any records
+					log.info("{} records remaining in this queue", remainingCount1);
+					Long expectedCount = Long.max(initialCount - 1000L, 0L);
+					if (!remainingCount1.equals(expectedCount)) {
+						log.warn("We're potentially missing records (remainingCount: {}, expectedCount: {}), specifically fetch and send those.", remainingCount1, expectedCount);
 
-                // We want to process and send a much smaller chunk here by itself
-                return getCatchUpSourceRecords(psh, earliestSeen).flatMap(catchUpChunk -> {
-                  return processAndPushRecords(psh, destination, client, session, catchUpChunk, chunk, proteusSpec);
-                });
-              }
+						// We want to process and send a much smaller chunk here by itself
+						return getCatchUpSourceRecords(psh, earliestSeen)
+							.flatMap(catchUpChunk -> processAndPushRecords(psh, destination, client, session, catchUpChunk, chunk, proteusSpec));
+					}
 
-              // If no catch up is needed, just send down the earliestSeen/latestSeen again
-              return Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount1));
-          }));
-    })
+					// If no catch up is needed, just send down the earliestSeen/latestSeen again
+					return Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount1));
+				})))
     .flatMap(TupleUtils.function((earliestSeen, latestSeen, remainingCount2) -> {
       // Should just be "true", idk why this would ever be false tbh
 
@@ -355,9 +351,7 @@ public class PushService {
           return Mono.from(setUpPushChunk(session))
             // Separated this part of the stream out ONLY so I can wrap it in a single transaction we can roll back
             .flatMap(chunk -> processChunk(psh, finalUpperBound, lowerBound, destination, source, client, chunk, session, proteusSpec, initialCount))
-            .flatMap(persistedPsh -> {
-              return runPushableRecursive(persistedPsh, source, destination, client, session, proteusSpec);
-            });
+            .flatMap(persistedPsh -> runPushableRecursive(persistedPsh, source, destination, client, session, proteusSpec));
         }
 
         log.info("PushService::runPushableRecursive has reached end of queue");

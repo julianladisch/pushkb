@@ -132,6 +132,9 @@ endpoints:
     enabled: true
     sensitive: false
 
+applicationdetails:
+  accessibleurl: ${ACCESSIBLE_ENDPOINT}
+
 taskscheduler:
   reactive:
     concurrency: ${TASKSCHEDULER_REACTIVE_CONCURRENCY:`1`}
