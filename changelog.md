@@ -1,5 +1,15 @@
 # Changelog
 
+## Version 1.0.0-alpha.5
+
+### Additions
+* [General]
+	* Added metadata to pushes, namely pushableId and pushKbUrl, the latter of which comes from an environment variable ACCESSIBLE_URL
+
+### Fixes
+* [General]
+	* Fixed wrong env var in application.yml
+
 ## Version 1.0.0-alpha.4
 
 ### Additions
@@ -14,6 +24,7 @@
 	* Accidental addition of quote marks into config variables where they don't belong
 	* Include taskscheduler environment variable passthroughs in application.yml
 * [Chore]
+	* Changelog - Generate the changelog
 	* Tweaks to spec (using new proteus features) and comment tweaks
 	* Taskscheduler minor  commit bump
 	* Taskscheduler logging
