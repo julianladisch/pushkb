@@ -85,9 +85,9 @@ The aim is to keep migration files relatively minimal. Flyway will handle the ru
     - 2 threads * (number of concurrentjobs) + 2 threads
     - (Numbers subject to change, difficult to test atm)
 - Scaling
-  - A single pushKB can handle multiple pushes (not in alpha v1)
-  - Multiple pushKBs can also be run to allow horizontal scaling (not in alpha v1)
-  - NOTE - alpha 1 version is NOT scalable vertically or horizontally
+  - A single pushKB can handle multiple pushes (not in Alpha 3)
+  - Multiple pushKBs can also be run to allow horizontal scaling (not in Alpha 3)
+  - NOTE - Alpha 3 version is NOT scalable vertically or horizontally
 - It also is currently ONLY compatible fully with Ramsons or beyond versions of mod-agreements.
   - Q may work but with significant bugs/degraded performance
 - mod-agreements instances will need env var `INGRESS_TYPE=PushKB` configured
@@ -106,16 +106,16 @@ PushKB accepts multiple env vars
 - MICRONAUT_CONFIG_FILES
   - Accepts a path string pointing at a YML file for bootstrapping as above
   - This will likely be removed once there is a proper API
-- TASKSCHEDULER_INTERVAL (As of newest SNAPSHOT image this is mandatory, defaulting not behaving as expected -- Not available in alpha 1)
+- TASKSCHEDULER_INTERVAL (As of newest SNAPSHOT image this is mandatory, defaulting not behaving as expected -- Not available in Alpha 3)
   - Accepts a Duration-parseable-string such as `PT10S` (10 seconds -- the default)
   - This allows configuration of how often the module requests a new task (if concurrency is not full)
     - This means that concurrency of 15 would regularly take 150 seconds to "fill up"
   - Duration string documentation [here](https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-)
-- TASKSCHEDULER_REACTIVE_CONCURRENCY (As of newest SNAPSHOT image this is mandatory, defaulting not behaving as expected -- Not available in alpha 1)
+- TASKSCHEDULER_REACTIVE_CONCURRENCY (As of newest SNAPSHOT image this is mandatory, defaulting not behaving as expected -- Not available in Alpha 3)
   - Configures the number of tasks the singular instance can carry out simultaneously (default 1)
   - RAM and thread resources need to increase with this setting.
-- ACCESSIBLE_URL (Not available in alpha 1 -- not mandatory but needed for V1 package sync work)
+- ACCESSIBLE_URL (Not available in Alpha 3 -- not mandatory but needed for V1 package sync work)
 	- This is to allow the pushes from pushKB to contain information about where to send http requests
   
 ## Docker images
- "Alpha 1" as referenced above can be found at https://docker.libsdev.k-int.com/pushkb:1.0-alpha.3
+ "Alpha 3" as referenced above can be found at https://docker.libsdev.k-int.com/pushkb:1.0-alpha.3
