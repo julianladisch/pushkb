@@ -1,10 +1,20 @@
 # Changelog
 
+## Version 1.0.0-alpha.6
+
+### Changes
+* [Chore]
+	* flushing tags after build failures, attempting rebuild
+
 ## Version 1.0.0-alpha.5
 
 ### Additions
 * [General]
 	* Added metadata to pushes, namely pushableId and pushKbUrl, the latter of which comes from an environment variable ACCESSIBLE_URL
+
+### Changes
+* [Chore]
+	* Changelog - Generate the changelog
 
 ### Fixes
 * [General]
