@@ -1,9 +1,16 @@
 # Changelog
 
+## Version 1.0.0-alpha.7
+
+### Fixes
+* [General]
+	* Documentation in README (Not quite in line with docs on GBV wiki)
+
 ## Version 1.0.0-alpha.6
 
 ### Changes
 * [Chore]
+	* Changelog - Generate the changelog
 	* flushing tags after build failures, attempting rebuild
 
 ## Version 1.0.0-alpha.5
