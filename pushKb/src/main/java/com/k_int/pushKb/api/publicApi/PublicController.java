@@ -6,6 +6,9 @@ import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MutableHttpResponse;
+
 import io.micronaut.json.tree.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,26 +41,31 @@ public class PublicController {
 
   // TODO add @Body binding shape
   @Post(uri = "/temporarypushtask", produces = MediaType.APPLICATION_JSON)
-  public Mono<Map<String, Object>> temporaryPushTask(
+  public Mono<MutableHttpResponse<Map<String, Object>>> temporaryPushTask(
     String pushTaskId,
     @Nullable String filterContext
   ) {
     // FIXME If we don't find the push task by id we will return 404 right now, which isn't super helpful
     return Mono.from(pushableService.findById(PushTask.class, UUID.fromString(pushTaskId)))
       .map(PushTask.class::cast)
-      .flatMap(pushTask -> Mono.from(pushableService.ensurePushable(
+			.switchIfEmpty(Mono.error(new RuntimeException(String.format("Could not find PushTask with ID: %s", pushTaskId))))
+			// FIXME we should be passing Mono error here not mono empty ??
+			.flatMap(pushTask -> Mono.from(pushableService.ensurePushable(
         TemporaryPushTask.builder()
           .pushTask(pushTask)
           .filterContext(filterContext)
           .build()
       )))
       .map(TemporaryPushTask.class::cast)
-      // TODO return something more useful than what was sent down.
-      .map(temporaryPushTask -> Map.of(
-        "pushTaskId", pushTaskId,
-        "filterContext", (filterContext != null ? filterContext : "No filter context provided"),
-        "temporaryPushTaskId", temporaryPushTask.getId().toString()
-      ));
+			.switchIfEmpty(Mono.error(new RuntimeException(String.format("Could not create TemporaryPushTask(pushTask: %s, filterContext: %s), one already exists", pushTaskId, filterContext))))
+			// TODO return something more useful than what was sent down.
+      .map(temporaryPushTask -> {
+				return HttpResponse.created(Map.of(
+					"pushTaskId", pushTaskId,
+					"filterContext", (filterContext != null ? filterContext : "No filter context provided"),
+					"temporaryPushTaskId", temporaryPushTask.getId().toString()
+				));
+			});
   }
 
 
