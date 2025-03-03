@@ -54,9 +54,9 @@ public class PublicController {
       .map(TemporaryPushTask.class::cast)
       // TODO return something more useful than what was sent down.
       .map(temporaryPushTask -> Map.of(
-        "PushTask id", pushTaskId,
-        "Filter context", (filterContext != null ? filterContext : "No filter context provided"),
-        "TemporaryPushTask id", temporaryPushTask.getId().toString()
+        "pushTaskId", pushTaskId,
+        "filterContext", (filterContext != null ? filterContext : "No filter context provided"),
+        "temporaryPushTaskId", temporaryPushTask.getId().toString()
       ));
   }
 
