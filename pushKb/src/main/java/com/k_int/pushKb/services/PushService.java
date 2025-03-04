@@ -2,11 +2,7 @@ package com.k_int.pushKb.services;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import com.k_int.proteus.ComponentSpec;
 import com.k_int.pushKb.interactions.DestinationClient;
@@ -23,8 +19,10 @@ import com.k_int.pushKb.proteus.ProteusService;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.json.tree.JsonNode;
 // import io.micronaut.serde.ObjectMapper;
+import io.micronaut.runtime.server.EmbeddedServer;
 import io.micronaut.transaction.TransactionDefinition.Propagation;
 import io.micronaut.transaction.annotation.Transactional;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -59,16 +57,17 @@ public class PushService {
 	private final String accessibleUrl;
 
 	public PushService(
-		@Value("${applicationdetails.accessibleurl}") String accessibleUrl,
+		@Nullable @Value("${applicationdetails.accessibleurl}") String accessibleUrl,
 		SourceRecordDatabaseService sourceRecordDatabaseService,
     PushableService pushableService,
 		ProteusService proteusService,
     DestinationService destinationService,
     PushSessionDatabaseService pushSessionDatabaseService,
-    PushChunkDatabaseService pushChunkDatabaseService
-    // ObjectMapper objectMapper
+    PushChunkDatabaseService pushChunkDatabaseService,
+		EmbeddedServer embeddedServer
 	) {
-		this.accessibleUrl = accessibleUrl;
+		// TODO this feels not ideal
+		this.accessibleUrl = accessibleUrl != null ? accessibleUrl : embeddedServer.getURL().toString();
 		this.sourceRecordDatabaseService = sourceRecordDatabaseService;
     this.pushableService = pushableService;
     this.pushSessionDatabaseService = pushSessionDatabaseService;
@@ -167,12 +166,12 @@ public class PushService {
         // Set up chunk here and save?
           JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
 						new AbstractMap.SimpleEntry<>("sessionId", JsonNode.createStringNode(session.getId().toString())),
-            new AbstractMap.SimpleEntry<>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
+						new AbstractMap.SimpleEntry<>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
 						new AbstractMap.SimpleEntry<>("pushableId", JsonNode.createStringNode(psh.getId().toString())),
 						new AbstractMap.SimpleEntry<>("pushKbUrl", JsonNode.createStringNode(accessibleUrl)),
 						new AbstractMap.SimpleEntry<>("records", JsonNode.createArrayNode(recordsList))
-          ));
-        
+					));
+
         // Logging out what gets sent here, quite noisy
         /* try {
           // Just logging out the output here
