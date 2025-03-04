@@ -101,6 +101,53 @@ The aim is to keep migration files relatively minimal. Flyway will handle the ru
 ## Config
 In order to get data into PushKB there will eventually be a protected API (INFORMATION TO FOLLOW HERE) In early alpha versions however there instead must be a mounted `yml` file containing the GOKB(s), folio tenants etc as above, and pointed at with env var `MICRONAUT_CONFIG_FILES`.
 
+### Understanding the yml file
+The `yml` file listed above can be understood as follows.
+
+- Sources (For V1 this will only be gokbSources)
+  - `gokbs`
+  	- These are the GOKB servers themselves.
+    - They should have a `name` and a `url`
+    	- `url` MUST be the root url of the gokb, ie https://gokb.org NOT https://gokb.org/gokb/oai/index)
+    	- `name` given will be important below, it is the name stored in PushKBs DB for identification
+  - `gokbsources`
+  	- These define the "sources" which will be ingested from
+    - PushKB uses the scroll API, and so we treat TIPPs and Packages as separate source streams
+    - These comprise of a `name`, a `gokb` and a `type`
+    	- `name` is a unique name for this source, say "GOKB_PKG".
+  			- This will be used to link up sources and destinations below in the pushables section
+      	- Purely for organisational reasons
+    	- `gokb` must match the	`name` of a GOKB defined above
+    	- `type` must be either "PACKAGE" or "TIPP" (You will likely want one of each)
+- Destinations (For V1 wthis will only be foliodestinations)
+	- `foliotenants`
+		- These define individual tenants for a folio system, ie each login which requires data to be pushed to it
+    - They comprise of a `name`, `authtype`, `tenant`, `baseurl`, `username` and `password`
+    	- `name` is the name for this tenant in the PushKB DB, will be important later
+    	- `authtype` must be either "OKAPI" or "NONE". For Eureka I believe authtype "OKAPI" should still suffice as logins are "backwards compatible"
+   		- `tenant` is the configured tenant name in FOLIO. For folio-snapshot this would be "diku"
+    	- `baseurl` is the access url for external API calls of this folio.
+    		- Eventually the structure may split out folio server and folio tenant
+      	- That will likely be after this method of bootstrapping is deprecated
+    	- `username` and `password` are the login credentials for this folio tenant
+  			- Currently these are stored in the database, eventually these should be handled in a nicer way
+	- `foliodestinations`
+  	- These are the individual "push sites" for a tenant, you will need one for pushing PCIs and one for pushing Packages
+    - These comprise of a `name`, a `foliotenant` and a `destinationtype`
+    	- `name` is used for linking sources and destinations in the pushable section
+      - `foliotenant` must be the `name` of a `foliotetenant` defined in the previous section
+      - `destinationtype` must be "PACKAGE" or "PCI"
+- Pushables (PushTasks and TemporaryPushTasks, but the latter are not bootstrappable)
+	- `pushtasks`
+		- These are the link between a source and a destination, allowing pushKB to push the queue of records.
+    - Comprised of `transform`, `source` and `destination`
+			- `transform` is for defining the JSON schema used to transform source data into destination data
+    		- Uses "proteus", a CIIM team tool
+      	- As of Alpha 7, this string is irrelevant in bootstrapping, as the transforms are currently hardcoded.
+    	- `source` is a named source from the above section
+      	- Must align with `source.name`
+      - `destination` is a named destination from the above section
+				- Must align with `destination.name`
 ## Env Vars
 PushKB accepts multiple env vars
 
@@ -113,3 +160,6 @@ PushKB accepts multiple env vars
 
 ## Docker images
  "Alpha 3" as referenced above can be found at https://docker.libsdev.k-int.com/pushkb:1.0-alpha.3
+ "SNAPSHOT" version is found at https://docker.libsdev.k-int.com/knowledgeintegration/pushkb:next
+## Choosing Alpha
+ For initial testing, Alpha 3 is preferred as it is known stable, the ability to get the module up and running and pointing at a Gokb/FOLIO is the first thing to test. From there Alpha 5 introduces scaling and initial API work, but the features are still under heavy construction. As of right this second Alpha 3 is the last tagged alpha released, but SNAPSHOT versions are releasing as expected. These will obviously be less stable than a tagged release.
