@@ -74,14 +74,18 @@
       }
     ],
     "packageDescriptionUrls": [
-      {
-        "#type": "require",
-        "require": "$.descriptionURL",
-        "value": {
-          "url": "$.descriptionURL"
-        }
-      }
-    ],
+			{
+				"#type": "require",
+				"require": "$.descriptionURL",
+				"value": {
+					"#type": "require",
+					"require": "$.[?(@.descriptionURL != '')]",
+					"value": {
+						"url": "$.descriptionURL"
+					}
+				}
+			}
+		],
     "description": "$.description"
   },
   "identifiers": {
@@ -169,4 +173,4 @@
     ]
   },
   "packageContents": []
-},
+}
