@@ -5,8 +5,12 @@
       "type": "general"
     },
     "packageProvider": {
-      "name": "$.providerName"
-    },
+			"#type": "require",
+			"require": "$.[?(@.providerName != '')]",
+			"value": {
+				"name": "$.providerName"
+			}
+		},
     "packageSource": "GOKb",
     "packageName": "$.name",
     "packageSlug": "$.uuid",
@@ -27,11 +31,15 @@
           "value": {
             "#type": "require",
             "require": "$.globalNote",
-            "value": [
-              {
-                "body": "$.globalNote"
-              }
-            ]
+            "value": {
+							"#type": "require",
+							"require": "$.[?(@.globalNote != '')]",
+							"value": [
+								{
+									"body": "$.globalNote"
+								}
+							]
+						}
           }
         },
         {
