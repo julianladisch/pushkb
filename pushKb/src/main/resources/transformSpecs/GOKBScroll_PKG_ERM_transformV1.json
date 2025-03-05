@@ -76,20 +76,6 @@
     "packageDescriptionUrls": [
       {
         "#type": "require",
-        "require": "$.uuid",
-        "value": {
-          "url": {
-            "#type": "string_join",
-            "delimiter": "/",
-            "values": [
-              "theGOKBURL",
-              "$.uuid"
-            ]
-          }
-        }
-      },
-      {
-        "#type": "require",
         "require": "$.descriptionURL",
         "value": {
           "url": "$.descriptionURL"
