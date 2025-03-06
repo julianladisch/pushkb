@@ -64,6 +64,11 @@ public class PushTask implements Pushable, HasId {
   @Builder.Default
   Instant footPointer = Instant.EPOCH; // Tracks the point beyond which ALL records have been sent
 
+	@Transient
+	public UUID getPushableId() {
+		return getId();
+	}
+
     // Generate id from destination/source (Should be unique to those 2)
   private static final String UUID5_PREFIX = "push_task";
   public static UUID generateUUID(UUID sourceId, UUID destinationId) {

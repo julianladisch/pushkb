@@ -7,7 +7,9 @@ import java.util.UUID;
 public interface Pushable {
   UUID getId();
 
-  UUID getSourceId();
+	UUID getPushableId();
+
+	UUID getSourceId();
   Class<? extends Source> getSourceType();
 
   UUID getDestinationId();

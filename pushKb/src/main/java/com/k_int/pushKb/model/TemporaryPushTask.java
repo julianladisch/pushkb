@@ -62,6 +62,11 @@ public class TemporaryPushTask implements Pushable {
     return getPushTask().getSourceId();
   }
 
+	@Transient
+	public UUID getPushableId() {
+		return getPushTask().getId();
+	}
+
   @Transient
   public Class<? extends Source> getSourceType() {
     return getPushTask().getSourceType();

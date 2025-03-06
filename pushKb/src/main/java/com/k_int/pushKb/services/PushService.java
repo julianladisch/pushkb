@@ -8,12 +8,7 @@ import com.k_int.proteus.ComponentSpec;
 import com.k_int.pushKb.interactions.DestinationClient;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
-import com.k_int.pushKb.model.Destination;
-import com.k_int.pushKb.model.PushChunk;
-import com.k_int.pushKb.model.PushSession;
-import com.k_int.pushKb.model.Pushable;
-import com.k_int.pushKb.model.Source;
-import com.k_int.pushKb.model.SourceRecord;
+import com.k_int.pushKb.model.*;
 import com.k_int.pushKb.proteus.ProteusService;
 
 import io.micronaut.context.annotation.Value;
@@ -164,14 +159,21 @@ public class PushService {
           );
       })
       .flatMap(TupleUtils.function((recordsList, earliestSeen, latestSeen) -> {  // ConcatMap to ensure that we only start sending chunk B after chunk A has returned
+				HashMap<String, JsonNode> pushKbOutputMap = new HashMap<>(Map.ofEntries(
+					new AbstractMap.SimpleEntry<>("sessionId", JsonNode.createStringNode(session.getId().toString())),
+					new AbstractMap.SimpleEntry<>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
+					new AbstractMap.SimpleEntry<>("pushableId", JsonNode.createStringNode(psh.getPushableId().toString())),
+					new AbstractMap.SimpleEntry<>("pushKbUrl", JsonNode.createStringNode(accessibleUrl)),
+					new AbstractMap.SimpleEntry<>("records", JsonNode.createArrayNode(recordsList))
+				));
+
+				// Ensure we get temporary push task id still in return, where relevant
+				if (psh instanceof TemporaryPushTask) {
+					pushKbOutputMap.put("temporaryPushableId", JsonNode.createStringNode(psh.getId().toString()));
+				}
+
         // Set up chunk here and save?
-          JsonNode pushKBJsonOutput = JsonNode.createObjectNode(Map.ofEntries(
-						new AbstractMap.SimpleEntry<>("sessionId", JsonNode.createStringNode(session.getId().toString())),
-						new AbstractMap.SimpleEntry<>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
-						new AbstractMap.SimpleEntry<>("pushableId", JsonNode.createStringNode(psh.getId().toString())),
-						new AbstractMap.SimpleEntry<>("pushKbUrl", JsonNode.createStringNode(accessibleUrl)),
-						new AbstractMap.SimpleEntry<>("records", JsonNode.createArrayNode(recordsList))
-					));
+          JsonNode pushKBJsonOutput = JsonNode.createObjectNode(pushKbOutputMap);
 
         // Logging out what gets sent here, quite noisy
          /*try {
