@@ -3,6 +3,7 @@ package com.k_int.pushKb.services;
 import java.util.Map;
 import java.util.UUID;
 
+import io.micronaut.context.ApplicationContext;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Destination;
@@ -29,25 +30,29 @@ public class PushableService {
   private final DestinationService destinationService;
   private final SourceService sourceService;
 
-  private final ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner;
+	private final ApplicationContext applicationContext;
+
+	private final ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner;
 
   public PushableService (
     BeanContext beanContext,
     DestinationService destinationService,
     SourceService sourceService,
-    ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner
-    ) {
+    ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner,
+		ApplicationContext applicationContext
+	) {
     this.beanContext = beanContext;
     this.destinationService = destinationService;
     this.sourceService = sourceService;
     this.reactiveDutyCycleTaskRunner = reactiveDutyCycleTaskRunner;
-  }
+		this.applicationContext = applicationContext;
+	}
 
   // Fast way to register pushables directly
   public Mono<DutyCycleTask> registerPushableTask(Class<? extends Pushable> type, Pushable p) {
     String pushableId = p.getId().toString();
     return reactiveDutyCycleTaskRunner.registerTask(
-      Long.valueOf(1000*60*60),
+			(long) (1000 * 60 * 60),
       pushableId,
       "PushableScheduledTask",
       Map.of(
@@ -56,6 +61,15 @@ public class PushableService {
       )
     );
   }
+
+	@SuppressWarnings("unchecked")
+	public <T extends Pushable> Class<T> getPushableClassFromString(String className) throws ClassNotFoundException {
+		ClassLoader classLoader = applicationContext.getClassLoader();
+		log.info("PushableScheduledTask::getPushableClassFromString({})", className);
+
+		// FIXME This is unchecked type conversion :/
+		return (Class<T>) classLoader.loadClass(className);
+	}
 
   @SuppressWarnings("unchecked")
   protected <T extends Pushable> PushableDatabaseService<Pushable> getPushableDatabaseServiceForPushableType( Class<T> pushableType ) {

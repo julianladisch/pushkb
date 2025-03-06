@@ -18,7 +18,7 @@ import com.k_int.pushKb.proteus.ProteusService;
 
 import io.micronaut.context.annotation.Value;
 import io.micronaut.json.tree.JsonNode;
-// import io.micronaut.serde.ObjectMapper;
+//import io.micronaut.serde.ObjectMapper;
 import io.micronaut.runtime.server.EmbeddedServer;
 import io.micronaut.transaction.TransactionDefinition.Propagation;
 import io.micronaut.transaction.annotation.Transactional;
@@ -52,7 +52,7 @@ public class PushService {
 
   // FIXME investigate how much this is actually needed
 	private final ProteusService proteusService;
-	// private final ObjectMapper objectMapper;
+	//private final ObjectMapper objectMapper;
 
 	private final String accessibleUrl;
 
@@ -65,6 +65,7 @@ public class PushService {
     PushSessionDatabaseService pushSessionDatabaseService,
     PushChunkDatabaseService pushChunkDatabaseService,
 		EmbeddedServer embeddedServer
+		//ObjectMapper objectMapper
 	) {
 		// TODO this feels not ideal
 		this.accessibleUrl = accessibleUrl != null ? accessibleUrl : embeddedServer.getURL().toString();
@@ -74,7 +75,7 @@ public class PushService {
     this.pushChunkDatabaseService = pushChunkDatabaseService;
 		this.proteusService = proteusService;
     this.destinationService = destinationService;
-		// this.objectMapper = objectMapper;
+		//this.objectMapper = objectMapper;
 	}
 
   // TO TEST ALGORITHM
@@ -173,12 +174,12 @@ public class PushService {
 					));
 
         // Logging out what gets sent here, quite noisy
-        /* try {
+         /*try {
           // Just logging out the output here
           log.info("SENDING JSON OUTPUT: {}", objectMapper.writeValueAsString(pushKBJsonOutput));
         } catch (Exception e) {
           e.printStackTrace();
-        } */
+        }*/
 
         return Mono.just(Tuples.of(pushKBJsonOutput, earliestSeen, latestSeen));
       }))
