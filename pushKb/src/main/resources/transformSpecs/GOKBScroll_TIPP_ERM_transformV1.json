@@ -1,76 +1,86 @@
 {
-  "title": "$.name",
-  "platformUrl": "$.hostPlatformUrl",
-  "url": "$.url",
-  "sourceIdentifierNamespace": "GoKB",
-  "sourceIdentifier": "$.uuid",
-  "instanceMedia": "$.publicationType",
-  "instanceMedium": "Electronic",
-  "instancePublicationMedia": "$.tippTitleMedium",
-  "firstAuthor": "$.titleFirstAuthor",
-  "firstEditor": "$.titleFirstEditor",
-  "platformName": "$.hostPlatformName",
-  "dateMonographPublishedPrint": "$.titleDateFirstInPrint",
-  "dateMonographPublished": "$.titleDateFirstOnline",
-  "monographEdition": "$.titleEdition.statement",
-  "monographVolume": "$.titleVolumeNumber",
-  "accessStart": "$.accessStartDate",
-  "accessEnd": "$.accessEndDate",
-  "instanceIdentifiers": {
-    "#type": "for_each",
-    "values": "$.identifiers[?(@.namespace != 'pissn' && @.namespace != 'issn' && @.namespace != 'pisbn')]",
-    "spec": {
-      "namespace": "$.namespace",
-      "value": "$.value"
-    }
-  },
-  "siblingInstanceIdentifiers": {
-    "#type": "for_each",
-    "values": "$.identifiers[?(@.namespace == 'pissn' || @.namespace == 'issn' || @.namespace == 'pisbn')]",
-    "spec": {
-      "namespace": "$.namespace",
-      "value": "$.value"
-    }
-  },
-  "contentItemPackage": {
-    "header": {
-      "packageSource": "GOKb",
-      "packageSlug": "$.tippPackageUuid",
-      "packageName": "$.tippPackageName"
-    }
-  },
-  "coverage": {
-    "#type": "require",
-    "require": "$.coverage",
-    "value": {
-      "#type": "for_each",
-      "values": "$.coverage",
-      "spec": {
-        "startIssue": "$.startIssue",
-        "startDate": "$.startDate",
-        "startVolume": "$.startVolume",
-        "endIssue": "$.endIssue",
-        "endDate": "$.endDate",
-        "endVolume": "$.endVolume"
-      }
-    }
-  },
-  "coverageDepth": {
-    "#type": "require",
-    "require": {
-      "#type": "require",
-      "require": "$.coverage[0]",
-      "value": "$.coverage"
-    },
-    "value": "$.coverage[0].coverageDepth"
-  },
-  "embargo": {
-    "#type": "require",
-    "require": {
-      "#type": "require",
-      "require": "$.coverage[0]",
-      "value": "$.coverage"
-    },
-    "value": "$.coverage[0].embargo"
-  }
+	"pushableId": "$.pushableId",
+	"pushKbUrl": "$.pushKbUrl",
+	"sessionId": "$.sessionId",
+	"chunkId": "$.chunkId",
+	"records": {
+		"#type": "for_each",
+		"values": "$.records",
+		"spec": {
+			"title": "$.name",
+			"platformUrl": "$.hostPlatformUrl",
+			"url": "$.url",
+			"sourceIdentifierNamespace": "GoKB",
+			"sourceIdentifier": "$.uuid",
+			"instanceMedia": "$.publicationType",
+			"instanceMedium": "Electronic",
+			"instancePublicationMedia": "$.tippTitleMedium",
+			"firstAuthor": "$.titleFirstAuthor",
+			"firstEditor": "$.titleFirstEditor",
+			"platformName": "$.hostPlatformName",
+			"dateMonographPublishedPrint": "$.titleDateFirstInPrint",
+			"dateMonographPublished": "$.titleDateFirstOnline",
+			"monographEdition": "$.titleEdition.statement",
+			"monographVolume": "$.titleVolumeNumber",
+			"accessStart": "$.accessStartDate",
+			"accessEnd": "$.accessEndDate",
+			"instanceIdentifiers": {
+				"#type": "for_each",
+				"values": "$.identifiers[?(@.namespace != 'pissn' && @.namespace != 'issn' && @.namespace != 'pisbn')]",
+				"spec": {
+					"namespace": "$.namespace",
+					"value": "$.value"
+				}
+			},
+			"siblingInstanceIdentifiers": {
+				"#type": "for_each",
+				"values": "$.identifiers[?(@.namespace == 'pissn' || @.namespace == 'issn' || @.namespace == 'pisbn')]",
+				"spec": {
+					"namespace": "$.namespace",
+					"value": "$.value"
+				}
+			},
+			"contentItemPackage": {
+				"header": {
+					"packageSource": "GOKb",
+					"packageSlug": "$.tippPackageUuid",
+					"packageName": "$.tippPackageName"
+				}
+			},
+			"coverage": {
+				"#type": "require",
+				"require": "$.coverage",
+				"value": {
+					"#type": "for_each",
+					"values": "$.coverage",
+					"spec": {
+						"startIssue": "$.startIssue",
+						"startDate": "$.startDate",
+						"startVolume": "$.startVolume",
+						"endIssue": "$.endIssue",
+						"endDate": "$.endDate",
+						"endVolume": "$.endVolume"
+					}
+				}
+			},
+			"coverageDepth": {
+				"#type": "require",
+				"require": {
+					"#type": "require",
+					"require": "$.coverage[0]",
+					"value": "$.coverage"
+				},
+				"value": "$.coverage[0].coverageDepth"
+			},
+			"embargo": {
+				"#type": "require",
+				"require": {
+					"#type": "require",
+					"require": "$.coverage[0]",
+					"value": "$.coverage"
+				},
+				"value": "$.coverage[0].embargo"
+			}
+		}
+	}
 }

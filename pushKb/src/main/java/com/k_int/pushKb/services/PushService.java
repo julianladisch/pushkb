@@ -114,95 +114,80 @@ public class PushService {
   ) {
     // TODO this might be a bit noisy in general
     log.info("PushService::processAndPushRecords called with {} records", sourceRecordChunk.size());
-    // First transform the whole sourceRecord
-    return Flux.fromIterable(sourceRecordChunk)
-      .flatMap(sourceRecord -> {
-        try {
-          JsonNode transformedRecord = proteusService.convert(
-            proteusSpec,
-            sourceRecord.getJsonRecord()
-          );
-          return Mono.just(Tuples.of(sourceRecord, transformedRecord));
-        } catch (IOException e) {
-					log.error("Failed to convert record to proteus spec", e);
-          //e.printStackTrace();
-          return Mono.error(e);
-        }
-      })
-      .collectList()
-      // Change List<Tuple2<SourceRecord, JsonNode>> into Tuple3<List<JsonNode>, Instant, Instant>
-      // where instants are earliest and latest timestamp in chunk
-      .flatMap(list -> {
-        //log.info("Handled list of 1000 {}", list.size());
-        return Flux.fromIterable(list)
-          .reduce(
-            Tuples.of(new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
-            (acc, tuple) -> {
-              Instant sourceRecordUpdated = tuple.getT1().getUpdated();
-              Instant earliestSeen = acc.getT2();
-              Instant latestSeen = acc.getT3();
-              
-              // STORE EARLIEST SOURCE RECORD "updated" IN T3
-              if (sourceRecordUpdated.isBefore(earliestSeen)) {
-                earliestSeen = sourceRecordUpdated;
-              }
-              // STORE LATEST SOURCE RECORD "updated" IN T4
-              if (sourceRecordUpdated.isAfter(latestSeen)) {
-                latestSeen = sourceRecordUpdated;
-              }
-              
-              acc.getT1().add(tuple.getT2());
-              
-              // I think this works... Tuples are immutable so return list
-              return Tuples.of(acc.getT1(), earliestSeen, latestSeen);
-            }
-          );
-      })
-      .flatMap(TupleUtils.function((recordsList, earliestSeen, latestSeen) -> {  // ConcatMap to ensure that we only start sending chunk B after chunk A has returned
-				HashMap<String, JsonNode> pushKbOutputMap = new HashMap<>(Map.ofEntries(
+    // First transform the whole sourceRecordChunk
+
+		// First find earliest and latest sourceRecord in sourceRecordChunk
+		return Flux.fromIterable(sourceRecordChunk)
+			.reduce(
+				Tuples.of(new ArrayList<JsonNode>(), Instant.now(), Instant.EPOCH),
+				(acc, sr) -> {
+					Instant sourceRecordUpdated = sr.getUpdated();
+					Instant earliestSeen = acc.getT2();
+					Instant latestSeen = acc.getT3();
+
+					// STORE EARLIEST SOURCE RECORD "updated" IN T3
+					if (sourceRecordUpdated.isBefore(earliestSeen)) {
+						earliestSeen = sourceRecordUpdated;
+					}
+					// STORE LATEST SOURCE RECORD "updated" IN T4
+					if (sourceRecordUpdated.isAfter(latestSeen)) {
+						latestSeen = sourceRecordUpdated;
+					}
+
+					acc.getT1().add(sr.getJsonRecord());
+
+					// I think this works... Tuples are immutable so return list
+					return Tuples.of(acc.getT1(), earliestSeen, latestSeen);
+				}
+			)
+			// At this point we have Tuple3<List<JsonNode, Instant, Instant>
+			// where instants are earliest and latest timestamp in chunk
+
+			// Build the JSON map we will transform with proteus
+			.flatMap(TupleUtils.function((json, earliestSeen, latestSeen) -> {
+				HashMap<String, JsonNode> preTransformJsonMap = new HashMap<>(Map.ofEntries(
 					new AbstractMap.SimpleEntry<>("sessionId", JsonNode.createStringNode(session.getId().toString())),
 					new AbstractMap.SimpleEntry<>("chunkId", JsonNode.createStringNode(chunk.getId().toString())),
 					new AbstractMap.SimpleEntry<>("pushableId", JsonNode.createStringNode(psh.getPushableId().toString())),
 					new AbstractMap.SimpleEntry<>("pushKbUrl", JsonNode.createStringNode(accessibleUrl)),
-					new AbstractMap.SimpleEntry<>("records", JsonNode.createArrayNode(recordsList))
+					new AbstractMap.SimpleEntry<>("records", JsonNode.createArrayNode(json))
 				));
 
-				// Ensure we get temporary push task id still in return, where relevant
 				if (psh instanceof TemporaryPushTask) {
-					pushKbOutputMap.put("temporaryPushableId", JsonNode.createStringNode(psh.getId().toString()));
+					preTransformJsonMap.put("temporaryPushableId", JsonNode.createStringNode(psh.getId().toString()));
 				}
+				try {
+					JsonNode transformedRecord = proteusService.convert(
+						proteusSpec,
+						JsonNode.createObjectNode(preTransformJsonMap)
+					);
 
-        // Set up chunk here and save?
-          JsonNode pushKBJsonOutput = JsonNode.createObjectNode(pushKbOutputMap);
+					log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
+					/*try {
+						// Just logging out the output here
+						log.info("JSON Output: {}", objectMapper.writeValueAsString(transformedRecord));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}*/
 
-        // Logging out what gets sent here, quite noisy
-         /*try {
-          // Just logging out the output here
-          log.info("SENDING JSON OUTPUT: {}", objectMapper.writeValueAsString(pushKBJsonOutput));
-        } catch (Exception e) {
-          e.printStackTrace();
-        }*/
+					return Mono.from(destinationService.push(destination, client, transformedRecord)).flatMap(bool -> {
+						// bool should just be true, we're only interested in outputting earliestSeen/latestSeen
 
-        return Mono.just(Tuples.of(pushKBJsonOutput, earliestSeen, latestSeen));
-      }))
-      .flatMap(TupleUtils.function((json, earliestSeen, latestSeen) -> {
-  
-        log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
-        return Mono.from(destinationService.push(destination, client, json)).flatMap(bool -> {
-          // bool should just be true, we're only interested in outputting earliestSeen/latestSeen
-
-          // Get a grasp on remainingCount
-          return Mono.from(
-            sourceRecordDatabaseService.countFeed(
-            psh.getSourceId(),
-            psh.getFootPointer(),
-            earliestSeen,
-            Optional.ofNullable(psh.getFilterContext())
-          )).flatMap(remainingCount -> Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount)));
-        });
-
-        //log.info("SENT RECORD: {}", sr.getId());
-      }));
+						// Get a grasp on remainingCount
+						return Mono.from(
+							sourceRecordDatabaseService.countFeed(
+								psh.getSourceId(),
+								psh.getFootPointer(),
+								earliestSeen,
+								Optional.ofNullable(psh.getFilterContext())
+							)).flatMap(remainingCount -> Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount)));
+					});
+				} catch (IOException e) {
+					log.error("Failed to convert record to proteus spec", e);
+					//e.printStackTrace();
+					return Mono.error(e);
+				}
+			}));
   }
 
   // This is useable from the point of view of TemporaryPushTasks AND PushTasks
