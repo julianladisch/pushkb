@@ -1,5 +1,7 @@
 package com.k_int.pushKb.model;
 
+import com.k_int.pushKb.transform.model.Transform;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,6 +16,9 @@ public interface Pushable {
 
   UUID getDestinationId();
   Class<? extends Destination> getDestinationType();
+
+	UUID getTransformId();
+	Class<? extends Transform> getTransformType();
 
   String getFilterContext();
 

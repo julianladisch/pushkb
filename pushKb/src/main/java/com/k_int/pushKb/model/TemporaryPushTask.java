@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+import com.k_int.pushKb.transform.model.Transform;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 
@@ -57,15 +58,15 @@ public class TemporaryPushTask implements Pushable {
 
 
   // Pass through methods needed for Pushable interface dep
-  @Transient
-  public UUID getSourceId() {
-    return getPushTask().getSourceId();
-  }
-
 	@Transient
 	public UUID getPushableId() {
 		return getPushTask().getId();
 	}
+
+  @Transient
+  public UUID getSourceId() {
+    return getPushTask().getSourceId();
+  }
 
   @Transient
   public Class<? extends Source> getSourceType() {
@@ -82,7 +83,17 @@ public class TemporaryPushTask implements Pushable {
     return getPushTask().getDestinationType();
   }
 
-    // Generate id from destination/source (Should be unique to those 2)
+	@Transient
+	public UUID getTransformId() {
+		return getPushTask().getTransformId();
+	}
+
+	@Transient
+	public Class<? extends Transform> getTransformType() {
+		return getPushTask().getTransformType();
+	}
+
+	// Generate id from destination/source (Should be unique to those 2)
   private static final String UUID5_PREFIX = "temporary_push_task";
   public static UUID generateUUID(PushTask pushTask, String filterContext) {
     final String fc = Objects.requireNonNullElse(filterContext, "null");

@@ -1,6 +1,7 @@
 package com.k_int.pushKb.transform.model;
 
 
+import com.k_int.pushKb.transform.TransformType;
 import services.k_int.utils.UUIDUtils;
 
 import java.util.UUID;
@@ -16,6 +17,8 @@ public interface Transform {
 	String getName();
 	String getSlug(); // Unique and CAN NOT CHANGE.
 	// TODO Use a DTO on the API to exclude slug field?
+
+	TransformType getType();
 
 	String UUID5_PREFIX = "transform";
 	// UUID5 -- name must be unique

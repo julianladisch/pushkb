@@ -1,16 +1,12 @@
 package com.k_int.pushKb.services;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 
-import com.k_int.proteus.ComponentSpec;
 import com.k_int.pushKb.interactions.DestinationClient;
-import com.k_int.pushKb.interactions.gokb.model.GokbSource;
-import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
 import com.k_int.pushKb.model.*;
-import com.k_int.pushKb.proteus.ProteusService;
 
+import com.k_int.pushKb.transform.services.TransformService;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.json.tree.JsonNode;
 //import io.micronaut.serde.ObjectMapper;
@@ -24,7 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.function.TupleUtils;
 import reactor.util.function.Tuple3;
-import reactor.util.function.Tuple5;
+import reactor.util.function.Tuple4;
 import reactor.util.function.Tuples;
 
 @Singleton
@@ -37,6 +33,8 @@ public class PushService {
   private final PushSessionDatabaseService pushSessionDatabaseService;
   private final PushChunkDatabaseService pushChunkDatabaseService;
 
+	private final TransformService transformService;
+
   /* Keep bundleSize consistent between chunking for send and chunking for transform
    * IMPORTANT these cannot be allowed to drift because we're assuming a sequential order
    * that these are being sent in. The chunks can be internally ordered however, but each chunk
@@ -46,7 +44,6 @@ public class PushService {
 
 
   // FIXME investigate how much this is actually needed
-	private final ProteusService proteusService;
 	//private final ObjectMapper objectMapper;
 
 	private final String accessibleUrl;
@@ -55,11 +52,11 @@ public class PushService {
 		@Nullable @Value("${applicationdetails.accessibleurl}") String accessibleUrl,
 		SourceRecordDatabaseService sourceRecordDatabaseService,
     PushableService pushableService,
-		ProteusService proteusService,
     DestinationService destinationService,
     PushSessionDatabaseService pushSessionDatabaseService,
     PushChunkDatabaseService pushChunkDatabaseService,
-		EmbeddedServer embeddedServer
+		EmbeddedServer embeddedServer,
+		TransformService transformService
 		//ObjectMapper objectMapper
 	) {
 		// TODO this feels not ideal
@@ -68,8 +65,8 @@ public class PushService {
     this.pushableService = pushableService;
     this.pushSessionDatabaseService = pushSessionDatabaseService;
     this.pushChunkDatabaseService = pushChunkDatabaseService;
-		this.proteusService = proteusService;
     this.destinationService = destinationService;
+		this.transformService = transformService;
 		//this.objectMapper = objectMapper;
 	}
 
@@ -109,8 +106,7 @@ public class PushService {
     DestinationClient<Destination> client,
     PushSession session,
     List<SourceRecord> sourceRecordChunk,
-    PushChunk chunk,
-    ComponentSpec<JsonNode> proteusSpec
+    PushChunk chunk
   ) {
     // TODO this might be a bit noisy in general
     log.info("PushService::processAndPushRecords called with {} records", sourceRecordChunk.size());
@@ -143,7 +139,7 @@ public class PushService {
 			// At this point we have Tuple3<List<JsonNode, Instant, Instant>
 			// where instants are earliest and latest timestamp in chunk
 
-			// Build the JSON map we will transform with proteus
+			// Build the JSON map we will transform
 			.flatMap(TupleUtils.function((json, earliestSeen, latestSeen) -> {
 				HashMap<String, JsonNode> preTransformJsonMap = new HashMap<>(Map.ofEntries(
 					new AbstractMap.SimpleEntry<>("sessionId", JsonNode.createStringNode(session.getId().toString())),
@@ -156,66 +152,58 @@ public class PushService {
 				if (psh instanceof TemporaryPushTask) {
 					preTransformJsonMap.put("temporaryPushableId", JsonNode.createStringNode(psh.getId().toString()));
 				}
-				try {
-					JsonNode transformedRecord = proteusService.convert(
-						proteusSpec,
-						JsonNode.createObjectNode(preTransformJsonMap)
-					);
 
-					log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
-					/*try {
-						// Just logging out the output here
-						log.info("JSON Output: {}", objectMapper.writeValueAsString(transformedRecord));
+				return Mono.from(transformService.findById(psh.getTransformType(), psh.getTransformId())).flatMap(transform -> {
+					try {
+						// FIXME THIS ASSUMES JSON_TO_JSON right now
+						JsonNode transformedRecord = transformService.transformJsonToJson( psh.getTransformType(), transform, JsonNode.createObjectNode(preTransformJsonMap));
+
+						log.info("Pushing records {} -> {}", earliestSeen, latestSeen);
+						/*try {
+							// Just logging out the output here
+							log.info("JSON Output: {}", objectMapper.writeValueAsString(transformedRecord));
+						} catch (Exception e) {
+							e.printStackTrace();
+						}*/
+
+						return Mono.from(destinationService.push(destination, client, transformedRecord)).flatMap(bool -> {
+							// bool should just be true, we're only interested in outputting earliestSeen/latestSeen
+
+							// Get a grasp on remainingCount
+							return Mono.from(
+								sourceRecordDatabaseService.countFeed(
+									psh.getSourceId(),
+									psh.getFootPointer(),
+									earliestSeen,
+									Optional.ofNullable(psh.getFilterContext())
+								)).flatMap(remainingCount -> Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount)));
+						});
+
 					} catch (Exception e) {
-						e.printStackTrace();
-					}*/
-
-					return Mono.from(destinationService.push(destination, client, transformedRecord)).flatMap(bool -> {
-						// bool should just be true, we're only interested in outputting earliestSeen/latestSeen
-
-						// Get a grasp on remainingCount
-						return Mono.from(
-							sourceRecordDatabaseService.countFeed(
-								psh.getSourceId(),
-								psh.getFootPointer(),
-								earliestSeen,
-								Optional.ofNullable(psh.getFilterContext())
-							)).flatMap(remainingCount -> Mono.just(Tuples.of(earliestSeen, latestSeen, remainingCount)));
-					});
-				} catch (IOException e) {
-					log.error("Failed to convert record to proteus spec", e);
-					//e.printStackTrace();
-					return Mono.error(e);
-				}
+						log.error("Failed to transform record", e);
+						//e.printStackTrace();
+						return Mono.error(e);
+					}
+				});
 			}));
   }
 
   // This is useable from the point of view of TemporaryPushTasks AND PushTasks
-  public Mono<Tuple5<Source, Destination, DestinationClient<Destination>, PushSession, ComponentSpec<JsonNode>>> getPushableTuple(Pushable p) {
+  public Mono<Tuple4<Source, Destination, DestinationClient<Destination>, PushSession>> getPushableTuple(Pushable p) {
     return Mono.from(pushableService.getSourceAndDestination(p))
-    .flatMap(TupleUtils.function((source, destination) -> {
-      // FIXME this needs to come from the Pushable transform model somehow
-      // FIXME but for now we'll do a direct (domain specific) switch on GokbSourceType (DO NOT DO THIS IN FINAL VERSION)
-      ComponentSpec<JsonNode> proteusSpec = proteusService.loadSpec(
-				((GokbSource) source).getGokbSourceType() == GokbSourceType.TIPP ?
-        "GOKBScroll_TIPP_ERM_transformV1.json" :
-        "GOKBScroll_PKG_ERM_transformV1.json"
-      );
-
-      return Mono.from(destinationService.getClient(destination))
-        .flatMap(client -> Mono.from(pushSessionDatabaseService.save(
-						PushSession.builder()
-							.pushableId(p.getId())
-							.pushableType(p.getClass())
-							.build()
-					))
-					.flatMap(pushSession -> Mono.just(Tuples.of(source, destination, client, pushSession, proteusSpec))));
-    }));
+    .flatMap(TupleUtils.function((source, destination) -> Mono.from(destinationService.getClient(destination))
+			.flatMap(client -> Mono.from(pushSessionDatabaseService.save(
+					PushSession.builder()
+						.pushableId(p.getId())
+						.pushableType(p.getClass())
+						.build()
+				))
+				.flatMap(pushSession -> Mono.just(Tuples.of(source, destination, client, pushSession))))));
   } // Nested flatMaps isn't very pretty here, but it brings them altogether without multiple Tuple setups and reads
 
   public Mono<Pushable> runPushable(Pushable p) {
     return getPushableTuple(p)
-      .flatMap(TupleUtils.function((source, destination, client, session, proteusSpec) -> runPushableRecursive(p, source, destination, client, session, proteusSpec)));
+      .flatMap(TupleUtils.function((source, destination, client, session) -> runPushableRecursive(p, source, destination, client, session)));
   }
 
   public Mono<List<SourceRecord>> get1000SourceRecords(Pushable psh, Instant upperBound, Instant lowerBound) {
@@ -242,11 +230,10 @@ public class PushService {
     DestinationClient<Destination> client,
     PushChunk chunk,
     PushSession session,
-    ComponentSpec<JsonNode> proteusSpec,
     Long initialCount
   ) {
     return get1000SourceRecords(psh, upperBound, lowerBound)
-      .flatMap(sourceRecordChunk -> processAndPushRecords(psh, destination, client, session, sourceRecordChunk, chunk, proteusSpec)
+      .flatMap(sourceRecordChunk -> processAndPushRecords(psh, destination, client, session, sourceRecordChunk, chunk)
 				// ----- CATCH UP IF WE MISSED ANY SOURCE RECORDS -----
 				// This is the only place we can't recover from a dropped instance -- we'd be missing some records
 				// TODO If we handle the transaction boundaries here better we could rollback all the saves in one go?
@@ -259,7 +246,7 @@ public class PushService {
 
 						// We want to process and send a much smaller chunk here by itself
 						return getCatchUpSourceRecords(psh, earliestSeen)
-							.flatMap(catchUpChunk -> processAndPushRecords(psh, destination, client, session, catchUpChunk, chunk, proteusSpec));
+							.flatMap(catchUpChunk -> processAndPushRecords(psh, destination, client, session, catchUpChunk, chunk));
 					}
 
 					// If no catch up is needed, just send down the earliestSeen/latestSeen again
@@ -302,8 +289,7 @@ public class PushService {
     Source source,
     Destination destination,
     DestinationClient<Destination> client,
-    PushSession session,
-    ComponentSpec<JsonNode> proteusSpec
+    PushSession session
   ) {
     final Instant lowerBound = psh.getFootPointer();
     Instant upperBound = Instant.now();
@@ -337,8 +323,8 @@ public class PushService {
           log.info("PushService::runPushableRecursive with {} records in queue", initialCount);
           return Mono.from(setUpPushChunk(session))
             // Separated this part of the stream out ONLY so I can wrap it in a single transaction we can roll back
-            .flatMap(chunk -> processChunk(psh, finalUpperBound, lowerBound, destination, source, client, chunk, session, proteusSpec, initialCount))
-            .flatMap(persistedPsh -> runPushableRecursive(persistedPsh, source, destination, client, session, proteusSpec));
+            .flatMap(chunk -> processChunk(psh, finalUpperBound, lowerBound, destination, source, client, chunk, session, initialCount))
+            .flatMap(persistedPsh -> runPushableRecursive(persistedPsh, source, destination, client, session));
         }
 
         log.info("PushService::runPushableRecursive has reached end of queue");

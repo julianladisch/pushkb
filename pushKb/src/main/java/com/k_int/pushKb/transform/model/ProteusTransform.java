@@ -2,6 +2,7 @@ package com.k_int.pushKb.transform.model;
 
 
 import com.k_int.pushKb.crud.HasId;
+import com.k_int.pushKb.transform.TransformType;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
@@ -40,4 +41,8 @@ public class ProteusTransform implements Transform, HasId {
 
 	@Nullable
 	private final JsonNode spec; // Holds spec itself if source is spec
+
+	public TransformType getType() {
+		return TransformType.JSON_TO_JSON;
+	}
 }

@@ -8,7 +8,7 @@ import org.reactivestreams.Publisher;
 
 import java.util.UUID;
 
-public interface TransformDatabaseService<T extends Transform> {
+public interface TransformImplementationService<T extends Transform> {
   @NonNull
   @SingleResult
   @Transactional
