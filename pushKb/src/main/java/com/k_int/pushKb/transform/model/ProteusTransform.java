@@ -6,6 +6,7 @@ import com.k_int.pushKb.transform.TransformType;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
+import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.json.tree.JsonNode;
@@ -42,6 +43,7 @@ public class ProteusTransform implements Transform, HasId {
 	@Nullable
 	private final JsonNode spec; // Holds spec itself if source is spec
 
+	@Transient
 	public TransformType getType() {
 		return TransformType.JSON_TO_JSON;
 	}

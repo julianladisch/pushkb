@@ -189,7 +189,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 			.source(ProteusSpecSource.FILE_SPEC)
 			.slug(TIPP_TRANSFORM_NAME)
 			.name(TIPP_TRANSFORM_NAME)
-			.specFile("GOKBScroll_TIPP_ERM_transformV1")
+			.specFile("GOKBScroll_TIPP_ERM_transformV1.json")
 			.build();
 
 		// PKG Transform
@@ -198,7 +198,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 			.source(ProteusSpecSource.FILE_SPEC)
 			.slug(PKG_TRANSFORM_NAME)
 			.name(PKG_TRANSFORM_NAME)
-			.specFile("GOKBScroll_PKG_ERM_transformV1")
+			.specFile("GOKBScroll_PKG_ERM_transformV1.json")
 			.build();
 
 		ArrayList<Transform> transforms = new ArrayList<>();
