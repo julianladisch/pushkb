@@ -1,6 +1,7 @@
 CREATE TABLE push_task (
   id uuid PRIMARY KEY,
-	transform VARCHAR(255) NOT NULL,
+	transform uuid NOT NULL,
+	transform_type VARCHAR(255) NOT NULL,
 	destination_id uuid,
   destination_type VARCHAR(255) NOT NULL,
 	source_id uuid, -- References a table dynamically through destinationType
@@ -21,6 +22,8 @@ CREATE INDEX IF NOT EXISTS pt_destination_type_source_idx ON push_task (source_t
 CREATE INDEX IF NOT EXISTS pt_destination_type_destination_idx ON push_task (destination_type, destination_id);
 
 CREATE INDEX IF NOT EXISTS pt_transform_idx ON push_task (transform);
+CREATE INDEX IF NOT EXISTS pt_transform_type_idx ON push_task (transform_type);
+CREATE INDEX IF NOT EXISTS pt_transform_type_transform_idx ON push_task (transform_type, transform);
 
 CREATE INDEX IF NOT EXISTS pt_destination_head_pointer_idx ON push_task (destination_head_pointer);
 CREATE INDEX IF NOT EXISTS pt_foot_pointer_idx ON push_task (foot_pointer);

@@ -30,10 +30,10 @@ public interface PushTaskRepository extends ReactiveStreamsPageableRepositoryUUI
   Publisher<PushTask> findById(@Nullable UUID id);
 
   @NonNull
-  Publisher<PushTask> findBySourceIdAndDestinationId(UUID sourceId, UUID destinationID);
+	Publisher<PushTask> findBySourceIdAndDestinationId(UUID sourceId, UUID destinationID);
 
   @NonNull
-  Publisher<PushTask> listOrderBySourceIdAndDestinationIdAndId();
+	Publisher<PushTask> listOrderBySourceIdAndDestinationIdAndId();
 
   @Override
   default UUID generateUUIDFromObject(PushTask obj) {

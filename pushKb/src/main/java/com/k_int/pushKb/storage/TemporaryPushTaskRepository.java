@@ -33,19 +33,14 @@ public interface TemporaryPushTaskRepository extends ReactiveStreamsPageableRepo
   Publisher<TemporaryPushTask> findById(@Nullable UUID id);
 
   @NonNull
-  @SingleResult
   @Join("pushTask")
-  Publisher<TemporaryPushTask> save(TemporaryPushTask temporaryPushTask);
+	Publisher<TemporaryPushTask> findByPushTask(PushTask pushTask);
 
   @NonNull
   @Join("pushTask")
-  Publisher<TemporaryPushTask> findByPushTask(PushTask pushTask);
+	Publisher<TemporaryPushTask> findByPushTaskAndFilterContext(PushTask pushTask, String filterContext);
 
   @NonNull
   @Join("pushTask")
-  Publisher<TemporaryPushTask> findByPushTaskAndFilterContext(PushTask pushTask, String filterContext);
-
-  @NonNull
-  @Join("pushTask")
-  Publisher<TemporaryPushTask> listOrderByPushTaskAndFilterContext();
+	Publisher<TemporaryPushTask> listOrderByPushTaskAndFilterContext();
 }

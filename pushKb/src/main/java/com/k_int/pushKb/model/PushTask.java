@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.k_int.pushKb.converters.ClassAttributeConverter;
 import com.k_int.pushKb.crud.HasId;
+import com.k_int.pushKb.transform.model.Transform;
 import com.k_int.pushKb.serde.ClassSerde;
 
 import io.micronaut.core.annotation.NonNull;
@@ -35,10 +36,14 @@ public class PushTask implements Pushable, HasId {
 	@TypeDef(type = DataType.UUID)
 	private UUID id;
 
-  // TODO we will eventually need to model transform "properly"
+	// Link to the transform in the DB (implementor of transform)
   @NotNull
   @NonNull
-  private String transform;
+  private UUID transformId;
+	@TypeDef(type = DataType.STRING, converter = ClassAttributeConverter.class)
+	@Serializable(using=ClassSerde.class)
+	@Deserializable(using=ClassSerde.class)
+	Class<? extends Transform> transformType;
 
   private UUID sourceId;
   @TypeDef(type = DataType.STRING, converter = ClassAttributeConverter.class)

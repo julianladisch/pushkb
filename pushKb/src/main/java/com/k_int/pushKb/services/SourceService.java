@@ -1,6 +1,5 @@
 package com.k_int.pushKb.services;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -20,7 +19,6 @@ import io.micronaut.json.tree.JsonNode;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Singleton
@@ -43,8 +41,8 @@ public class SourceService {
   public Mono<DutyCycleTask> registerIngestTask(Class<? extends Source> type, Source s) {
     String srcId = s.getId().toString();
     return reactiveDutyCycleTaskRunner.registerTask(
-      Long.valueOf(1000*60*60),
-      srcId.toString(),
+			(long) (1000 * 60 * 60),
+			srcId,
       "IngestScheduledTask",
       Map.of(
         "source", srcId,
@@ -141,9 +139,7 @@ public class SourceService {
 
     // Set lastIngestStarted
     return Mono.from(sourceDatabaseService.setLastIngestStarted(source))
-      .flatMap(src -> {
-        return sourceFeedService.fetchSourceRecords(src);
-      }).flatMap(src -> {
+      .flatMap(sourceFeedService::fetchSourceRecords).flatMap(src -> {
         // Set lastIngestCompleted
         return Mono.from(sourceDatabaseService.setLastIngestCompleted(src));
       });
