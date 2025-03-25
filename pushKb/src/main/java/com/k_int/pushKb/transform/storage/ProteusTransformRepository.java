@@ -4,10 +4,15 @@ import com.k_int.pushKb.transform.model.ProteusTransform;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.data.model.query.builder.sql.Dialect;
+import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
+import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 
 import java.util.UUID;
 
+@Singleton
+@R2dbcRepository(dialect = Dialect.POSTGRES)
 public interface ProteusTransformRepository extends TransformRepository<ProteusTransform> {
 	@NonNull
 	@SingleResult

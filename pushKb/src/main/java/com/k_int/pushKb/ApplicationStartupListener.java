@@ -208,7 +208,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		return Flux.fromIterable(transforms).concatMap(transform -> {
 			try {
 				// TODO work out whether saveOrUpdate makes sense in DTO world
-				return transformService.saveOrUpdate(tippTransform.getClass(), tippTransform);
+				return transformService.saveOrUpdate(transform.getClass(), transform);
 			} catch (Exception e) {
 				log.error("ERROR BOOTSTRAPPING TRANSFORM {}", transform, e);
 				//e.printStackTrace();
@@ -241,25 +241,21 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 				FolioDestination dest = getFolioDestinationFromConfig(configFolioDestination);
 
 				// TODO For now we are simply swapping between the two hard-coded transforms. This will need to be better configured later
-				Mono<Transform> transformPublisher = Mono.from(
-					transformService.findById(
-						ProteusTransform.class,
-						Transform.generateUUID(src.getGokbSourceType() == GokbSourceType.TIPP ? TIPP_TRANSFORM_NAME : PKG_TRANSFORM_NAME)
-					)
-				);
+				return Mono.from(transformService.findById(
+					ProteusTransform.class,
+					Transform.generateUUID(src.getGokbSourceType() == GokbSourceType.TIPP ? TIPP_TRANSFORM_NAME : PKG_TRANSFORM_NAME)
+				)).flatMap(transform -> {
+						PushTask pushTaskObj = PushTask.builder()
+							.transformId(transform.getId())
+							.transformType(transform.getClass())
+							.sourceType(GokbSource.class)
+							.sourceId(GokbSource.generateUUIDFromSource(src))
+							.destinationType(FolioDestination.class)
+							.destinationId(FolioDestination.generateUUIDFromDestination(dest))
+							.build();
 
-				return transformPublisher.flatMap(transform -> {
-					PushTask pushTaskObj = PushTask.builder()
-						.transformId(transform.getId())
-						.transformType(transform.getClass())
-						.sourceType(GokbSource.class)
-						.sourceId(GokbSource.generateUUIDFromSource(src))
-						.destinationType(FolioDestination.class)
-						.destinationId(FolioDestination.generateUUIDFromDestination(dest))
-						.build();
-
-					return Mono.from(pushableService.ensurePushable(pushTaskObj)).map(PushTask.class::cast);
-				});
+						return Mono.from(pushableService.ensurePushable(pushTaskObj)).map(PushTask.class::cast);
+					});
 			} catch (Exception e) {
 				log.error("ERROR BOOTSTRAPPING PUSHTASK {}", pt, e);
 				//e.printStackTrace();

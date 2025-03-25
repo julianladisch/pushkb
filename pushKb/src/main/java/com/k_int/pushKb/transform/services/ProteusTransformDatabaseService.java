@@ -5,10 +5,12 @@ import com.k_int.pushKb.transform.storage.ProteusTransformRepository;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.transaction.annotation.Transactional;
+import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 
 import java.util.UUID;
 
+@Singleton
 public class ProteusTransformDatabaseService implements TransformDatabaseService<ProteusTransform> {
 	private final ProteusTransformRepository proteusTransformRepository;
 

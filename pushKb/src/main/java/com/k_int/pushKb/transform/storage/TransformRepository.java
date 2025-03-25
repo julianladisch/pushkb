@@ -29,4 +29,9 @@ public interface TransformRepository<T extends Transform> extends ReactiveStream
 
 	@NonNull
 	Publisher<T> list();
+
+	@Override // I don't love that this has to be overwritten in every repository.
+	default UUID generateUUIDFromObject(T obj) {
+		return Transform.generateUUIDFromTransform(obj);
+	}
 }

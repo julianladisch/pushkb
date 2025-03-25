@@ -4,7 +4,7 @@ CREATE TABLE proteus_transform (
 	name VARCHAR(255) NOT NULL,
 	source VARCHAR(255) NOT NULL,
 	spec_file VARCHAR(255),
-	spec jsonb,
+	spec jsonb
 );
 
 CREATE INDEX IF NOT EXISTS ptr_name_idx ON proteus_transform (name);

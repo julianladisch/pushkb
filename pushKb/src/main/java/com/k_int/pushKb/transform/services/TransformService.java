@@ -4,11 +4,13 @@ import com.k_int.pushKb.transform.model.ProteusTransform;
 import com.k_int.pushKb.transform.model.Transform;
 import io.micronaut.context.BeanContext;
 import io.micronaut.core.type.Argument;
+import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 
 import java.util.Set;
 import java.util.UUID;
 
+@Singleton
 public class TransformService {
 	private final BeanContext beanContext;
 
