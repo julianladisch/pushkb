@@ -1,6 +1,5 @@
 package com.k_int.pushKb.transform.model;
 
-
 import com.k_int.pushKb.crud.HasId;
 import com.k_int.pushKb.transform.TransformType;
 import io.micronaut.core.annotation.NonNull;
@@ -41,6 +40,7 @@ public class ProteusTransform implements Transform, HasId {
 	private final String specFile; // Holds file name if source is file
 
 	@Nullable
+	@TypeDef(type = DataType.JSON)
 	private final JsonNode spec; // Holds spec itself if source is spec
 
 	@Transient

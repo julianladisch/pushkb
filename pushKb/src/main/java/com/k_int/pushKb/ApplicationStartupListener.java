@@ -2,10 +2,13 @@ package com.k_int.pushKb;
 
 import java.util.ArrayList;
 
+import com.k_int.pushKb.services.FileLoaderService;
 import com.k_int.pushKb.transform.model.ProteusSpecSource;
 import com.k_int.pushKb.transform.model.ProteusTransform;
 import com.k_int.pushKb.transform.model.Transform;
 import com.k_int.pushKb.transform.services.TransformService;
+import io.micronaut.json.tree.JsonNode;
+// import io.micronaut.serde.ObjectMapper;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Destination;
@@ -47,6 +50,9 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Singleton
 public class ApplicationStartupListener implements ApplicationEventListener<StartupEvent> {
+	// private final ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner;
+	// private final ObjectMapper objectMapper;
+
 	private final DestinationService destinationService;
   private final SourceService sourceService;
 	private final PushableService pushableService;
@@ -57,22 +63,32 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 	private final ConfigBootstrapDestinations configBootstrapDestinations;
 	private final ConfigBootstrapPushables configBootstrapPushables;
 
-	// private final ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner;
 
-	// FIXME Obviously this isn't great, we're bootstrapping these two in for now.
+	// We're bootstrapping these two in for now... I'm not thrilled about this pattern but it will do?
 	private final static String TIPP_TRANSFORM_NAME = "GOKb_TIPP_to_PCI_V1";
+	private final static String TIPP_TRANSFORM_FILE = "GOKBScroll_TIPP_ERM_transformV1.json";
+
 	private final static String PKG_TRANSFORM_NAME = "GOKb_Package_to_Pkg_V1";
+	private final static String PKG_TRANSFORM_FILE = "GOKBScroll_PKG_ERM_transformV1.json";
+
+	private final FileLoaderService fileLoaderService;
 
 	public ApplicationStartupListener(
 		//ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner,
+		// ObjectMapper objectMapper,
+
 		DestinationService destinationService,
 		SourceService sourceService,
 		PushableService pushableService,
 		TransformService transformService,
 		ConfigBootstrapSources configBootstrapSources,
 		ConfigBootstrapDestinations configBootstrapDestinations,
-		ConfigBootstrapPushables configBootstrapPushables
+		ConfigBootstrapPushables configBootstrapPushables,
+		FileLoaderService fileLoaderService
  	) {
+		// this.reactiveDutyCycleTaskRunner = reactiveDutyCycleTaskRunner;
+		// this.objectMapper = objectMapper;
+
 		this.destinationService = destinationService;
 		this.sourceService = sourceService;
 		this.pushableService = pushableService;
@@ -80,8 +96,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		this.configBootstrapSources = configBootstrapSources;
 		this.configBootstrapDestinations = configBootstrapDestinations;
 		this.configBootstrapPushables = configBootstrapPushables;
-
-		//this.reactiveDutyCycleTaskRunner = reactiveDutyCycleTaskRunner;
+		this.fileLoaderService = fileLoaderService;
 	}
 
 	@Override
@@ -183,38 +198,49 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 
 	// FIXME we're bootstrapping the two ProteusTransforms for now as HARDCODED inputs
 	private Publisher<Transform> bootstrapTransforms() {
-		// TIPP transform
-		ProteusTransform tippTransform = ProteusTransform.builder()
-			.id(Transform.generateUUID(TIPP_TRANSFORM_NAME))
-			.source(ProteusSpecSource.FILE_SPEC)
-			.slug(TIPP_TRANSFORM_NAME)
-			.name(TIPP_TRANSFORM_NAME)
-			.specFile("GOKBScroll_TIPP_ERM_transformV1.json")
-			.build();
+		try {
+			JsonNode tippSpec = fileLoaderService.readJsonFile(TIPP_TRANSFORM_FILE, FileLoaderService.TRANSFORM_SPEC_PATH);
+			JsonNode pkgSpec = fileLoaderService.readJsonFile(PKG_TRANSFORM_FILE, FileLoaderService.TRANSFORM_SPEC_PATH);
 
-		// PKG Transform
-		ProteusTransform pkgTransform = ProteusTransform.builder()
-			.id(Transform.generateUUID(PKG_TRANSFORM_NAME))
-			.source(ProteusSpecSource.FILE_SPEC)
-			.slug(PKG_TRANSFORM_NAME)
-			.name(PKG_TRANSFORM_NAME)
-			.specFile("GOKBScroll_PKG_ERM_transformV1.json")
-			.build();
+			// TIPP transform
+			ProteusTransform tippTransform = ProteusTransform.builder()
+				.id(Transform.generateUUID(TIPP_TRANSFORM_NAME))
+				.source(ProteusSpecSource.STRING_SPEC)
+				.slug(TIPP_TRANSFORM_NAME)
+				.name(TIPP_TRANSFORM_NAME)
+				.spec(tippSpec)
+				//.specFile(TIPP_TRANSFORM_FILE) // Loading transform as file instead
+				.build();
 
-		ArrayList<Transform> transforms = new ArrayList<>();
-		transforms.add(tippTransform);
-		transforms.add(pkgTransform);
+			// PKG Transform
+			ProteusTransform pkgTransform = ProteusTransform.builder()
+				.id(Transform.generateUUID(PKG_TRANSFORM_NAME))
+				.source(ProteusSpecSource.STRING_SPEC)
+				.slug(PKG_TRANSFORM_NAME)
+				.name(PKG_TRANSFORM_NAME)
+				.spec(pkgSpec)
+				//.specFile(PKG_TRANSFORM_FILE) // Loading transform as file instead
+				.build();
 
-		return Flux.fromIterable(transforms).concatMap(transform -> {
-			try {
-				// TODO work out whether saveOrUpdate makes sense in DTO world
-				return transformService.saveOrUpdate(transform.getClass(), transform);
-			} catch (Exception e) {
-				log.error("ERROR BOOTSTRAPPING TRANSFORM {}", transform, e);
-				//e.printStackTrace();
-				return Mono.empty();
-			}
-		});
+			ArrayList<Transform> transforms = new ArrayList<>();
+			transforms.add(tippTransform);
+			transforms.add(pkgTransform);
+
+			return Flux.fromIterable(transforms).concatMap(transform -> {
+				try {
+					// TODO work out whether saveOrUpdate makes sense in DTO world
+					return transformService.saveOrUpdate(transform.getClass(), transform);
+				} catch (Exception e) {
+					log.error("ERROR BOOTSTRAPPING TRANSFORM {}", transform, e);
+					//e.printStackTrace();
+					return Mono.empty();
+				}
+			});
+		} catch (Exception e) {
+			log.error("ERROR BOOTSTRAPPING TRANSFORMS", e);
+			//e.printStackTrace();
+			return Mono.empty();
+		}
 	}
 
 	private Publisher<PushTask> bootstrapPushTasks() {

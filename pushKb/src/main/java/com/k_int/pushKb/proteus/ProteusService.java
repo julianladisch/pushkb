@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
+import com.k_int.pushKb.services.FileLoaderService;
 import io.micronaut.serde.ObjectMapper;
 import io.micronaut.json.tree.JsonNode;
 import jakarta.inject.Singleton;
@@ -16,24 +17,22 @@ import com.k_int.proteus.Config;
 import com.k_int.proteus.Context;
 import com.k_int.proteus.Input;
 
-import io.micronaut.core.io.ResourceLoader;
 import io.micronaut.jackson.databind.JacksonDatabindMapper;
 
 @Slf4j
 @Singleton
 public class ProteusService {
-  public static final String TRANSFORM_SPEC_PATH = "classpath:transformSpecs";
   private static final JacksonDatabindMapper jacksonDatabindMapper = new JacksonDatabindMapper();
 
   private final ObjectMapper objectMapper;
-  private final ResourceLoader resourceLoader;
+	private final FileLoaderService fileLoaderService;
 
   public ProteusService(
     ObjectMapper objectMapper,
-    ResourceLoader resourceLoader
+		FileLoaderService fileLoaderService
 	) {
     this.objectMapper = objectMapper;
-    this.resourceLoader = resourceLoader;
+		this.fileLoaderService = fileLoaderService;
 	}
 
   static final Config config = Config.builder()
@@ -55,7 +54,7 @@ public class ProteusService {
   }
                                     
   public ComponentSpec<JsonNode> loadSpec(String specName) {
-    return ComponentSpec.load(JsonNode.class, resourceLoader.getResourceAsStream(TRANSFORM_SPEC_PATH + "/" + specName).get());
+    return ComponentSpec.load(JsonNode.class, fileLoaderService.streamFile(specName, FileLoaderService.TRANSFORM_SPEC_PATH));
   }
 
   public Context getContextFromSpec(String specName) {
