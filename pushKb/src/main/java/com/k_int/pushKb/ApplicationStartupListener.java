@@ -198,49 +198,43 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 
 	// FIXME we're bootstrapping the two ProteusTransforms for now as HARDCODED inputs
 	private Publisher<Transform> bootstrapTransforms() {
-		try {
-			JsonNode tippSpec = fileLoaderService.readJsonFile(TIPP_TRANSFORM_FILE, FileLoaderService.TRANSFORM_SPEC_PATH);
-			JsonNode pkgSpec = fileLoaderService.readJsonFile(PKG_TRANSFORM_FILE, FileLoaderService.TRANSFORM_SPEC_PATH);
+		JsonNode tippSpec = fileLoaderService.readJsonFile(TIPP_TRANSFORM_FILE, FileLoaderService.TRANSFORM_SPEC_PATH);
+		JsonNode pkgSpec = fileLoaderService.readJsonFile(PKG_TRANSFORM_FILE, FileLoaderService.TRANSFORM_SPEC_PATH);
 
-			// TIPP transform
-			ProteusTransform tippTransform = ProteusTransform.builder()
-				.id(Transform.generateUUID(TIPP_TRANSFORM_NAME))
-				.source(ProteusSpecSource.STRING_SPEC)
-				.slug(TIPP_TRANSFORM_NAME)
-				.name(TIPP_TRANSFORM_NAME)
-				.spec(tippSpec)
-				//.specFile(TIPP_TRANSFORM_FILE) // Loading transform as file instead
-				.build();
+		// TIPP transform
+		ProteusTransform tippTransform = ProteusTransform.builder()
+			.id(Transform.generateUUID(TIPP_TRANSFORM_NAME))
+			.source(ProteusSpecSource.STRING_SPEC)
+			.slug(TIPP_TRANSFORM_NAME)
+			.name(TIPP_TRANSFORM_NAME)
+			.spec(tippSpec)
+			//.specFile(TIPP_TRANSFORM_FILE) // Loading transform as file instead
+			.build();
 
-			// PKG Transform
-			ProteusTransform pkgTransform = ProteusTransform.builder()
-				.id(Transform.generateUUID(PKG_TRANSFORM_NAME))
-				.source(ProteusSpecSource.STRING_SPEC)
-				.slug(PKG_TRANSFORM_NAME)
-				.name(PKG_TRANSFORM_NAME)
-				.spec(pkgSpec)
-				//.specFile(PKG_TRANSFORM_FILE) // Loading transform as file instead
-				.build();
+		// PKG Transform
+		ProteusTransform pkgTransform = ProteusTransform.builder()
+			.id(Transform.generateUUID(PKG_TRANSFORM_NAME))
+			.source(ProteusSpecSource.STRING_SPEC)
+			.slug(PKG_TRANSFORM_NAME)
+			.name(PKG_TRANSFORM_NAME)
+			.spec(pkgSpec)
+			//.specFile(PKG_TRANSFORM_FILE) // Loading transform as file instead
+			.build();
 
-			ArrayList<Transform> transforms = new ArrayList<>();
-			transforms.add(tippTransform);
-			transforms.add(pkgTransform);
+		ArrayList<Transform> transforms = new ArrayList<>();
+		transforms.add(tippTransform);
+		transforms.add(pkgTransform);
 
-			return Flux.fromIterable(transforms).concatMap(transform -> {
-				try {
-					// TODO work out whether saveOrUpdate makes sense in DTO world
-					return transformService.saveOrUpdate(transform.getClass(), transform);
-				} catch (Exception e) {
-					log.error("ERROR BOOTSTRAPPING TRANSFORM {}", transform, e);
-					//e.printStackTrace();
-					return Mono.empty();
-				}
-			});
-		} catch (Exception e) {
-			log.error("ERROR BOOTSTRAPPING TRANSFORMS", e);
-			//e.printStackTrace();
-			return Mono.empty();
-		}
+		return Flux.fromIterable(transforms).concatMap(transform -> {
+			try {
+				// TODO work out whether saveOrUpdate makes sense in DTO world
+				return transformService.saveOrUpdate(transform.getClass(), transform);
+			} catch (Exception e) {
+				log.error("Error bootstrapping transform {}", transform, e);
+				//e.printStackTrace();
+				return Mono.empty();
+			}
+		});
 	}
 
 	private Publisher<PushTask> bootstrapPushTasks() {
