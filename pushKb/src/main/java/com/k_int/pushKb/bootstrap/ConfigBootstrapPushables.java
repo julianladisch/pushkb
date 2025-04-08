@@ -15,7 +15,6 @@ public class ConfigBootstrapPushables {
   @Data
   @EachProperty(value = "pushtasks", list = true)
   public static class ConfigBootstrapPushTask {
-    private String transform;
     private String source;
     private String destination;
   }

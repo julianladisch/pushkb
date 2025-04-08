@@ -26,11 +26,10 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
   }
 
   @Override
-  @Post(uri = "/", produces = MediaType.APPLICATION_JSON)
+  @Post(produces = MediaType.APPLICATION_JSON)
   public Publisher<PushTask> post(
 		@Valid @Body PushTask pt
 	) {
-    log.debug("LOGDEBUG USING OVERRIDE POST");
 		pt.setId(repository.generateUUIDFromObject(pt));
 
 		// Bit clunky, but ensure we have pointers either sent down or reset
