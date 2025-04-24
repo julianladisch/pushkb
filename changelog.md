@@ -1,6 +1,40 @@
 # Changelog
 
+## Version 1.0.0-alpha.8
+
+### Additions
+* [General]
+	* Added configuration requiring authentication via Keycloak
+	* Cleanup PushableScheduledTask
+	* Added error handling explanations to temporaryPushTask controller
+
+### Changes
+* [Chore]
+	* Small code cleanups/tweaks
+* [Docs]
+	* Added to README with information from GBV workshop
+	* Env var table set up
+* [Refactor]
+	* Refactored pushService away from directly calling proteus. That is now one potential way to transform records.
+	* PushKB now transforms whole chunk, not just record by record
+	* Moved TemporaryPushTask stuff out to a new Public Controller
+
+### Fixes
+* [General]
+	* Fix issues with bootstrapping and using transforms
+	* Getting the transform model up and running
+	* PushableId in Push return is now ALWAYS the underlying PushTask Id, even on temporary push tasks
+	* More empty string protection
+	* PackageDescriptionUrls should not be null when empty string is present in Gokb data
+	* Removed wrong packageDescriptionURL transform
+	* ACCESSIBLE_URL is no longer mandatory, it defaults to output of EmbeddedServer
+	* TemporaryPushTask controller return
+
 ## Version 1.0.0-alpha.7
+
+### Changes
+* [Chore]
+	* Changelog - Generate the changelog
 
 ### Fixes
 * [General]
