@@ -1,5 +1,7 @@
 package com.k_int.pushKb.api;
 
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
@@ -13,8 +15,8 @@ import io.micronaut.http.annotation.Post;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
-// FIXME this should be authorised
 @Slf4j
+@Secured(SecurityRule.IS_AUTHENTICATED)
 @Controller("/pushtasks")
 public class PushTaskController extends CrudControllerImpl<PushTask> {
   private final PushTaskRepository repository;

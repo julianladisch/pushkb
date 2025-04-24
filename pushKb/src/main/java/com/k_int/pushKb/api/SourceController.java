@@ -1,5 +1,7 @@
 package com.k_int.pushKb.api;
 
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -12,18 +14,16 @@ import java.util.Map;
 
 import com.k_int.pushKb.services.SourceService;
 
-// FIXME This should be Auth protected
 @Controller("/sources")
 @Slf4j
+@Secured(SecurityRule.IS_AUTHENTICATED)
 public class SourceController {
   @Get(uri = "/implementers", produces = MediaType.APPLICATION_JSON)
   public Mono<Map<String, Object>> getImplementors() {
     return Flux.fromIterable(SourceService.sourceImplementers)
-      .map(clazz -> clazz.toString())
+      .map(Class::toString)
       .collectList()
-      .map(implementingArray -> {
-        return Map.of("implementers", implementingArray);
-      });
+      .map(implementingArray -> Map.of("implementers", implementingArray));
   }
 
   // Sources themselves will be managed via "interactions/<interaction>/api/<interaction>Controller"

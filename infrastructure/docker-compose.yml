@@ -18,6 +18,8 @@ services:
     depends_on:
       - db
     container_name: local_keycloak
+    volumes:
+      - ./initkc/pkb_realm.json:/opt/keycloak/data/import/pkb_realm.json
     environment:
       DB_VENDOR: postgres
       DB_ADDR: db
@@ -28,9 +30,9 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     image: quay.io/keycloak/keycloak:25.0
-    entrypoint: ["/opt/keycloak/bin/kc.sh", "start-dev"]
+    entrypoint: ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
     ports:
-      - "28080:8060"
+      - 8088:8080
     restart: unless-stopped
     networks:
       - local-keycloak
