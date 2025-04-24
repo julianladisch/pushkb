@@ -13,11 +13,16 @@ image:
 #   - docker18
 #   - ki-onprem
 
+default:
+  services:
+    - name: docker:24.0.5-dind
+      pull_policy: if-not-present
+
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
   GIT_SUBMODULE_STRATEGY: normal
   GIT_SUBMODULE_FORCE_HTTPS: "true"
-
+  DOCKER_HOST: "tcp://localhost:2375/"
 
 
 before_script:
