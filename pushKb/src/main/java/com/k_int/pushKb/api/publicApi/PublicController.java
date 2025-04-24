@@ -1,5 +1,6 @@
 package com.k_int.pushKb.api.publicApi;
 
+import io.micronaut.security.rules.SecurityRule;
 import reactor.core.publisher.Mono;
 
 import io.micronaut.http.MediaType;
@@ -14,9 +15,13 @@ import java.util.Map;
 import com.k_int.proteus.ComponentSpec;
 import com.k_int.pushKb.proteus.ProteusService;
 
+import io.micronaut.security.annotation.Secured;
+
+
 // This will be a non-authenticated endpoint,
 // (for v1) able only to create temporary pushTasks from existing ones
 // and not access or change ANY data
+@Secured(SecurityRule.IS_ANONYMOUS)
 @Controller("/public")
 @Slf4j
 public class PublicController {

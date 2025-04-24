@@ -25,21 +25,32 @@ micronaut:
   #    redoc:
   #      paths: classpath:META-INF/swagger/views/redoc
   #      mapping: /openapi/redoc/**
-  ## FIXME SHOULD FIGURE OUT SECURITY AT SOME PT
-  #security:
-  #  authentication: idtoken
-  #  token:
-  #    jwt:
-  #      enabled: true
-  #      signatures.jwks.keycloak:
-  #        url: ${KEYCLOAK_CERT_URL:""}
-  #  intercept-url-map:
-  #    - pattern: "/openapi/**"
-  #      access:
-  #        - isAnonymous()
+  security:
+    enabled: true
+    oauth2:
+      enabled: true
+      clients:
+        keycloak:
+          client-secret: '${OAUTH_CLIENT_SECRET:secret}'
+          client-id: '${OUTH_CLIENT_ID:pushKB}'
+          openid:
+            issuer: '${OIDC_ISSUER_DOMAIN:`http://localhost:8088`}/realms/${KEYCLOAK_REALM:PushKB}'
+    token:
+      jwt:
+        enabled: true
+        signatures:
+          # Let Micronaut Security use the OIDC discovery mechanism.
+          # By defining the issuer under oauth2.clients.keycloak.openid.issuer,
+          # Micronaut security should automatically configure JWT signature validation
+          # using the JWKS endpoint discovered from that issuer.
+          # We remove the explicit 'jwks.keycloak' block to avoid a duplication conflict.
+          enabled: true
   data:
     pageable:
       max-page-size: 1000
+  endpoints:
+    logouts:
+      get-allowed: true
 flyway:
   enabled: true
   datasources:

@@ -2,24 +2,22 @@ package com.k_int.pushKb.api;
 
 import java.util.UUID;
 
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import org.reactivestreams.Publisher;
 
-import com.k_int.pushKb.crud.CrudControllerImpl;
-import com.k_int.pushKb.model.SourceRecord;
 import com.k_int.pushKb.storage.SourceRecordRepository;
 
-import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
-import io.micronaut.context.annotation.Parameter;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.QueryValue;
 import lombok.extern.slf4j.Slf4j;
 
-// FIXME This should be Auth protected
 @Controller("/sourcerecords")
 @Slf4j
+@Secured(SecurityRule.IS_AUTHENTICATED)
 public class SourceRecordController {
   private final SourceRecordRepository repository;
   public SourceRecordController(SourceRecordRepository repository) {
