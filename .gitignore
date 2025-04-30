@@ -17,6 +17,7 @@ data-store/
 *.sh
 
 /infrastructure/backups
+/infrastructure/file
 
 *.txt
 
