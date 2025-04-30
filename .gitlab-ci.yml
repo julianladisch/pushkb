@@ -22,7 +22,6 @@ variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
   GIT_SUBMODULE_STRATEGY: normal
   GIT_SUBMODULE_FORCE_HTTPS: "true"
-  DOCKER_HOST: "tcp://localhost:2375/"
 
 
 before_script:
