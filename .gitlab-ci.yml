@@ -23,6 +23,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: normal
   GIT_SUBMODULE_FORCE_HTTPS: "true"
   DOCKER_TLS_CERTDIR: ""
+  GIT_DEPTH: 0
 
 before_script:
   - GRADLE_USER_HOME="$(pwd)/.gradle"
