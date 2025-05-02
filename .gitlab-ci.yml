@@ -42,7 +42,7 @@ build:
     key: "$CI_COMMIT_REF_NAME"
     policy: push
     paths:
-      - build
+      - pushKb/build
       - .gradle
 
 dockerLogin:
@@ -78,11 +78,11 @@ build-native-image:
     - ./gradlew dockerPush
   artifacts:
     paths:
-      - build/native/nativeCompile/pushKb
+      - pushKb/build/native/nativeCompile/pushKb
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
     paths:
-      - build
+      - pushKb/build
       - .gradle
 
