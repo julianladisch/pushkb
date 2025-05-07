@@ -204,17 +204,34 @@ tasks {
 		graalArch.set("x64")
 	}
 
-	boolean isPre = project.hasProperty('versionPreRelease') &&
-		("${project.getProperty('versionPreRelease')}".trim() != "")
+	boolean isPre = project.hasProperty('versionPreRelease') && !project.property('versionPreRelease').equals('unspecified') &&
+		("${project.property('versionPreRelease')}".trim() != "")
 
-	// Build up a list of tags we should apply
+	// Always add the version including any specified prerelease
 	final Set<String> tags = [
-		'versionMajor',
-		'versionMajorMinor',
 		'version'
 	].findResults {
 		(project.hasProperty(it) && !project.property(it).equals('unspecified')) ? project.property(it).toString().trim() : null
 	}
+
+	// Build up a list of tags we should apply
+	tags.addAll( [
+		'versionMajor',
+		'versionMajorMinor'
+	].findResults {
+
+		final String tag = (project.hasProperty(it) && !project.property(it).equals('unspecified')) ? project.property(it).toString().trim() : null
+		if (tag == null) return null
+
+		// Append the next keyword if this is a tag.
+		if (isPre) {
+			// Trim the prerelease off and just add next for partial tags
+			final String toTrim = project.property('versionPreRelease');
+			return "${tag - toTrim}-next"
+		}
+
+		tag
+	})
 
 	// If this is a pre-release (including Snapshots) then add "next" tag. Otherwise, use latest
 	tags << (isPre ? 'next' : 'latest')

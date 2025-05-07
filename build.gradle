@@ -21,3 +21,10 @@ repositories {
 	mavenCentral()
 	maven { url "https://maven.k-int.com/content/repositories/releases" }
 }
+
+afterEvaluate {
+	final rootVersion = getVersion()
+	subprojects {
+		it.version = rootVersion
+  	}
+}
