@@ -246,7 +246,9 @@ public class PushService {
 
 						// We want to process and send a much smaller chunk here by itself
 						return getCatchUpSourceRecords(psh, earliestSeen)
-							.flatMap(catchUpChunk -> processAndPushRecords(psh, destination, client, session, catchUpChunk, chunk));
+							.flatMap(catchUpChunk -> processAndPushRecords(psh, destination, client, session, catchUpChunk, chunk))
+							// Catch-up latestSeen will be earlier than chunk latestSeen if this catch-up happens at the FIRST chunk, so ensure we pass actual latestSeen to avoid edge-case where DHP is set to earliestSeen in the first chunk.
+							.map(TupleUtils.function((earliestSeenFromCatchup, latestSeenFromCatchup, remainingCountAfterCatchup) -> Tuples.of(earliestSeenFromCatchup, latestSeen, remainingCountAfterCatchup)));
 					}
 
 					// If no catch up is needed, just send down the earliestSeen/latestSeen again
