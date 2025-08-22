@@ -57,8 +57,9 @@ flyway:
     default:
       enabled: true
       out-of-order: true
-      # locations:
-      #   - classpath:db/migrations
+      locations:
+        - classpath:db/migration
+        - classpath:db/taskscheduler-core
       # default-schema: r2dbc-poc
       # url: ${DB_URL:`r2dbc:postgresql://localhost:5432/postgres`}
       # username: ${DB_USER:`postgres`}
@@ -152,3 +153,4 @@ taskscheduler:
   synchronous:
     concurrency: ${TASKSCHEDULER_SYNCHRONOUS_CONCURRENCY:`1`}
   interval: ${TASKSCHEDULER_INTERVAL:`PT10S`}
+
