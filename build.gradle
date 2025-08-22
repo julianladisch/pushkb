@@ -1,7 +1,9 @@
 buildscript {
 	repositories {
+//		mavenLocal()
 		mavenCentral()
 		maven { url "https://maven.k-int.com/content/repositories/releases" }
+//		maven { url "https://maven.k-int.com/repository/snapshots" }
 	}
 	dependencies {
 		classpath 'com.k_int.gradle:kint-gradle-plugin:2.2.1'
@@ -18,8 +20,10 @@ apply plugin: "com.k_int.gradle.plugin"
 apply plugin: "com.k_int.gradle.conventional-git"
 
 repositories {
+//	mavenLocal()
 	mavenCentral()
 	maven { url "https://maven.k-int.com/content/repositories/releases" }
+//	maven { url "https://maven.k-int.com/repository/snapshots" }
 }
 
 afterEvaluate {

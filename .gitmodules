@@ -1,3 +1,0 @@
-[submodule "taskscheduler"]
-	path = taskscheduler
-	url = git@gitlab.com:knowledge-integration/platform/patterns/taskscheduler.git
