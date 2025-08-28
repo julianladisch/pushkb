@@ -299,7 +299,7 @@
 					"attributes": {}
 				}
 			],
-			"apiClient": [
+			"pushKB": [
 				{
 					"id": "f0c21f76-ceb7-467e-844f-8d2b89b7a269",
 					"name": "uma_protection",
@@ -309,7 +309,6 @@
 					"attributes": {}
 				}
 			],
-			"pushKB": [],
 			"security-admin-console": [],
 			"admin-cli": [],
 			"account-console": [],
@@ -468,19 +467,19 @@
 	"users": [
 		{
 			"id": "f69d2ef8-7611-48b9-b178-63aa1603a8d2",
-			"username": "service-account-apiClient",
+			"username": "service-account-pushKB",
 			"emailVerified": false,
 			"createdTimestamp": 1743519066426,
 			"enabled": true,
 			"totp": false,
-			"serviceAccountClientId": "apiClient",
+			"serviceAccountClientId": "pushKB",
 			"disableableCredentialTypes": [],
 			"requiredActions": [],
 			"realmRoles": [
 				"default-roles-pushkb"
 			],
 			"clientRoles": {
-				"apiClient": [
+				"pushKB": [
 					"uma_protection"
 				]
 			},
@@ -711,7 +710,7 @@
 		},
 		{
 			"id": "60f9255f-74f9-4568-ad25-967f106dfc47",
-			"clientId": "apiClient",
+			"clientId": "pushKB",
 			"name": "API Client",
 			"description": "",
 			"rootUrl": "",
@@ -817,7 +816,7 @@
 				"resources": [
 					{
 						"name": "Default Resource",
-						"type": "urn:apiClient:resources:default",
+						"type": "urn:pushKB:resources:default",
 						"ownerManagedAccess": false,
 						"attributes": {},
 						"uris": [
@@ -829,62 +828,6 @@
 				"scopes": [],
 				"decisionStrategy": "UNANIMOUS"
 			}
-		},
-		{
-			"id": "2a3f8ac2-060d-4365-8ae2-f91adfe72737",
-			"clientId": "pushKB",
-			"name": "",
-			"description": "",
-			"rootUrl": "",
-			"adminUrl": "",
-			"baseUrl": "",
-			"surrogateAuthRequired": false,
-			"enabled": true,
-			"alwaysDisplayInConsole": false,
-			"clientAuthenticatorType": "client-secret",
-			"secret": "MmZvbX2MgrU9rbAj0q5La21bYxtv7Prp",
-			"redirectUris": [
-				"http://localhost:8060/oauth/callback/keycloak"
-			],
-			"webOrigins": [
-				""
-			],
-			"notBefore": 0,
-			"bearerOnly": false,
-			"consentRequired": false,
-			"standardFlowEnabled": true,
-			"implicitFlowEnabled": false,
-			"directAccessGrantsEnabled": true,
-			"serviceAccountsEnabled": false,
-			"publicClient": false,
-			"frontchannelLogout": true,
-			"protocol": "openid-connect",
-			"attributes": {
-				"oidc.ciba.grant.enabled": "false",
-				"client.secret.creation.time": "1743517431",
-				"backchannel.logout.session.required": "true",
-				"post.logout.redirect.uris": "http://localhost:8060/logout",
-				"oauth2.device.authorization.grant.enabled": "false",
-				"display.on.consent.screen": "false",
-				"use.jwks.url": "false",
-				"backchannel.logout.revoke.offline.tokens": "false"
-			},
-			"authenticationFlowBindingOverrides": {},
-			"fullScopeAllowed": true,
-			"nodeReRegistrationTimeout": -1,
-			"defaultClientScopes": [
-				"web-origins",
-				"acr",
-				"profile",
-				"roles",
-				"email"
-			],
-			"optionalClientScopes": [
-				"address",
-				"phone",
-				"offline_access",
-				"microprofile-jwt"
-			]
 		},
 		{
 			"id": "307f21d6-2a6b-4f8b-8dab-863d33fd355b",
