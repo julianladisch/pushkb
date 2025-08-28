@@ -1,6 +1,7 @@
 package com.k_int.pushKb;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import com.k_int.pushKb.services.FileLoaderService;
 import com.k_int.pushKb.transform.model.ProteusSpecSource;
@@ -140,8 +141,14 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		log.debug("bootstrapSources");
 		//log.info("CONFIG SOURCES: {}", configBootstrapSources);
 
+		List<ConfigBootstrapGokbSource> gokbsources = configBootstrapSources.getGokbsources();
+		if (gokbsources == null || gokbsources.size() == 0) {
+			log.warn("No GOKb sources configured for bootstrapping");
+			return Mono.empty();
+		}
+
 		// TODO this is obviously quite domain specific -- if we ever want this in prod maybe move it to GOKB class type and have that worked into bootstrapping
-		return Flux.fromIterable(configBootstrapSources.getGokbsources()).concatMap(src -> {
+		return Flux.fromIterable(gokbsources).concatMap(src -> {
 			try {
 				GokbSource gkbSource = getGokbSourceFromConfig(src);
 
@@ -183,9 +190,15 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 	private Publisher<Destination> bootstrapDestinations() {
 		log.debug("bootstrapDestinations");
 		//log.info("CONFIG DESTINATIONS: {}", configBootstrapDestinations);
+
+		List<ConfigBootstrapFolioDestination> foliodestinations = configBootstrapDestinations.getFoliodestinations();
+		if (foliodestinations == null || foliodestinations.size() == 0) {
+			log.warn("No FOLIO destinations configured for bootstrapping");
+			return Mono.empty();
+		}
 		
 		// TODO this is obviously quite domain specific -- if we ever want this in prod maybe move it to GOKB class type and have that worked into bootstrapping
-		return Flux.fromIterable(configBootstrapDestinations.getFoliodestinations()).concatMap(dest -> {
+		return Flux.fromIterable(foliodestinations).concatMap(dest -> {
 			try {
 				return destinationService.ensureDestination(getFolioDestinationFromConfig(dest));
 			} catch (Exception e) {
@@ -239,8 +252,15 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 
 	private Publisher<PushTask> bootstrapPushTasks() {
 		log.debug("bootstrapPushTasks");
+
+		List<ConfigBootstrapPushables.ConfigBootstrapPushTask> pushtasks = configBootstrapPushables.getPushtasks();
+		if (pushtasks == null || pushtasks.size() == 0) {
+			log.warn("No PushTasks configured for bootstrapping");
+			return Mono.empty();
+		}
+
 		//log.info("CONFIG PUSHABLES: {}", configBootstrapPushables);
-		return Flux.fromIterable(configBootstrapPushables.getPushtasks()).concatMap(pt -> {
+		return Flux.fromIterable(pushtasks).concatMap(pt -> {
 			try {
 				ConfigBootstrapGokbSource configGokbSource = configBootstrapSources
 					.getGokbsources()
