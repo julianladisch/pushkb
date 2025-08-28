@@ -1,0 +1,13 @@
+#!/bin/bash
+
+source ~/.pushkb.sh
+
+export TOKEN=`curl -s \
+  -d "client_id=$KEYCLOAK_CLIENT" \
+  -d "client_secret=$KEYCLOAK_SECRET" \
+  -d "username=$PUSHKB_USER" \
+  -d "password=$PUSHKB_PASS" \
+  -d "grant_type=password" \
+  "$KEYCLOAK_BASE/protocol/openid-connect/token" | jq -r '.access_token'`
+
+echo $TOKEN

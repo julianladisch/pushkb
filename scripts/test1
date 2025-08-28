@@ -1,0 +1,5 @@
+
+
+
+TOKEN=`./login`
+curl -X GET "https://pushkb.hosting.k-int.com/pushtasks" -H "Accept-Language: en" -H "Content-Type: application/json"  -H "Authorization: Bearer $TOKEN" | jq
