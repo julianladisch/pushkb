@@ -3,6 +3,7 @@ package com.k_int.pushKb.services;
 import java.util.Map;
 import java.util.UUID;
 
+import com.k_int.taskscheduler.storage.ReactiveDutyCycleTaskRepository;
 import io.micronaut.context.ApplicationContext;
 import org.reactivestreams.Publisher;
 
@@ -19,6 +20,7 @@ import io.micronaut.core.type.Argument;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
@@ -33,18 +35,21 @@ public class PushableService {
 	private final ApplicationContext applicationContext;
 
 	private final ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner;
+	private final ReactiveDutyCycleTaskRepository reactiveDutyCycleTaskRepository; // Should this be handled by the runner?
 
   public PushableService (
     BeanContext beanContext,
     DestinationService destinationService,
     SourceService sourceService,
     ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner,
+		ReactiveDutyCycleTaskRepository reactiveDutyCycleTaskRepository,
 		ApplicationContext applicationContext
 	) {
     this.beanContext = beanContext;
     this.destinationService = destinationService;
     this.sourceService = sourceService;
     this.reactiveDutyCycleTaskRunner = reactiveDutyCycleTaskRunner;
+		this.reactiveDutyCycleTaskRepository = reactiveDutyCycleTaskRepository;
 		this.applicationContext = applicationContext;
 	}
 
@@ -91,6 +96,17 @@ public class PushableService {
     return getPushableDatabaseServiceForPushableType(type).existsById(id);
   }
 
+	@NonNull
+	@SingleResult
+	@Transactional
+	public Publisher<Long> deleteById( Class<? extends Pushable> type, UUID id ) {
+		// We need to deregister any DutyCycleTasks associated with this source
+		return Flux.from(reactiveDutyCycleTaskRepository.findAllByReference(id.toString()))
+			.flatMap(dct -> Mono.from(reactiveDutyCycleTaskRunner.removeTask(dct))) // Remove the tasks if they exist
+			.switchIfEmpty(Flux.just(0L)) // If no task to remove, just return 0L so we can still remove Source
+			.then(Mono.from(getPushableDatabaseServiceForPushableType(type).deleteById(id)));
+	}
+
   @NonNull
   @Transactional
   public Publisher<? extends Pushable> getFeed(Class<? extends Pushable> type ) {
@@ -101,10 +117,8 @@ public class PushableService {
   @Transactional
   public Publisher<? extends Pushable> ensurePushable( Pushable psh ) {
     return Mono.from(getPushableDatabaseServiceForPushableType(psh.getClass()).ensurePushable(psh))
-      .flatMap(persistedPushable -> {
-        return registerPushableTask(psh.getClass(), psh)
-          .flatMap(dct -> Mono.just(persistedPushable));
-      });
+      .flatMap(persistedPushable -> registerPushableTask(psh.getClass(), psh)
+				.flatMap(dct -> Mono.just(persistedPushable)));
   }
 
   @NonNull
@@ -136,10 +150,6 @@ public class PushableService {
   @Transactional
   public Publisher<Tuple2<Source, Destination>> getSourceAndDestination(Pushable psh) {
     return Mono.from(getSource(psh))
-      .flatMap(src -> {
-        return Mono.from(getDestination(psh)).flatMap(dest -> {
-          return Mono.just(Tuples.of(src, dest));
-        });
-      });
+      .flatMap(src -> Mono.from(getDestination(psh)).flatMap(dest -> Mono.just(Tuples.of(src, dest))));
   }
 }
