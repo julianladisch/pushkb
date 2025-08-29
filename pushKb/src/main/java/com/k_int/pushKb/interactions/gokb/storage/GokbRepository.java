@@ -18,7 +18,7 @@ import jakarta.inject.Singleton;
 @Singleton
 @Transactional
 @R2dbcRepository(dialect = Dialect.POSTGRES)
-public interface GokbRepository extends ReactiveStreamsPageableRepositoryUUID5<Gokb, UUID> {
+public interface GokbRepository extends ReactiveStreamsPageableRepositoryUUID5<Gokb> {
   // Unique up to baseUrl
   @NonNull
   @SingleResult

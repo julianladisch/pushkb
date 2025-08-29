@@ -27,19 +27,9 @@ public class TemporaryPushTaskDatabaseService implements PushableDatabaseService
     this.temporaryPushTaskRepository = temporaryPushTaskRepository;
 	}
 
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<TemporaryPushTask> findById( UUID id ) {
-    return Mono.from(temporaryPushTaskRepository.findById(id));
-  };
-
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Boolean> existsById( UUID id ) {
-    return Mono.from(temporaryPushTaskRepository.existsById(id));
-  };
+	public TemporaryPushTaskRepository getRepository() {
+		return temporaryPushTaskRepository;
+	}
 
   // Ensures that a temporary push task exists for the pushTask/filterContext combination
   @NonNull
@@ -58,17 +48,12 @@ public class TemporaryPushTaskDatabaseService implements PushableDatabaseService
 
         return Mono.from(temporaryPushTaskRepository.save(tpt));
       });
-  };
+  }
 
   @Transactional
   public Publisher<TemporaryPushTask> getFeed () {
     log.info("getTemporaryPushTaskFeed");
     return temporaryPushTaskRepository.listOrderByPushTaskAndFilterContext();
-  }
-
-  @Transactional
-  public Publisher<TemporaryPushTask> update (@Valid TemporaryPushTask tpt) {
-    return temporaryPushTaskRepository.update(tpt);
   }
 
   // FIXME right now this needs to delete the registered DCT as well

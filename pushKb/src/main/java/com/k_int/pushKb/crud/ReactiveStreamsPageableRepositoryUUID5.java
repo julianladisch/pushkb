@@ -4,6 +4,6 @@ import java.util.UUID;
 
 import io.micronaut.data.repository.reactive.ReactiveStreamsPageableRepository;
 
-public interface ReactiveStreamsPageableRepositoryUUID5<T, ID> extends ReactiveStreamsPageableRepository<T, ID> {
+public interface ReactiveStreamsPageableRepositoryUUID5<T> extends ReactiveStreamsPageableRepository<T, UUID> {
   UUID generateUUIDFromObject(T obj);
 }

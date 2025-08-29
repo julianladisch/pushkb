@@ -8,8 +8,6 @@ import java.util.UUID;
 import org.reactivestreams.Publisher;
 
 import io.micronaut.core.annotation.NonNull;
-import io.micronaut.core.annotation.Nullable;
-import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.r2dbc.annotation.R2dbcRepository;
 import io.micronaut.transaction.annotation.Transactional;
@@ -18,17 +16,7 @@ import jakarta.inject.Singleton;
 @Singleton
 @Transactional
 @R2dbcRepository(dialect = Dialect.POSTGRES)
-public interface PushTaskRepository extends ReactiveStreamsPageableRepositoryUUID5<PushTask, UUID> {
-  // Unique up to destination/source/transform
-  @NonNull
-  @SingleResult
-  Publisher<Boolean> existsById(@Nullable UUID id);
-  
-  // Unique up to destination/source/transform
-  @NonNull
-  @SingleResult
-  Publisher<PushTask> findById(@Nullable UUID id);
-
+public interface PushTaskRepository extends ReactiveStreamsPageableRepositoryUUID5<PushTask> {
   @NonNull
 	Publisher<PushTask> findBySourceIdAndDestinationId(UUID sourceId, UUID destinationID);
 

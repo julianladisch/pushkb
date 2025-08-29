@@ -34,6 +34,16 @@ micronaut:
   data:
     pageable:
       max-page-size: 1000
+  security:
+    enabled: true
+    oauth2:
+      enabled: true
+      clients:
+        keycloak:
+          client-id: '${OUTH_CLIENT_ID:pushKB}'
+          client-secret: '${OAUTH_CLIENT_SECRET:84WWKbVMpQzVHsYCmduDRDH3978nMOwb}' # This is the secret for the 'pushKB' client in the PushKB realm set up in "infrastructure"
+          openid:
+            issuer: '${OIDC_ISSUER_DOMAIN:`http://localhost:8088`}/realms/${KEYCLOAK_REALM:PushKB}'
 
 db:
   host: localhost

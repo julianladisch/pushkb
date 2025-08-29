@@ -14,7 +14,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Mono;
 
-public interface TransformRepository<T extends Transform> extends ReactiveStreamsPageableRepositoryUUID5<T, UUID> {
+public interface TransformRepository<T extends Transform> extends ReactiveStreamsPageableRepositoryUUID5<T> {
 	@SingleResult
 	@NonNull
 	default Publisher<T> saveOrUpdate(@Valid @NotNull T src) {

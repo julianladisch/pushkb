@@ -3,6 +3,7 @@ package com.k_int.pushKb.interactions.folio.services;
 
 import java.util.UUID;
 
+import com.k_int.pushKb.crud.CrudDatabaseService;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.interactions.folio.model.FolioTenant;
@@ -17,7 +18,7 @@ import reactor.core.publisher.Mono;
 
 @Singleton
 @Slf4j
-public class FolioTenantDatabaseService {
+public class FolioTenantDatabaseService implements CrudDatabaseService<FolioTenant> {
   private final FolioTenantRepository folioTenantRepository;
   public FolioTenantDatabaseService(
     FolioTenantRepository folioTenantRepository
@@ -25,19 +26,21 @@ public class FolioTenantDatabaseService {
     this.folioTenantRepository = folioTenantRepository;
 	}
 
+	public FolioTenantRepository getRepository() {
+		return folioTenantRepository;
+	}
+
   @NonNull
   @SingleResult
   @Transactional
   public Publisher<FolioTenant> ensureFolioTenant( FolioTenant folioTenant ) {
-      UUID gen_id = FolioTenant.generateUUIDFromFolioTenant(folioTenant);
-      folioTenant.setId(gen_id);
+		UUID gen_id = FolioTenant.generateUUIDFromFolioTenant(folioTenant);
+		folioTenant.setId(gen_id);
 
-      return Mono.from(folioTenantRepository.existsById(gen_id))
-        .flatMap(doesItExist -> {
-          return Mono.from(doesItExist ?
-            folioTenantRepository.findById(gen_id) :
-            folioTenantRepository.save(folioTenant)
-          );
-      });
-    };
+		return Mono.from(folioTenantRepository.existsById(gen_id))
+			.flatMap(doesItExist -> Mono.from(doesItExist ?
+				folioTenantRepository.findById(gen_id) :
+				folioTenantRepository.save(folioTenant)
+			));
+    }
 }

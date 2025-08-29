@@ -1,8 +1,8 @@
 package com.k_int.pushKb.services;
 
 import java.time.Instant;
-import java.util.UUID;
 
+import com.k_int.pushKb.crud.CrudDatabaseService;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Source;
@@ -12,40 +12,21 @@ import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.json.tree.JsonNode;
 import io.micronaut.transaction.annotation.Transactional;
 
-public interface SourceDatabaseService<T extends Source> {
+public interface SourceDatabaseService<T extends Source> extends CrudDatabaseService<T> {
+
   @NonNull
-  @SingleResult
   @Transactional
-  public Publisher<T> findById( UUID id );
+	Publisher<T> list();
 
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<Boolean> existsById( UUID id );
-
-  @NonNull
-  @Transactional
-  public Publisher<T> list();
+	Publisher<T> ensureSource(T src);
 
   @NonNull
   @SingleResult
   @Transactional
-  public Publisher<T> ensureSource( T src );
-
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<T> saveOrUpdate( T src );
-
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<T> save( T src );
-
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<T> update( T src );
+	Publisher<T> saveOrUpdate(T src);
 
   // Not techinically a DB thingy hmmm
   @NonNull

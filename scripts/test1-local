@@ -1,0 +1,5 @@
+
+
+
+TOKEN=`./login`
+curl -X GET "http://localhost:8060/pushtasks" -H "Accept-Language: en" -H "Content-Type: application/json"  -H "Authorization: Bearer $TOKEN" | jq
