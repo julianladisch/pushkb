@@ -21,7 +21,7 @@ data-store/
 
 *.txt
 
-application-local.yml
+application-local*.yml
 local_docker.env
 
 *.log
