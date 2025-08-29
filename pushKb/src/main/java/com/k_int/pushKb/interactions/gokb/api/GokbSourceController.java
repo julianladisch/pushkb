@@ -4,10 +4,7 @@ import com.k_int.pushKb.interactions.gokb.services.GokbSourceDatabaseService;
 import com.k_int.pushKb.services.SourceService;
 import io.micronaut.context.annotation.Parameter;
 import io.micronaut.http.MediaType;
-import io.micronaut.http.annotation.Body;
-import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Delete;
-import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import jakarta.validation.Valid;
@@ -47,7 +44,7 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> {
 	public Publisher<GokbSource> post(
 		@Valid @Body GokbSource src
 	) {
-		return Mono.from(sourceService.ensureSource(src)).map(s -> (GokbSource) s);
+		return Mono.from(sourceService.ensureSource(src)).map(GokbSource::castFromSource);
 	}
 
 	// We need to use sourceService here to make sure that side effects happen as expected
@@ -58,5 +55,21 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> {
 		@Parameter UUID id
 	) {
 		return sourceService.deleteById(GokbSource.class, id);
+	}
+
+	// Reset pointer endpoint
+	@Put(uri = "/{id}/resetPointer", produces = MediaType.APPLICATION_JSON)
+	public Publisher<GokbSource> resetPointer(
+		@Parameter UUID id
+	) {
+
+		return Mono.from(sourceService.findById(GokbSource.class, id))
+			.map(GokbSource::castFromSource)
+			.flatMap(src -> {
+				src.setPointer(null);
+
+				return Mono.from(sourceService.update(src)).map(GokbSource::castFromSource);
+			})
+			.switchIfEmpty(Mono.error(new RuntimeException("No GokbSource found with id: " + id)));
 	}
 }

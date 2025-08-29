@@ -41,7 +41,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
 	) {
 		pt.setId(databaseService.generateUUIDFromObject(pt));
 
-		return Mono.from(pushableService.ensurePushable(pt)).map(p -> (PushTask) p);
+		return Mono.from(pushableService.ensurePushable(pt)).map(PushTask::castFromPushable);
 	}
 
 	@Override

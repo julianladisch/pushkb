@@ -82,4 +82,8 @@ public class GokbSource implements Source, HasId {
   public static UUID generateUUIDFromSource(GokbSource source) {
     return generateUUID(source.getGokb(), source.getGokbSourceType());
   }
+
+	public static GokbSource castFromSource(Source src) {
+		return (GokbSource) src;
+	}
 }

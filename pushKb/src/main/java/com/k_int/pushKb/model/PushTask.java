@@ -97,6 +97,10 @@ public class PushTask implements Pushable, HasId {
   public String getFilterContext() {
     return null;
   }
+
+	public static PushTask castFromPushable(Pushable p) {
+		return (PushTask) p;
+	}
 }
 
   /*
