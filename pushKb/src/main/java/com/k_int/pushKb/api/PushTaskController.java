@@ -1,12 +1,12 @@
 package com.k_int.pushKb.api;
 
+import com.k_int.pushKb.services.PushTaskDatabaseService;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
 import com.k_int.pushKb.model.PushTask;
-import com.k_int.pushKb.storage.PushTaskRepository;
 
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Body;
@@ -19,12 +19,12 @@ import lombok.extern.slf4j.Slf4j;
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @Controller("/pushtasks")
 public class PushTaskController extends CrudControllerImpl<PushTask> {
-  private final PushTaskRepository repository;
+	private final PushTaskDatabaseService databaseService;
   // FIXME this MUST handle registering of pushTasks and deregistering from taskscheduler
-  public PushTaskController(PushTaskRepository repository) {
-    super(repository);
+  public PushTaskController(PushTaskDatabaseService databaseService) {
+    super(databaseService);
 
-    this.repository = repository;
+    this.databaseService = databaseService;
   }
 
   @Override
@@ -32,7 +32,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
   public Publisher<PushTask> post(
 		@Valid @Body PushTask pt
 	) {
-		pt.setId(repository.generateUUIDFromObject(pt));
+		pt.setId(databaseService.generateUUIDFromObject(pt));
 
 		// Bit clunky, but ensure we have pointers either sent down or reset
 		if (
@@ -45,7 +45,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
 
 		// TODO This should have existById protection, as well as cleaning up these defaults etc etc.
 
-    return repository.save(pt);
+    return databaseService.save(pt);
   }
 
   // FIXME It ALSO should not allow completely basic POST functionality... we need to build in existsById protection

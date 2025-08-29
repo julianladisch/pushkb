@@ -1,5 +1,6 @@
 package com.k_int.pushKb.interactions.gokb.api;
 
+import com.k_int.pushKb.interactions.gokb.services.GokbSourceDatabaseService;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -11,17 +12,16 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
-import com.k_int.pushKb.interactions.gokb.storage.GokbSourceRepository;
 import org.reactivestreams.Publisher;
 
 @Controller("/sources/gokbsource")
 @Slf4j
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class GokbSourceController extends CrudControllerImpl<GokbSource> {
-	GokbSourceRepository repository;
-
-  public GokbSourceController(GokbSourceRepository repository) {
-    super(repository);
+	GokbSourceDatabaseService databaseService;
+  public GokbSourceController(GokbSourceDatabaseService databaseService) {
+    super(databaseService);
+		this.databaseService = databaseService;
   }
 
   // TODO would probably be nice to get /sources/gokbsource/<id>/recordCount to work.
@@ -38,6 +38,6 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> {
 	public Publisher<GokbSource> post(
 		@Valid @Body GokbSource src
 	) {
-		return repository.ensureSource(src);
+		return databaseService.ensureSource(src);
 	}
 }

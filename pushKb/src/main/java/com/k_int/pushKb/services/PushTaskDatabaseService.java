@@ -27,20 +27,9 @@ public class PushTaskDatabaseService implements PushableDatabaseService<PushTask
     this.pushTaskRepository = pushTaskRepository;
 	}
 
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<Boolean> existsById( UUID id ) {
-    return Mono.from(pushTaskRepository.existsById(id));
-  };
-
-  @NonNull
-  @SingleResult
-  @Transactional
-  public Publisher<PushTask> findById( UUID id ) {
-    return Mono.from(pushTaskRepository.findById(id));
-  };
-
+	public PushTaskRepository getRepository() {
+		return pushTaskRepository;
+	}
 
   @NonNull
   @SingleResult
@@ -62,19 +51,13 @@ public class PushTaskDatabaseService implements PushableDatabaseService<PushTask
 
         return Mono.from(pushTaskRepository.save(pt));
       });
-  };
-
+  }
 
   // FIXME Not sure if raw feeds are the way to go here, but let's get it working first
   @Transactional
   public Publisher<PushTask> getFeed () {
     log.info("getPushTaskFeed");
     return pushTaskRepository.listOrderBySourceIdAndDestinationIdAndId();
-  }
-
-  @Transactional
-  public Publisher<PushTask> update (@Valid PushTask pt) {
-    return pushTaskRepository.update(pt);
   }
 
   @Transactional

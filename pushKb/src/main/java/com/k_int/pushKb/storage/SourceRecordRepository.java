@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 
 @Singleton
 @R2dbcRepository(dialect = Dialect.POSTGRES)
-public interface SourceRecordRepository extends ReactiveStreamsPageableRepositoryUUID5<SourceRecord, UUID> {
+public interface SourceRecordRepository extends ReactiveStreamsPageableRepositoryUUID5<SourceRecord> {
   Logger log = org.slf4j.LoggerFactory.getLogger(SourceRecordRepository.class);
 
   @Nullable
