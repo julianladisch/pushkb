@@ -1,5 +1,29 @@
 # Changelog
 
+## Version 1.0.0-alpha.9
+
+### Additions
+* [General]
+	* clearRecords endpoint, automatically deregister DutyCycleTasks
+	* DutyCycleTask endpoint
+	* Ensure DutyCycleTaask from PushTask POST, and include resetPointers endpoint
+	* Ensure DutyCycleTaask from Source POST as well as ensuring FolioTenant from FolioDestination POST
+	* Add test1-local script
+
+### Changes
+* [Chore]
+	* Add scripts
+	* Added infrastructure/file to gitignore
+	* Add docker tls var to build
+	* add dind service
+
+### Fixes
+* [General]
+	* PushTask resetCursor is update not save
+	* Keycloak authentication BS
+	* Protect against null boostrap file
+	* PushService catch-up sometimes causes an additional push -- ERM-3788
+
 ## Version 1.0.0-alpha.8
 
 ### Additions
@@ -10,6 +34,7 @@
 
 ### Changes
 * [Chore]
+	* Changelog - Generate the changelog
 	* Small code cleanups/tweaks
 * [Docs]
 	* Added to README with information from GBV workshop
