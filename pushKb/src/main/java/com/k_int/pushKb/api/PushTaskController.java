@@ -63,7 +63,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
 		return Mono.from(databaseService.findById(id))
 			.flatMap(pt -> {
 				pt.resetPointer();
-				return Mono.from(databaseService.save(pt));
+				return Mono.from(databaseService.update(pt));
 			})
 			.switchIfEmpty(Mono.error(new RuntimeException("No PushTask found with id: " + id)));
 	}
