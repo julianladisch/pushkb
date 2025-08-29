@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+import io.micronaut.core.annotation.Nullable;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.SourceRecord;
@@ -71,15 +72,33 @@ public class SourceRecordDatabaseService {
     return Flux.defer(() -> sourceRecordRepository.findBySourceIdAndUpdatedOrderByUpdatedDescAndIdAsc(sourceId, updatedInstance));
   }
 
+	// TODO we may want all 4 of these to be optional or Nullable to be honest, see below
   @SingleResult
   @ReadOnly
-  protected Publisher<Long> countFeed (UUID sourceId, Instant footTimestamp, Instant headTimestamp, Optional<String> context) {
+	public Publisher<Long> countFeed (UUID sourceId, Instant footTimestamp, Instant headTimestamp, Optional<String> context) {
     if (context.isPresent()) {
       return sourceRecordRepository.countBySourceIdAndFilterContextAndUpdatedGreaterThanAndUpdatedLessThan(sourceId, context.get(), footTimestamp, headTimestamp);
     }
 
     return sourceRecordRepository.countBySourceIdAndUpdatedGreaterThanAndUpdatedLessThan(sourceId, footTimestamp, headTimestamp);
   }
+
+	/**
+	 * Count records in the feed, optionally filtered by source and context
+	 * @return Publisher emitting the count of records
+	 */
+	@SingleResult
+	@ReadOnly
+	public Publisher<Long> countFeed (@Nullable UUID sourceId, @Nullable String context) {
+		if (sourceId == null) {
+			return sourceRecordRepository.count();
+		}
+
+		if (context == null) {
+			return sourceRecordRepository.countBySourceId(sourceId);
+		}
+		return sourceRecordRepository.countBySourceIdAndFilterContext(sourceId, context);
+	}
 
   @SingleResult
   @ReadOnly
@@ -90,4 +109,10 @@ public class SourceRecordDatabaseService {
 
     return sourceRecordRepository.findMaxUpdatedBySourceId(sourceId);
   }
+
+	@NonNull
+	@Transactional
+	public Publisher<Long> deleteAll() {
+		return sourceRecordRepository.deleteAll();
+	}
 }

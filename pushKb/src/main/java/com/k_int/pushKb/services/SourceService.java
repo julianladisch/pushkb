@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.k_int.taskscheduler.storage.ReactiveDutyCycleTaskRepository;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
@@ -19,6 +20,7 @@ import io.micronaut.json.tree.JsonNode;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Singleton
@@ -26,15 +28,18 @@ import reactor.core.publisher.Mono;
 public class SourceService {
   private final BeanContext beanContext;
   private final ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner;
+	private final ReactiveDutyCycleTaskRepository reactiveDutyCycleTaskRepository; // Should this be handled by the runner?
 
   public static final Set<Class<? extends Source>> sourceImplementers = Set.of(GokbSource.class);
 
   public SourceService (
     BeanContext beanContext,
-    ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner
+    ReactiveDutyCycleTaskRunner reactiveDutyCycleTaskRunner,
+		ReactiveDutyCycleTaskRepository reactiveDutyCycleTaskRepository
     ) {
     this.beanContext = beanContext;
     this.reactiveDutyCycleTaskRunner = reactiveDutyCycleTaskRunner;
+		this.reactiveDutyCycleTaskRepository = reactiveDutyCycleTaskRepository;
   }
 
   // Fast way to register ingest tasks directly
@@ -88,6 +93,17 @@ public class SourceService {
   public Publisher<Boolean> existsById( Class<? extends Source> type, UUID id ) {
     return getSourceDatabaseServiceForSourceType(type).existsById(id);
   }
+
+	@NonNull
+	@SingleResult
+	@Transactional
+	public Publisher<Long> deleteById( Class<? extends Source> type, UUID id ) {
+		// We need to deregister any DutyCycleTasks associated with this source
+		return Flux.from(reactiveDutyCycleTaskRepository.findAllByReference(id.toString()))
+			.flatMap(dct -> Mono.from(reactiveDutyCycleTaskRunner.removeTask(dct))) // Remove the tasks if they exist
+			.switchIfEmpty(Flux.just(0L)) // If no task to remove, just return 0L so we can still remove Source
+			.then(Mono.from(getSourceDatabaseServiceForSourceType(type).deleteById(id)));
+	}
 
   @NonNull
   @Transactional

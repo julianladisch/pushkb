@@ -2,9 +2,11 @@ package com.k_int.pushKb.interactions.gokb.api;
 
 import com.k_int.pushKb.interactions.gokb.services.GokbSourceDatabaseService;
 import com.k_int.pushKb.services.SourceService;
+import io.micronaut.context.annotation.Parameter;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Delete;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -16,12 +18,17 @@ import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+import java.util.UUID;
+
 @Controller("/sources/gokbsource")
 @Slf4j
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class GokbSourceController extends CrudControllerImpl<GokbSource> {
 	SourceService sourceService;
-  public GokbSourceController(GokbSourceDatabaseService databaseService, SourceService sourceService) {
+  public GokbSourceController(
+		GokbSourceDatabaseService databaseService,
+		SourceService sourceService
+	) {
     super(databaseService);
 		this.sourceService = sourceService;
   }
@@ -41,5 +48,15 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> {
 		@Valid @Body GokbSource src
 	) {
 		return Mono.from(sourceService.ensureSource(src)).map(s -> (GokbSource) s);
+	}
+
+	// We need to use sourceService here to make sure that side effects happen as expected
+	// Such as DutyCycleTask removal etc.
+	@Override
+	@Delete(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
+	public Publisher<Long> delete(
+		@Parameter UUID id
+	) {
+		return sourceService.deleteById(GokbSource.class, id);
 	}
 }

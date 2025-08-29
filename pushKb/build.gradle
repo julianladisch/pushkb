@@ -1,6 +1,6 @@
 buildscript {
 	repositories {
-//		mavenLocal()
+		//mavenLocal()
 		mavenCentral()
 		maven { url "https://maven.k-int.com/repository/private" }
 		maven { url "https://nexus.libsdev.k-int.com/repository/releases" }
@@ -27,7 +27,7 @@ plugins {
 group = "pushKb"
 
 repositories {
-//	mavenLocal()
+	//mavenLocal()
 	mavenCentral()
 	maven { url "https://maven.indexdata.com" }
 	maven { url "https://maven.k-int.com/repository/private" }
@@ -138,7 +138,7 @@ dependencies {
 	// Don't need ES (yet?)
 	/* testImplementation("org.testcontainers:elasticsearch")
 	testImplementation("io.micronaut.testresources:micronaut-test-resources-elasticsearch") */
-	implementation 'com.k_int:taskscheduler-reactive:1.0.2'
+	implementation 'com.k_int:taskscheduler-reactive:1.0.3'
 }
 
 //rewrite {
@@ -229,7 +229,7 @@ tasks {
 		// Append the next keyword if this is a tag.
 		if (isPre) {
 			// Trim the prerelease off and just add next for partial tags
-			final String toTrim = project.property('versionPreRelease');
+			final String toTrim = project.property('versionPreRelease')
 			return "${tag - toTrim}-next"
 		}
 

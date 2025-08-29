@@ -56,7 +56,7 @@ public class TemporaryPushTaskDatabaseService implements PushableDatabaseService
     return temporaryPushTaskRepository.listOrderByPushTaskAndFilterContext();
   }
 
-  // FIXME right now this needs to delete the registered DCT as well
+  // DutyCycleTask is cleaned up by virtue of PushableScheduledTask.cleanupTask after completion anyway
   @Transactional
   public Publisher<Boolean> complete (@Valid TemporaryPushTask tpt) {
     log.info("{}({}) completed at {}", tpt.getClass(), tpt.getId(), Instant.now());

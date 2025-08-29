@@ -24,7 +24,6 @@ import java.util.UUID;
 public class PushTaskController extends CrudControllerImpl<PushTask> {
 	private final PushTaskDatabaseService databaseService;
 	private final PushableService pushableService;
-  // FIXME this MUST handle registering of pushTasks and deregistering from taskscheduler
   public PushTaskController(
 		PushTaskDatabaseService databaseService,
 		PushableService pushableService
@@ -66,5 +65,15 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
 				return Mono.from(databaseService.update(pt));
 			})
 			.switchIfEmpty(Mono.error(new RuntimeException("No PushTask found with id: " + id)));
+	}
+
+	// We need to use pushableService here to make sure that side effects happen as expected
+	// Such as DutyCycleTask removal etc.
+	@Override
+	@Delete(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
+	public Publisher<Long> delete(
+		@Parameter UUID id
+	) {
+		return pushableService.deleteById(PushTask.class, id);
 	}
 }
