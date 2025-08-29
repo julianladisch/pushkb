@@ -12,6 +12,7 @@
 
 ### Changes
 * [Chore]
+	* Changelog - Generate the changelog
 	* Add scripts
 	* Added infrastructure/file to gitignore
 	* Add docker tls var to build
