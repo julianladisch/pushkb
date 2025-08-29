@@ -34,13 +34,13 @@ public class FolioTenantDatabaseService implements CrudDatabaseService<FolioTena
   @SingleResult
   @Transactional
   public Publisher<FolioTenant> ensureFolioTenant( FolioTenant folioTenant ) {
-      UUID gen_id = FolioTenant.generateUUIDFromFolioTenant(folioTenant);
-      folioTenant.setId(gen_id);
+		UUID gen_id = FolioTenant.generateUUIDFromFolioTenant(folioTenant);
+		folioTenant.setId(gen_id);
 
-      return Mono.from(folioTenantRepository.existsById(gen_id))
-        .flatMap(doesItExist -> Mono.from(doesItExist ?
-					folioTenantRepository.findById(gen_id) :
-					folioTenantRepository.save(folioTenant)
-				));
+		return Mono.from(folioTenantRepository.existsById(gen_id))
+			.flatMap(doesItExist -> Mono.from(doesItExist ?
+				folioTenantRepository.findById(gen_id) :
+				folioTenantRepository.save(folioTenant)
+			));
     }
 }
