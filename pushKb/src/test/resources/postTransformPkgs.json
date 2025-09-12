@@ -1,0 +1,125 @@
+[
+	{
+		"header": {
+			"packageName": "Sage Journals:Materials:Allianz:2016(2019)",
+			"packageSlug": "68b1c66f-95df-4286-9879-bc410699999e",
+			"availability": {
+				"type": "general"
+			},
+			"contentTypes": [
+				{
+					"contentType": "Journal"
+				}
+			],
+			"packageSource": "GOKb",
+			"alternateSlugs": [
+				{
+					"slug": "Sage_Journals:Materials:Allianz:2016(2019)"
+				}
+			],
+			"lifecycleStatus": "Retired",
+			"packageProvider": {
+				"name": "Sage"
+			},
+			"sourceTitleCount": 2,
+			"availabilityScope": "consortium",
+			"sourceDataCreated": "2019-05-12T12:05:58Z",
+			"sourceDataUpdated": "2019-09-15T11:39:13Z",
+			"alternateResourceNames": [
+				{
+					"name": "ZDB-1-SAGM"
+				}
+			],
+			"packageDescriptionUrls": [],
+			"availabilityConstraints": []
+		},
+		"identifiers": [
+			{
+				"value": "1596919",
+				"namespace": "gokb_id"
+			},
+			{
+				"value": "68b1c66f-95df-4286-9879-bc410699999e",
+				"namespace": "gokb_uuid"
+			}
+		],
+		"packageContents": []
+	},
+	{
+		"header": {
+			"packageName": "Springer:Ebooks:ProfApplComputing:2019",
+			"packageSlug": "d1ce975f-0345-4de3-9f11-0a8c5932a9c3",
+			"availability": {
+				"type": "general"
+			},
+			"packageSource": "GOKb",
+			"alternateSlugs": [
+				{
+					"slug": "Springer:Ebooks:ProfApplComputing:2019"
+				}
+			],
+			"lifecycleStatus": "Current",
+			"packageProvider": {
+				"name": "Springer Nature"
+			},
+			"sourceTitleCount": 204,
+			"availabilityScope": "consortium",
+			"sourceDataCreated": "2019-09-30T15:45:27Z",
+			"sourceDataUpdated": "2022-01-10T16:08:51Z",
+			"packageDescriptionUrls": [],
+			"availabilityConstraints": []
+		},
+		"identifiers": [
+			{
+				"value": "4193008",
+				"namespace": "gokb_id"
+			},
+			{
+				"value": "d1ce975f-0345-4de3-9f11-0a8c5932a9c3",
+				"namespace": "gokb_uuid"
+			}
+		],
+		"packageContents": []
+	},
+	{
+		"header": {
+			"packageName": "Beltz-Juventa : Journals : 2019",
+			"packageSlug": "9ba044a6-62f6-4bd3-934a-3cc52ace7589",
+			"availability": {
+				"type": "general"
+			},
+			"contentTypes": [
+				{
+					"contentType": "Journal"
+				}
+			],
+			"packageSource": "GOKb",
+			"alternateSlugs": [
+				{
+					"slug": "Beltz-Juventa_:_Journals_:_2019"
+				}
+			],
+			"lifecycleStatus": "Current",
+			"packageProvider": {
+				"name": "Beltz-Verlag"
+			},
+			"sourceTitleCount": 18,
+			"availabilityScope": "consortium",
+			"sourceDataCreated": "2019-04-26T09:12:55Z",
+			"sourceDataUpdated": "2019-08-22T15:49:19Z",
+			"packageDescriptionUrls": [],
+			"availabilityConstraints": []
+		},
+		"identifiers": [
+			{
+				"value": "1450571",
+				"namespace": "gokb_id"
+			},
+			{
+				"value": "9ba044a6-62f6-4bd3-934a-3cc52ace7589",
+				"namespace": "gokb_uuid"
+			}
+		],
+		"packageContents": []
+	}
+]

@@ -6,6 +6,7 @@ import com.k_int.pushKb.model.SourceRecord;
 import java.time.Instant;
 import java.util.UUID;
 
+import io.micronaut.data.annotation.Query;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 
@@ -146,4 +147,8 @@ public interface SourceRecordRepository extends ReactiveStreamsPageableRepositor
   default UUID generateUUIDFromObject(SourceRecord obj) {
     return SourceRecord.generateUUIDFromSourceRecord(obj);
   }
+
+	// TODO Are we sure this is the sort of thing that should exist on the Repository?
+	@Query(value = "DELETE FROM source_record", nativeQuery = true)
+	Publisher<Long> deleteAll();
 }

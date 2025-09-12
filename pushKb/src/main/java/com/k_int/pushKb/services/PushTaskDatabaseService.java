@@ -49,9 +49,19 @@ public class PushTaskDatabaseService implements PushableDatabaseService<PushTask
           return Mono.from(pushTaskRepository.findById(gen_id));
         }
 
-				// Ensure all new PushTasks start with their pointers set to the EPOCH
-				// TODO do we want to allow setting of pointers on creation?
-				pt.resetPointer();
+				// Default the pointers to EPOCH if they are null
+				// TODO do we really want to allow the creation of PushTasks with pointers preset?
+				if (pt.getDestinationHeadPointer() == null) {
+					pt.setDestinationHeadPointer(Instant.EPOCH);
+				}
+
+				if (pt.getLastSentPointer() == null) {
+					pt.setLastSentPointer(Instant.EPOCH);
+				}
+
+				if (pt.getFootPointer() == null) {
+					pt.setFootPointer(Instant.EPOCH);
+				}
 
         return Mono.from(pushTaskRepository.save(pt));
       });

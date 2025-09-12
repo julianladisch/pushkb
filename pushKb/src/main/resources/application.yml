@@ -82,19 +82,6 @@ datasources:
     username: ${db.username}
     password: ${db.password}
     url: "jdbc:postgresql://${db.host}:${db.port}/${db.database}"
-  ## Configured ONLY to prevent crashing of DutyCycleTaskRunner -- probably need to be able to choose reactive vs sync tasks
-  jdbc:
-    enabled: true
-    dialect: POSTGRES
-    driverClassName: org.postgresql.Driver
-    schema-generate: NONE
-    db-type: postgresql
-    minimumIdle: 0
-    maximumPoolSize: 12
-    reconnect: true
-    username: ${db.username}
-    password: ${db.password}
-    url: "jdbc:postgresql://${db.host}:${db.port}/${db.database}"
 
 r2dbc:
   datasources:
@@ -123,7 +110,7 @@ r2dbc:
         # maxAcquireTime: PT20S
         validationQuery: "SELECT 1"
         validationDepth: REMOTE
-      
+
       # driver: postgresql
       #url: "r2dbc:postgresql://${db.host}:${db.port}/${db.database:}"
       #host: "${db.host:localhost}"
