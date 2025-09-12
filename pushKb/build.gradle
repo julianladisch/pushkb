@@ -12,6 +12,7 @@ plugins {
 	id("com.github.johnrengelman.shadow") version "8.1.1"
 	// See https://plugins.gradle.org/plugin/io.micronaut.application
 	id("io.micronaut.application") version "$micronautGradleVersion"
+	id 'io.micronaut.test-resources' version '4.5.4'
 
 	// Turn off testresources starting every run
 	//id("io.micronaut.test-resources") version "$micronautGradleVersion"
@@ -106,13 +107,12 @@ dependencies {
 	// Wonder if this is because the bean that uses PG is a r2dbc service
 	runtimeOnly("org.postgresql:r2dbc-postgresql")
 
-
 	// testRuntimeOnly("io.micronaut.testresources:micronaut-test-resources-client")
 
 	// Uncommmenting this dependency results in
 	// testresources Micronaut Message: Could not resolve placeholder ${auto.test.resources.r2dbc.datasources.default.options.protocol}
 	//
-	runtimeOnly("io.r2dbc:r2dbc-pool")
+//	runtimeOnly("io.r2dbc:r2dbc-pool")
 
 	implementation("io.micronaut.flyway:micronaut-flyway")
 	// This is now necessary for flyway v10
@@ -133,7 +133,11 @@ dependencies {
 	testImplementation('io.projectreactor:reactor-test')
 	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 
-	testImplementation("io.micronaut.testresources:micronaut-test-resources-extensions-core:2.0.0")
+	testImplementation("org.mockito:mockito-core")
+	testImplementation("org.testcontainers:postgresql")
+	testImplementation("org.testcontainers:testcontainers")
+
+//	testImplementation("io.micronaut.testresources:micronaut-test-resources-extensions-core:2.0.0")
 	testImplementation(platform("org.testcontainers:testcontainers-bom"))
 	// Don't need ES (yet?)
 	/* testImplementation("org.testcontainers:elasticsearch")

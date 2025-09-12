@@ -1,0 +1,71 @@
+micronaut:
+  test:
+    resources:
+      enabled: true
+
+# Micronaut Test Resources will see 'db-type' and start a Postgres container.
+datasources:
+  default:
+    db-type: postgresql
+    # Tell hibernate not to manage the schema, as Flyway does it.
+    schema-generate: NONE
+
+r2dbc:
+  datasources:
+    default:
+      db-type: postgresql
+      dialect: POSTGRES
+      schema-generate: NONE
+
+flyway:
+  enabled: true
+  datasources:
+    default:
+      enabled: true
+      locations:
+        - "classpath:db/migration"
+      outOfOrder: true
+
+# Bootstrapping removed for testing.
+#sources:
+#  gokbs:
+#    -
+#      name: GOKB
+#      url: https://gokbt.gbv.de
+#  gokbsources:
+#    -
+#      name: GOKB_PKG
+#      gokb: GOKB
+#      type: PACKAGE
+#    -
+#      name: GOKB_TIPP
+#      gokb: GOKB
+#      type: TIPP
+
+#destinations:
+#  foliotenants:
+#    -
+#      name: DOCKER_COMPOSE_LOCAL_TENANT
+#      authtype: NONE
+#      tenant: test1
+#      baseurl: http://localhost:8080
+#  foliodestinations:
+#    -
+#      name: FOLIO_PACKAGE
+#      foliotenant: DOCKER_COMPOSE_LOCAL_TENANT
+#      destinationtype: PACKAGE
+#    -
+#      name: FOLIO_PCI
+#      foliotenant: DOCKER_COMPOSE_LOCAL_TENANT
+#      destinationtype: PCI
+
+#pushables:
+#  pushtasks:
+#    -
+#      transform: example_transform
+#      source: GOKB_PKG
+#      destination: FOLIO_PACKAGE
+#    -
+#      transform: example_transform
+#      source: GOKB_TIPP
+#      destination: FOLIO_PCI

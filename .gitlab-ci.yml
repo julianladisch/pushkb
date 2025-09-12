@@ -13,17 +13,53 @@ image:
 #   - docker18
 #   - ki-onprem
 
+stages:
+  - test
+  - build
+  - deploy
+
 default:
   services:
+    # DinD (Docker-in-Docker) is required for Testcontainers and for building Docker images.
+    # We use the same version across the board to avoid conflicts and simplify configuration.
+    - name: docker:24.0.5-dind
+      pull_policy: if-not-present
+      command: ["--tls=false"]
     - name: docker:24.0.5-dind
       pull_policy: if-not-present
 
+
 variables:
+  DOCKER_HOST: "tcp://docker:2375"
+  # Disable TLS for Docker communication.
+  DOCKER_TLS_CERTDIR: ""
+  # Improve Docker performance with overlayfs.
+  DOCKER_DRIVER: overlay2
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  GIT_DEPTH: 0
+  GRADLE_USER_HOME: "$(pwd)/.gradle"
   GIT_SUBMODULE_STRATEGY: normal
   GIT_SUBMODULE_FORCE_HTTPS: "true"
-  DOCKER_TLS_CERTDIR: ""
-  GIT_DEPTH: 0
+
+cache:
+  # Cache key based on build and settings files for efficient cache invalidation.
+  key:
+    files:
+      - build.gradle
+      - settings.gradle
+  # Paths to cache Gradle dependencies.
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
+
+# --- Test Stage ---
+
+pushkb-test-job:
+  stage: test
+  tags:
+    - ki-onprem
+  script:
+    - ./gradlew test -i
 
 before_script:
   - GRADLE_USER_HOME="$(pwd)/.gradle"
