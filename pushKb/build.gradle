@@ -2,14 +2,14 @@ buildscript {
 	repositories {
 		//mavenLocal()
 		mavenCentral()
-		maven { url "https://maven.k-int.com/repository/private" }
+		maven { url "https://maven.k-int.com/repository/public" }
 		maven { url "https://nexus.libsdev.k-int.com/repository/releases" }
 	}
 }
 
 plugins {
 //	id("org.openrewrite.rewrite") version("latest.release")
-	id("com.github.johnrengelman.shadow") version "8.1.1"
+	id 'com.gradleup.shadow' version "${gradleupShadowVersion}"
 	// See https://plugins.gradle.org/plugin/io.micronaut.application
 	id("io.micronaut.application") version "$micronautGradleVersion"
 	id 'io.micronaut.test-resources' version '4.5.4'
@@ -31,7 +31,7 @@ repositories {
 	//mavenLocal()
 	mavenCentral()
 	maven { url "https://maven.indexdata.com" }
-	maven { url "https://maven.k-int.com/repository/private" }
+	maven { url "https://maven.k-int.com/repository/public" }
 	maven { url "https://nexus.libsdev.k-int.com/repository/releases" }
 }
 
