@@ -12,21 +12,24 @@ micronaut:
       #event-loop-group: other
       #read-timeout: 30
       max-content-length: 2147483647 # This strikes me as a bit dangerous, but 10MB causes issues from GOKB for some reason
-  #router:
-  #  static-resources:
-  #    swagger:
-  #      enabled: true
-  #      paths: classpath:META-INF/swagger
-  #      mapping: /openapi/**
-  #    swagger-ui:
-  #      enabled: true
-  #      paths: classpath:META-INF/swagger/views/swagger-ui
-  #      mapping: /openapi/ui/**
-  #    redoc:
-  #      paths: classpath:META-INF/swagger/views/redoc
-  #      mapping: /openapi/redoc/**
+  router:
+    static-resources:
+      swagger:
+        enabled: true
+        paths: classpath:META-INF/swagger
+        mapping: /swagger/**
+      swagger-ui:
+        enabled: true
+        paths: classpath:META-INF/swagger/views/swagger-ui
+        mapping: /swagger-ui/**
   security:
     enabled: true
+    intercept-url-map:
+      - pattern: /swagger/**
+        access: isAnonymous()
+      - pattern: /swagger-ui/**
+        access: isAnonymous()
+
     oauth2:
       enabled: true
       clients:
@@ -140,4 +143,3 @@ taskscheduler:
   synchronous:
     concurrency: ${TASKSCHEDULER_SYNCHRONOUS_CONCURRENCY:`1`}
   interval: ${TASKSCHEDULER_INTERVAL:`PT10S`}
-

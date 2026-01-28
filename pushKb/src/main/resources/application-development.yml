@@ -18,19 +18,6 @@ micronaut:
     #  options:
     #    -Xms512m
     #    -Xmx2g
-  #router:
-  #  static-resources:
-  #    swagger:
-  #      enabled: true
-  #      paths: classpath:META-INF/swagger
-  #      mapping: /openapi/**
-  #    swagger-ui:
-  #      enabled: true
-  #      paths: classpath:META-INF/swagger/views/swagger-ui
-  #      mapping: /openapi/ui/**
-  #    redoc:
-  #      paths: classpath:META-INF/swagger/views/redoc
-  #      mapping: /openapi/redoc/**
   data:
     pageable:
       max-page-size: 1000

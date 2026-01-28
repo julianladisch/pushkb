@@ -1,6 +1,7 @@
 package com.k_int.pushKb.api.publicApi;
 
 import io.micronaut.security.rules.SecurityRule;
+import io.swagger.v3.oas.annotations.Hidden;
 import reactor.core.publisher.Mono;
 
 import io.micronaut.http.MediaType;
@@ -35,6 +36,7 @@ public class PublicController {
 	}
 
   // FIXME This shouldn't be a public API call -- should be protected
+	@Hidden // This shouldn't be publicised for now... not part of the functionality of the module
   @Post(uri = "/proteus", produces = MediaType.APPLICATION_JSON)
   public Mono<Map<String, JsonNode>> proteus(
     JsonNode record,
