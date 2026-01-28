@@ -144,7 +144,7 @@ dependencies {
 	// Don't need ES (yet?)
 	/* testImplementation("org.testcontainers:elasticsearch")
 	testImplementation("io.micronaut.testresources:micronaut-test-resources-elasticsearch") */
-	implementation 'com.k_int:taskscheduler-reactive:1.0.3'
+	implementation 'com.k_int:taskscheduler-reactive'
 }
 
 //rewrite {
