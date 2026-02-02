@@ -26,7 +26,7 @@ import com.k_int.pushKb.services.PushableService;
 @Secured(SecurityRule.IS_ANONYMOUS)
 @Controller("/public/temporarypushtask")
 @Slf4j
-public class PublicTemporaryPushTaskController {
+public class PublicTemporaryPushTaskController implements PublicTemporaryPushTaskApi {
 	private final PushableService pushableService;
 
 	public PublicTemporaryPushTaskController(
@@ -35,8 +35,6 @@ public class PublicTemporaryPushTaskController {
 		this.pushableService = pushableService;
 	}
 
-	// TODO add @Body binding shape
-	@Post(uri = "/", produces = MediaType.APPLICATION_JSON)
 	public Mono<MutableHttpResponse<Map<String, Object>>> temporaryPushTask(
 		String pushTaskId,
 		@Nullable String filterContext

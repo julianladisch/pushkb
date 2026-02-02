@@ -10,7 +10,8 @@ import io.swagger.v3.oas.annotations.info.License;
 	info = @Info(
 		title = "PushKb",
 		version = "1.0.0-SNAPSHOT",
-		description = "A service to collate data from GoKB and push into FOLIO",
+		description = "A microservice to connect \"sources\" to \"destinations\" and act as a mediator for streaming data between the two. " +
+			"Initial implementation focuses on FOLIO destinations and GOKB sources, replacing the \"harvest\" mechanism in ERM.",
 		license = @License(name = "Apache 2.0", url = "https://gitlab.com/knowledge-integration/libraries/pushkb/-/blob/main/LICENSE"),
 		contact = @Contact(url = "https://www.k-int.com", name = "Ethan Freestone", email = "ethan.freestone@k-int.com")
 	)

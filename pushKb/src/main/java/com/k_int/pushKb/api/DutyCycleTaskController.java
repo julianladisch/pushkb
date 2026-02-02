@@ -24,7 +24,7 @@ import java.util.Map;
 @Controller("/dutycycletasks")
 @Slf4j
 @Secured(SecurityRule.IS_AUTHENTICATED)
-public class DutyCycleTaskController {
+public class DutyCycleTaskController implements DutyCycleTaskApi {
 	private final ReactiveDutyCycleTaskRepository dutyCycleTaskRepository;
 	private final ReactiveDutyCycleTaskRunner runner;
 
@@ -36,7 +36,6 @@ public class DutyCycleTaskController {
 		this.runner = runner;
 	}
 
-	@Get(produces = MediaType.APPLICATION_JSON)
 	public Publisher<DutyCycleTask> getDutyCycleTasks() {
 		return Flux.from(dutyCycleTaskRepository.findAll());
 	}
@@ -47,15 +46,6 @@ public class DutyCycleTaskController {
 	 * is actually running for that DutyCycleTask (DCT) on any node. This can result
 	 * in duplicate execution or data corruption.
 	 */
-	@Post(value = "/{id}/reset", produces = MediaType.APPLICATION_JSON)
-	@Operation(
-		summary = "Manually reset a task to IDLE",
-		description = "DANGER: Resets a 'stuck' task to IDLE and clears local runner references. " +
-			"This can cause duplicate execution if the task is still active on another node. " +
-			"Use only when a task is confirmed to be stalled due to a node crash."
-	)
-	@ApiResponse(responseCode = "200", description = "Task was successfully reset.")
-	@ApiResponse(responseCode = "404", description = "Task ID not found.")
 	public Publisher<Map<String,String>> resetTask(@NonNull UUID id) {
 		log.info("Request to manually reset DutyCycleTask: {}", id);
 

@@ -12,7 +12,7 @@ import com.k_int.pushKb.interactions.gokb.model.Gokb;
 @Controller("/sources/gokbsource/gokb")
 @Slf4j
 @Secured(SecurityRule.IS_AUTHENTICATED)
-public class GokbController extends CrudControllerImpl<Gokb> {
+public class GokbController extends CrudControllerImpl<Gokb> implements GokbApi {
   public GokbController(GokbDatabaseService databaseService) {
     super(databaseService);
   }

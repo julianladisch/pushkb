@@ -17,7 +17,7 @@ import com.k_int.pushKb.services.DestinationService;
 @Controller("/destinations")
 @Slf4j
 @Secured(SecurityRule.IS_AUTHENTICATED)
-public class DestinationController {
+public class DestinationController implements DestinationApi {
   @Get(uri = "/implementers", produces = MediaType.APPLICATION_JSON)
   public Mono<Map<String, Object>> getImplementors() {
     return Flux.fromIterable(DestinationService.destinationImplementors)

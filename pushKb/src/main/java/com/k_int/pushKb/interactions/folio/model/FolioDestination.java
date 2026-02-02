@@ -4,9 +4,11 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.k_int.pushKb.crud.HasId;
 import com.k_int.pushKb.model.Destination;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,6 +31,11 @@ import io.micronaut.data.model.DataType;
 public class FolioDestination implements Destination, HasId {
   @Id
 	@TypeDef(type = DataType.UUID)
+	@Schema(
+		description = "The unique identifier, automatically generated from the tenant and type.",
+		accessMode = Schema.AccessMode.READ_ONLY // This hides it from the "Request Body" in Swagger
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY) // This prevents the JSON parser from accepting it on input
 	private UUID id;
 
   @NotNull
@@ -37,6 +44,10 @@ public class FolioDestination implements Destination, HasId {
 
   @NotNull
   @NonNull
+	@Schema(
+		name = "FolioTenant", // Explicitly names the sub-object
+		description = "The tenant configuration this destination will push to."
+	)
   FolioTenant folioTenant;
 
   @NotNull

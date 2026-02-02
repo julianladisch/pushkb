@@ -4,6 +4,7 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.k_int.pushKb.crud.HasId;
 
 import io.micronaut.core.annotation.NonNull;
@@ -12,6 +13,7 @@ import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -29,10 +31,19 @@ import services.k_int.utils.UUIDUtils;
 @Data
 @AllArgsConstructor
 @MappedEntity("gokb")
+@Schema(
+	name = "Gokb",
+	description = "Detailed configuration for a specific GOKb instance"
+)
 @Builder(toBuilder = true)
 public class Gokb implements HasId { // FIXME not a huge fan of this HasId interface, would prefer an annotation but idk how to do that
   @Id
 	@TypeDef(type = DataType.UUID)
+	@Schema(
+		description = "The unique identifier, automatically generated from the baseUrl.",
+		accessMode = Schema.AccessMode.READ_ONLY // This hides it from the "Request Body" in Swagger
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY) // This prevents the JSON parser from accepting it on input
 	private UUID id;
 
   // We assume that this needs to be of the form <gokb domain> (no trailing slash or /gokb...) for now.

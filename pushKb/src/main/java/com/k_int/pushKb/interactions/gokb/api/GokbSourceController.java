@@ -20,7 +20,7 @@ import java.util.UUID;
 @Controller("/sources/gokbsource")
 @Slf4j
 @Secured(SecurityRule.IS_AUTHENTICATED)
-public class GokbSourceController extends CrudControllerImpl<GokbSource> {
+public class GokbSourceController extends CrudControllerImpl<GokbSource> implements GokbSourceApi {
 	SourceService sourceService;
   public GokbSourceController(
 		GokbSourceDatabaseService databaseService,
@@ -40,7 +40,6 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> {
 	// We need to use ensureSource here to make sure that side effects happen as expected
 	// Such as DutyCycleTask creation etc.
 	@Override
-	@Post(uri = "/", produces = MediaType.APPLICATION_JSON)
 	public Publisher<GokbSource> post(
 		@Valid @Body GokbSource src
 	) {
@@ -58,7 +57,6 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> {
 	}
 
 	// Reset pointer endpoint
-	@Put(uri = "/{id}/resetPointer", produces = MediaType.APPLICATION_JSON)
 	public Publisher<GokbSource> resetPointer(
 		@Parameter UUID id
 	) {

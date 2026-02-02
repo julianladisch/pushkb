@@ -4,6 +4,7 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.k_int.pushKb.crud.HasId;
 
 import io.micronaut.core.annotation.NonNull;
@@ -14,6 +15,7 @@ import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -29,10 +31,19 @@ import services.k_int.utils.UUIDUtils;
 @Data
 @MappedEntity("folio_tenant")
 @AllArgsConstructor
+@Schema(
+	name = "FolioTenant",
+	description = "Detailed configuration for a specific FOLIO tenant environment"
+)
 @Builder(toBuilder = true)
 public class FolioTenant implements HasId {
   @Id
 	@TypeDef(type = DataType.UUID)
+	@Schema(
+		description = "The unique identifier, automatically generated from the tenant and baseUrl.",
+		accessMode = Schema.AccessMode.READ_ONLY // This hides it from the "Request Body" in Swagger
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY) // This prevents the JSON parser from accepting it on input
 	private UUID id;
 
   @NotNull
