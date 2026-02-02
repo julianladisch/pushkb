@@ -6,6 +6,7 @@ import io.micronaut.context.annotation.Parameter;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
@@ -21,7 +22,7 @@ import java.util.UUID;
 @Slf4j
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @Controller("/pushtasks")
-public class PushTaskController extends CrudControllerImpl<PushTask> {
+public class PushTaskController extends CrudControllerImpl<PushTask> implements PushTaskApi {
 	private final PushTaskDatabaseService databaseService;
 	private final PushableService pushableService;
   public PushTaskController(
@@ -35,7 +36,6 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
   }
 
   @Override
-  @Post(produces = MediaType.APPLICATION_JSON)
   public Publisher<PushTask> post(
 		@Valid @Body PushTask pt
 	) {
@@ -45,7 +45,6 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
 	}
 
 	@Override
-	@Put(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
 	public Publisher<PushTask> put(
 		@Parameter UUID id,
 		@Valid @Body PushTask pt
@@ -54,7 +53,6 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
 	}
 
   // Reset pointer endpoint
-	@Put(uri = "/{id}/resetPointers", produces = MediaType.APPLICATION_JSON)
 	public Publisher<PushTask> resetPointers(
 		@Parameter UUID id
 	) {
@@ -70,7 +68,6 @@ public class PushTaskController extends CrudControllerImpl<PushTask> {
 	// We need to use pushableService here to make sure that side effects happen as expected
 	// Such as DutyCycleTask removal etc.
 	@Override
-	@Delete(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
 	public Publisher<Long> delete(
 		@Parameter UUID id
 	) {

@@ -5,6 +5,7 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.k_int.pushKb.converters.ClassAttributeConverter;
 import com.k_int.pushKb.crud.HasId;
 import com.k_int.pushKb.transform.model.Transform;
@@ -19,6 +20,7 @@ import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
 import io.micronaut.serde.annotation.Serdeable.Deserializable;
 import io.micronaut.serde.annotation.Serdeable.Serializable;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,6 +36,11 @@ import services.k_int.utils.UUIDUtils;
 public class PushTask implements Pushable, HasId {
   @Id
 	@TypeDef(type = DataType.UUID)
+	@Schema(
+		description = "The unique identifier, automatically generated from the source and destination ids.",
+		accessMode = Schema.AccessMode.READ_ONLY // This hides it from the "Request Body" in Swagger
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY) // This prevents the JSON parser from accepting it on input
 	private UUID id;
 
 	// Link to the transform in the DB (implementor of transform)

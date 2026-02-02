@@ -5,6 +5,7 @@ import static com.k_int.pushKb.Constants.UUIDs.*;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.k_int.pushKb.crud.HasId;
 import com.k_int.pushKb.model.Source;
 
@@ -17,6 +18,7 @@ import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -35,6 +37,11 @@ import services.k_int.utils.UUIDUtils;
 public class GokbSource implements Source, HasId {
 	@Id
 	@TypeDef(type = DataType.UUID)
+	@Schema(
+		description = "The unique identifier, automatically generated from the GOKb and source type.",
+		accessMode = Schema.AccessMode.READ_ONLY // This hides it from the "Request Body" in Swagger
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY) // This prevents the JSON parser from accepting it on input
 	private UUID id;
 
   @NotNull
@@ -44,6 +51,10 @@ public class GokbSource implements Source, HasId {
   @NotNull
   @NonNull
   @Valid // Needs @Introspected
+	@Schema(
+		name = "Gokb", // Explicitly names the sub-object
+		description = "The GOKb instance this source will pull from."
+	)
   Gokb gokb;
 
   @NotNull

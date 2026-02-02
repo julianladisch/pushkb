@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Controller("/sourcerecords")
 @Slf4j
 @Secured(SecurityRule.IS_AUTHENTICATED)
-public class SourceRecordController {
+public class SourceRecordController implements SourceRecordApi {
 	private final SourceRecordDatabaseService sourceRecordDatabaseService;
 
   public SourceRecordController(
@@ -28,7 +28,6 @@ public class SourceRecordController {
   }
 
   // Count total records
-  @Get(uri = "/count", produces = MediaType.APPLICATION_JSON)
   public Publisher<Long> count(
     @Nullable @QueryValue UUID sourceId,
     @Nullable @QueryValue String filterContext
@@ -36,8 +35,8 @@ public class SourceRecordController {
 		return sourceRecordDatabaseService.countFeed(sourceId, filterContext);
   }
 
-	@Delete(uri = "/clearRecords", produces = MediaType.APPLICATION_JSON)
 	public Publisher<Long> clearRecords() {
 		return sourceRecordDatabaseService.deleteAll();
+		// TODO should this reset the pointers as a side effect?
 	}
 }
