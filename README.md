@@ -167,7 +167,7 @@ PushKB accepts multiple env vars
 | KEYCLOAK_REALM                     | The name of a Keycloak Realm                                                                                                   | This is the name of a Realm set up for PushKB.                                                                                                                                      | `PushKB`                                                                                                                            | For now PushKB needs a Keycloak realm to itself and a user in that realm. There are no roles etc for the time being. This will need to be set up in a prod system, but developers will get a dev one by running the infrastructure |
 
 ## Docker images
- "Alpha 3" as referenced above can be found at https://docker.libsdev.k-int.com/pushkb:1.0-alpha.3
- "SNAPSHOT" version is found at https://docker.libsdev.k-int.com/knowledgeintegration/pushkb:next
+"Alpha 3" as referenced above can be found at `docker.libsdev.k-int.com/knowledgeintegration/pushkb:1.0-alpha.3`
+"SNAPSHOT" version is found at `docker.libsdev.k-int.com/knowledgeintegration/pushkb:next`
 ## Choosing Alpha
  For initial testing, Alpha 3 is preferred as it is known stable, the ability to get the module up and running and pointing at a Gokb/FOLIO is the first thing to test. From there Alpha 5 introduces scaling and initial API work, but the features are still under heavy construction. As of right this second Alpha 3 is the last tagged alpha released, but SNAPSHOT versions are releasing as expected. These will obviously be less stable than a tagged release.
