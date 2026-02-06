@@ -1,0 +1,22 @@
+{
+	"path": {
+		"pushKb/*": {
+			"capabilities": [
+				"create",
+				"read",
+				"update",
+				"delete",
+				"list"
+			]
+		},
+		"pushKb/folioTenant/*": {
+			"capabilities": [
+				"create",
+				"read",
+				"update",
+				"delete",
+				"list"
+			]
+		}
+	}
+}

@@ -51,7 +51,6 @@ public class FolioApiClient extends BaseApiClient implements DestinationClient<F
 
 	private final FolioTenant folioTenant;
 
-
 	// Keep a current token for login etc
 	private CookieToken currentToken;
 

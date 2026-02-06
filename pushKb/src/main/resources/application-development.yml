@@ -39,6 +39,14 @@ db:
   username: pushkb
   password: pushkb
 
+vault:
+  insecure: false
+  hashicorp:
+    url: http://localhost:8200
+    secret-engine-path: /v1/pushKb/
+    authtype: userpass
+    username: username
+    password: password
 
 endpoints:
   prometheus:
