@@ -7,10 +7,12 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.k_int.pushKb.crud.HasId;
 
+import com.k_int.pushKb.model.VaultEntity;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;
+import io.micronaut.data.annotation.Transient;
 import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
@@ -36,7 +38,7 @@ import services.k_int.utils.UUIDUtils;
 	description = "Detailed configuration for a specific FOLIO tenant environment"
 )
 @Builder(toBuilder = true)
-public class FolioTenant implements HasId {
+public class FolioTenant implements HasId, VaultEntity {
   @Id
 	@TypeDef(type = DataType.UUID)
 	@Schema(
@@ -78,6 +80,12 @@ public class FolioTenant implements HasId {
   @NonNull
   private final FolioAuthType authType;
 
+	@Transient
+	@Override
+	public String getKey(){
+		return "folioTenant/" + id.toString();
+	}
+
   private static final String UUID5_PREFIX = "folio_tenant";
   public static UUID generateUUID(String tenant, String baseUrl) {
     final String concat = UUID5_PREFIX + ":" + tenant + ":" + baseUrl;
@@ -87,4 +95,29 @@ public class FolioTenant implements HasId {
   public static UUID generateUUIDFromFolioTenant(FolioTenant folioTenant) {
     return generateUUID(folioTenant.getTenant(), folioTenant.getBaseUrl());
   }
+
+	// Method for removing the password from the tenant
+	public static FolioTenant sanitiseFolioTenant(FolioTenant ten) {
+		return FolioTenant.builder()
+			.id(ten.id)
+			.authType(ten.authType)
+			.baseUrl(ten.baseUrl)
+			.tenant(ten.tenant)
+			.name(ten.name)
+			.loginUser(ten.loginUser)
+			.build();
+	}
+
+	// Method for adding the login password back to the tenant
+	public static FolioTenant unsanitiseFolioTenant(FolioTenant ten, String password) {
+		return FolioTenant.builder()
+			.id(ten.id)
+			.authType(ten.authType)
+			.baseUrl(ten.baseUrl)
+			.tenant(ten.tenant)
+			.name(ten.name)
+			.loginUser(ten.loginUser)
+			.loginPassword(password)
+			.build();
+	}
 }

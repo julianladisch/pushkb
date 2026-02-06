@@ -2,13 +2,14 @@ services:
   db:
     image: postgres:16.1
     restart: always
+    container_name: database
     environment:
       POSTGRES_USER: pushkb
       POSTGRES_PASSWORD: pushkb
       POSTGRES_DB: pushkb
     ports:
       - '6543:5432'
-    volumes: 
+    volumes:
       - db:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d
     networks:
@@ -36,11 +37,38 @@ services:
     restart: unless-stopped
     networks:
       - local-keycloak
+  vault:
+    image: hashicorp/vault
+    container_name: vault
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_API_ADDR: "http://0.0.0.0:8200"
+      VAULT_DEV_LISTEN_ADDRESS: "http://0.0.0.0:8200"
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault-volume:/vault/file:rw
+      - vault-data:/var/lib/vault:rw
+      #- ./file:/vault/file:rw
+      - ./vaultconfig:/vault/config:rw
+    post_start:
+      - command: >
+          sh -c "vault secrets enable -path=pushKb -version=1 kv && 
+            vault auth enable userpass &&
+            vault policy write dev ./vault/config/dev_policy.json &&
+            vault write auth/userpass/users/username password=password policies=dev"
+        user: root
+    cap_add:
+      - IPC_LOCK
+    entrypoint: vault server -dev -dev-listen-address="0.0.0.0:8200"
+    #entrypoint: vault server -config=/vault/config/vault.json
 
 volumes:
   db:
     driver: local
+  vault-volume:
+  vault-data:
 
 networks:
   local-keycloak:
-

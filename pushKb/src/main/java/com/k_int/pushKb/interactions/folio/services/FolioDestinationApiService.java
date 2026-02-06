@@ -1,8 +1,12 @@
 package com.k_int.pushKb.interactions.folio.services;
 
+import com.k_int.pushKb.interactions.folio.model.FolioTenant;
 import com.k_int.pushKb.services.DestinationApiService;
 import com.k_int.pushKb.services.HttpClientService;
 
+import com.k_int.pushKb.vault.VaultProvider;
+import com.k_int.pushKb.vault.VaultSecret;
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.json.tree.JsonNode;
 import jakarta.inject.Singleton;
@@ -10,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import java.net.MalformedURLException;
+import java.util.Map;
 
 import org.reactivestreams.Publisher;
 
@@ -23,21 +28,46 @@ import com.k_int.pushKb.interactions.folio.model.FolioDestinationType;
 @Slf4j
 public class FolioDestinationApiService implements DestinationApiService<FolioDestination> {
 	private final HttpClientService httpClientService;
+	private final VaultProvider vaultProvider;
+	private final boolean isInsecureMode;
 
 	public FolioDestinationApiService(
-		HttpClientService httpClientService
+		HttpClientService httpClientService,
+		VaultProvider vaultProvider,
+		@Value("${vault.insecure:false}") boolean isInsecureMode
 	) {
 		this.httpClientService = httpClientService;
+		this.vaultProvider = vaultProvider;
+		this.isInsecureMode = isInsecureMode;
 	}
 
 	// Does this belong in some other service, or perhaps should "getClient" be a method on DestinationApiService interface?
 	// Be able to set up a new FolioApiClient per destination
 	public Publisher<FolioApiClient> getClient(FolioDestination destination) {
+
+		boolean isVaultConfigured = vaultProvider.getVaultHealth();
+
+		if (!isVaultConfigured && !isInsecureMode) {
+			return Mono.error(new IllegalStateException(
+				"Cannot handle folio tenants when vault is unavailable and insecure mode is disabled"
+			));
+		}
+
+		FolioTenant tenant;
+		if(isVaultConfigured){
+			String key = destination.getFolioTenant().getKey();
+			VaultSecret password = vaultProvider.readSecret(key);
+			String parsedPassword = password.data().get("password").toString();
+			tenant = FolioTenant.unsanitiseFolioTenant(destination.getFolioTenant(), parsedPassword);
+		} else {
+			tenant = destination.getFolioTenant();
+		}
+
 		try {
 			HttpClient client = httpClientService.create(destination.getDestinationUrl());
 			return Mono.just(new FolioApiClient(
 				client,
-				destination.getFolioTenant()
+				tenant
 			));
 		} catch (MalformedURLException e) {
 			return Mono.error(e);

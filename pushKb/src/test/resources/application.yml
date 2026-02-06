@@ -26,6 +26,22 @@ flyway:
         - "classpath:db/migration"
       outOfOrder: true
 
+test-resources:
+  containers:
+    hashicorp-vault:
+      image-name: "hashicorp/vault:1.21.2"
+      command: ["server", "-dev", "-dev-kv-v1"]
+
+vault:
+  insecure: false
+  hashicorp:
+    url: "${vault.client.uri}"
+    token: "${vault.client.token}"
+    secret-engine-path: /v1/secret/
+    authtype: userpass
+    username: username
+    password: password
+
 # Bootstrapping removed for testing.
 #sources:
 #  gokbs:

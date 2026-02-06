@@ -12,10 +12,9 @@ plugins {
 	id 'com.gradleup.shadow' version "${gradleupShadowVersion}"
 	// See https://plugins.gradle.org/plugin/io.micronaut.application
 	id("io.micronaut.application") version "$micronautGradleVersion"
-	id 'io.micronaut.test-resources' version '4.5.4'
+	id 'io.micronaut.test-resources' version "$micronautGradleVersion"
 
 	// Turn off testresources starting every run
-	//id("io.micronaut.test-resources") version "$micronautGradleVersion"
 	id("io.micronaut.aot") version "$micronautGradleVersion"
 	id("jacoco")
 	id("com.k_int.pushKb.pushKb-bom")
@@ -114,13 +113,15 @@ dependencies {
 	// Uncommmenting this dependency results in
 	// testresources Micronaut Message: Could not resolve placeholder ${auto.test.resources.r2dbc.datasources.default.options.protocol}
 	//
-//	runtimeOnly("io.r2dbc:r2dbc-pool")
+	//	runtimeOnly("io.r2dbc:r2dbc-pool")
 
 	implementation("io.micronaut.flyway:micronaut-flyway")
 	// This is now necessary for flyway v10
 	runtimeOnly("org.flywaydb:flyway-database-postgresql")
 
 	implementation("com.k-int.proteus:proteus-core")
+
+	implementation 'io.micronaut.discovery:micronaut-discovery-client:4.7.1'
 
 	// Tests
 	testCompileOnly 'org.projectlombok:lombok'
@@ -136,12 +137,9 @@ dependencies {
 	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 
 	testImplementation("org.mockito:mockito-core")
-	testImplementation("org.testcontainers:postgresql")
-	testImplementation("org.testcontainers:testcontainers")
 
-//	testImplementation("io.micronaut.testresources:micronaut-test-resources-extensions-core:2.0.0")
-	testImplementation(platform("org.testcontainers:testcontainers-bom"))
 	// Don't need ES (yet?)
+	// I don't believe we should actually need explicit test containers dependencies, since it should be handled by the micronaut.test-resources plugin
 	/* testImplementation("org.testcontainers:elasticsearch")
 	testImplementation("io.micronaut.testresources:micronaut-test-resources-elasticsearch") */
 	implementation 'com.k_int:taskscheduler-reactive'
@@ -173,6 +171,10 @@ run {
 
 graalvmNative.toolchainDetection = false
 micronaut {
+	testResources {
+		// Added since we're pulling in an explicitly set vault image
+		clientTimeout = 600
+	}
 	runtime("netty")
 	testRuntime("junit5")
 	processing {

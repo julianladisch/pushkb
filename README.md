@@ -68,6 +68,13 @@ Postgres should start on port `6543` to avoid clashes with any local postgres in
 
 Then use `./gradlew run` to start the module.
 
+### Vault
+The docker compose image includes a hashicorp vault. After a fresh docker compose up, the vault should be initialised running in developer mode (ie unsealed and ready-to-use).
+
+The vault by default should also be configured with a root access token, a KV(V1) secret engine and a user with a developer policy attached, which should mirror the config present in the application-development.yml
+
+When running tests, micronaut automatically spins up containers required for tests through the test-resources plugin, these are configured within the application.yml under the hashicorp-vault property. Importantly, in order for micronaut to know that a vault container is required, either the vault.client.uri/token need to be injected into the YAML.
+
 ## Migrations
 Migrations in PushKB are handled by Flyway.
 ### Naming
@@ -101,6 +108,10 @@ The aim is to keep migration files relatively minimal. Flyway will handle the ru
 	- PushKB assumes a Keycloak realm has been configured for it.
   - It will then use `client-credentials` authentication to authenticate ANY user in that realm for non-public API calls
   - Suggested realm PushKB with client pushKB, but these can be configured below
+- Vault
+  - PushKB assumes by default that a vault has been configured for it
+  - Then using the `vault` config will access the vault to both read and write passwords to the supplied secret engine using any supported auth method
+  - If the `VAULT_INSECURE_MODE` env var has been set to true, then PushKB can be run without a vault needing to be configured, in this case passwords will instead be stored within the database
 
 ## Config
 In order to get data into PushKB there will eventually be a protected API (INFORMATION TO FOLLOW HERE) In early alpha versions however there instead must be a mounted `yml` file containing the GOKB(s), folio tenants etc as above, and pointed at with env var `MICRONAUT_CONFIG_FILES`.
@@ -134,7 +145,6 @@ The `yml` file listed above can be understood as follows.
     		- Eventually the structure may split out folio server and folio tenant
       	- That will likely be after this method of bootstrapping is deprecated
     	- `username` and `password` are the login credentials for this folio tenant
-  			- Currently these are stored in the database, eventually these should be handled in a nicer way
 	- `foliodestinations`
   	- These are the individual "push sites" for a tenant, you will need one for pushing PCIs and one for pushing Packages
     - These comprise of a `name`, a `foliotenant` and a `destinationtype`
@@ -152,6 +162,23 @@ The `yml` file listed above can be understood as follows.
       	- Must align with `source.name`
       - `destination` is a named destination from the above section
 				- Must align with `destination.name`
+- Vault
+	- `insecure` defines whether a vault integration should be used for tenant password storage
+  - `hashicorp` is the vault provider type, currently only hashicorp/vault is supported
+    - `url` is the base url through which vault can be accessed
+    - `secret-engine-path` defines the path to the secret engine configured within vault
+    - `authtype` is the authtype through which the vault can be accessed, currently token, userpass and kubernetes are supported
+    	- Depending on what authype has been selected, the credentials for that should also be supplied
+      - username and password for userpass, token for token and role, mount-path and service-account-token-path for kubernetes
+
+## Vault Configuration
+After a vault has been configured to be used alongside PushKB, additional configurations should be made to ensure authentication and secret storage works correctly, this can either be done through the CLI or UI found at the vault address.
+- A secret engine of type KV version 1 should be created, which should be used for the storage of credentials. Further documentation: https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v1
+- A policy will need to be written that allows both create and read permissions to the previously created secret engine: Further documentation: https://developer.hashicorp.com/vault/docs/concepts/policies
+- An authentication method needs to be created (userpass or kubernetes) with which has the policy that was created. Further documentation: https://developer.hashicorp.com/vault/docs/auth
+
+- The details for the vault address, secret engine path and authentication credentials should then be supplied to pushKb either through the yml or env vars.
+
 ## Env Vars
 PushKB accepts multiple env vars
 
