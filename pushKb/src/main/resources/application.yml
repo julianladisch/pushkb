@@ -143,3 +143,17 @@ taskscheduler:
   synchronous:
     concurrency: ${TASKSCHEDULER_SYNCHRONOUS_CONCURRENCY:`1`}
   interval: ${TASKSCHEDULER_INTERVAL:`PT10S`}
+
+vault:
+  insecure: ${VAULT_INSECURE:`false`}
+  hashicorp:
+    url: ${VAULT_HASHICORP_URL}
+    secret-engine-path: ${VAULT_HASHICORP_SECRET_ENGINE_PATH}
+    authtype: ${VAULT_HASHICORP_AUTHTYPE}
+    username: ${VAULT_HASHICORP_USERNAME}
+    password: ${VAULT_HASHICORP_PASSWORD}
+    token: ${VAULT_HASHICORP_TOKEN}
+    kubernetes:
+        role: ${VAULT_HASHICORP_KUBERNETES_ROLE}
+        mount-path: ${VAULT_HASHICORP_KUBERNETES_MOUNT_PATH}
+        service-account-token-path: ${VAULT_HASHICORP_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH}
