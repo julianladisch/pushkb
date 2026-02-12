@@ -35,7 +35,7 @@ micronaut:
       clients:
         keycloak:
           client-secret: '${OAUTH_CLIENT_SECRET:secret}'
-          client-id: '${OUTH_CLIENT_ID:pushKB}'
+          client-id: '${OAUTH_CLIENT_ID:pushKB}'
           openid:
             issuer: '${OIDC_ISSUER_DOMAIN:`http://localhost:8088`}/realms/${KEYCLOAK_REALM:PushKB}'
     token:
@@ -145,15 +145,15 @@ taskscheduler:
   interval: ${TASKSCHEDULER_INTERVAL:`PT10S`}
 
 vault:
-  insecure: ${VAULT_INSECURE:`false`}
+  insecure: "${VAULT_INSECURE: `false`}"
   hashicorp:
-    url: ${VAULT_HASHICORP_URL}
-    secret-engine-path: ${VAULT_HASHICORP_SECRET_ENGINE_PATH}
-    authtype: ${VAULT_HASHICORP_AUTHTYPE}
-    username: ${VAULT_HASHICORP_USERNAME}
-    password: ${VAULT_HASHICORP_PASSWORD}
-    token: ${VAULT_HASHICORP_TOKEN}
+    url: "${VAULT_HASHICORP_URL: }"
+    secret-engine-path: "${VAULT_HASHICORP_SECRET_ENGINE_PATH: }"
+    authtype: "${VAULT_HASHICORP_AUTHTYPE: }"
+    username: "${VAULT_HASHICORP_USERNAME: }"
+    password: "${VAULT_HASHICORP_PASSWORD: }"
+    token: "${VAULT_HASHICORP_TOKEN: }"
     kubernetes:
-        role: ${VAULT_HASHICORP_KUBERNETES_ROLE}
-        mount-path: ${VAULT_HASHICORP_KUBERNETES_MOUNT_PATH}
-        service-account-token-path: ${VAULT_HASHICORP_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH}
+        role: "${VAULT_HASHICORP_KUBERNETES_ROLE: }"
+        mount-path: "${VAULT_HASHICORP_KUBERNETES_MOUNT_PATH: }"
+        service-account-token-path: "${VAULT_HASHICORP_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH: }"

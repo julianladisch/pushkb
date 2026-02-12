@@ -2,7 +2,11 @@ micronaut:
   test:
     resources:
       enabled: true
-
+  security:
+    # Ignore keycloak for the tests.
+    # Use @Property(name="micronaut.security.enabled", value = "true")
+    # to override
+    enabled: false
 # Micronaut Test Resources will see 'db-type' and start a Postgres container.
 datasources:
   default:
@@ -24,6 +28,7 @@ flyway:
       enabled: true
       locations:
         - "classpath:db/migration"
+        - classpath:db/taskscheduler-core # This creates the duty_cycle_task table
       outOfOrder: true
 
 test-resources:

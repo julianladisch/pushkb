@@ -19,4 +19,8 @@ public interface VaultProvider {
 	boolean getVaultHealth();
 
 	void createSecret(String path, Map<String, Object> secret);
+
+	void updateSecret(String path, Map<String, Object> secret);
+
+	void deleteSecret(String path);
 }

@@ -5,7 +5,6 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.k_int.pushKb.converters.ClassAttributeConverter;
 import com.k_int.pushKb.crud.HasId;
 import com.k_int.pushKb.transform.model.Transform;
@@ -40,7 +39,6 @@ public class PushTask implements Pushable, HasId {
 		description = "The unique identifier, automatically generated from the source and destination ids.",
 		accessMode = Schema.AccessMode.READ_ONLY // This hides it from the "Request Body" in Swagger
 	)
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY) // This prevents the JSON parser from accepting it on input
 	private UUID id;
 
 	// Link to the transform in the DB (implementor of transform)

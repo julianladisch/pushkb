@@ -1,6 +1,7 @@
 package com.k_int.pushKb.interactions.gokb.api;
 
 import com.k_int.pushKb.interactions.gokb.services.GokbSourceDatabaseService;
+import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.services.SourceService;
 import io.micronaut.context.annotation.Parameter;
 import io.micronaut.http.MediaType;
@@ -49,11 +50,12 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> impleme
 	// We need to use sourceService here to make sure that side effects happen as expected
 	// Such as DutyCycleTask removal etc.
 	@Override
-	@Delete(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
 	public Publisher<Long> delete(
 		@Parameter UUID id
 	) {
-		return sourceService.deleteById(GokbSource.class, id);
+		return Mono.from(sourceService.findById(GokbSource.class, id))
+			.switchIfEmpty(Mono.error(new IllegalStateException("PushTask not found with ID: " + id)))
+			.flatMap(gkbs -> Mono.from(sourceService.delete(GokbSource.class, (GokbSource) gkbs)));
 	}
 
 	// Reset pointer endpoint

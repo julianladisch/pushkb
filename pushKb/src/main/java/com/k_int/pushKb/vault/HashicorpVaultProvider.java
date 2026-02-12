@@ -1,6 +1,5 @@
 package com.k_int.pushKb.vault;
 
-import io.micronaut.context.annotation.Value;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.serde.ObjectMapper;
@@ -40,32 +39,28 @@ public class HashicorpVaultProvider implements VaultProvider {
 	private final Path kubernetesTokenPath;
 	private final AtomicReference<String> cachedToken = new AtomicReference<>();
 
-	public HashicorpVaultProvider(ObjectMapper objectMapper,
-																@Value("${vault.hashicorp.url:}") String baseUrl,
-																@Value("${vault.hashicorp.authtype:}") String authType,
-																// As it stands the only supported secret engine is KV version 1
-																@Value("${vault.hashicorp.secret-engine-path:}") String secretEnginePath,
-																// Should only be used if the only authentication is a single long term token
-																@Value("${vault.hashicorp.token:}") String token,
-																// userpass credentials from application.yml
-																@Value("${vault.hashicorp.username:}") String username,
-																@Value("${vault.hashicorp.password:}") String password,
-																// kubernetes credentials from application.yml
-																@Value("${vault.hashicorp.kubernetes.role:}") String kubernetesAuthRole,
-																@Value("${vault.hashicorp.kubernetes.mount-path:}") String kubernetesAuthMountPath,
-																@Value("${vault.hashicorp.kubernetes.service-account-token-path:}") String kubernetesTokenPath) {
+	public HashicorpVaultProvider(
+		ObjectMapper objectMapper,
+		VaultConfig vaultConfig
+	) {
+		VaultConfig.HashicorpConfig hashicorpConfig = vaultConfig.getHashicorpConfig();
+
 		this.objectMapper = objectMapper;
-		this.baseUrl = normalizeBaseUrl(baseUrl);
-		this.authType = authType;
-		this.secretEnginePath = secretEnginePath;
-		this.configuredToken = token != null ? token : "";
-		this.kubernetesAuthRole = kubernetesAuthRole;
+		this.baseUrl = normalizeBaseUrl(hashicorpConfig.getUrl());
+		this.authType = hashicorpConfig.getAuthtype();
+		this.secretEnginePath = hashicorpConfig.getSecretEnginePath();
+		this.configuredToken = hashicorpConfig.getToken().orElse("");
 		//userpass credentials
-		this.username = username;
-		this.password = password;
+		this.username = hashicorpConfig.getUsername().orElse(null);
+		this.password = hashicorpConfig.getPassword().orElse(null);
 		//kubernetes credentials
-		this.kubernetesAuthMountPath = kubernetesAuthMountPath;
-		this.kubernetesTokenPath = Path.of(kubernetesTokenPath);
+		VaultConfig.HashicorpConfig.KubernetesConfig kubernetesConfig = hashicorpConfig.getKubernetesConfig();
+
+		this.kubernetesAuthRole = kubernetesConfig.getRole().orElse(null);
+		this.kubernetesAuthMountPath = kubernetesConfig.getMountPath().orElse(null);
+
+		Optional<String> theKubernetesTokenPath = kubernetesConfig.getServiceAccountTokenPath();
+		this.kubernetesTokenPath = theKubernetesTokenPath.map(Path::of).orElse(null);
 		this.httpClient = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
 			.build();
@@ -199,6 +194,32 @@ public class HashicorpVaultProvider implements VaultProvider {
 			Thread.currentThread().interrupt();
 			log.error("Vault secret creation failed", e);
 			throw new VaultClientException(HttpStatus.INTERNAL_SERVER_ERROR, "Vault secret creation failed", e);
+		}
+	}
+
+	@Override
+	public void updateSecret(String path, Map<String, Object> secret) {
+		// Hashicorp vault considers POST and PUT to be synonyms
+		createSecret(path, secret);
+	}
+
+	@Override
+	public void deleteSecret(String path) {
+		String clientToken = resolveClientToken();
+		String uri = baseUrl + secretEnginePath + path;
+		HttpRequest request = HttpRequest.newBuilder()
+			.uri(URI.create(uri))
+			.header("X-Vault-Token", clientToken)
+			.DELETE()
+			.build();
+		try {
+			HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+			if (response.statusCode() >= 400) {
+				throw new VaultClientException(HttpStatus.valueOf(response.statusCode()), "Vault delete failed");
+			}
+		} catch (IOException | InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new VaultClientException(HttpStatus.INTERNAL_SERVER_ERROR, "Vault delete failed", e);
 		}
 	}
 

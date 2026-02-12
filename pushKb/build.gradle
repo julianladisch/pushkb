@@ -202,7 +202,7 @@ tasks {
 		environmentVariable 'DB_USERNAME', ''
 		environmentVariable 'DB_PASSWORD', ''
 		environmentVariable 'OAUTH_CLIENT_SECRET', ''
-		environmentVariable 'OUTH_CLIENT_ID', ''
+		environmentVariable 'OAUTH_CLIENT_ID', ''
 		environmentVariable 'OIDC_ISSUER_DOMAIN', ''
 		environmentVariable 'KEYCLOAK_REALM', ''
 		environmentVariable 'VAULT_INSECURE', ''

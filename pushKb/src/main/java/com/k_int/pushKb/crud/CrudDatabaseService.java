@@ -31,25 +31,25 @@ public interface CrudDatabaseService<T> {
 	@NonNull
 	@SingleResult
 	@Transactional
-	default <S extends T> Publisher<S> save(@NonNull S entity) {
+	default Publisher<T> save(@NonNull T entity) {
 		return getRepository().save(entity);
 	}
 
 	@NonNull
 	@Transactional
-	default <S extends T> Publisher<S> saveAll(@NonNull Iterable<S> entities) {
+	default Publisher<T> saveAll(@NonNull Iterable<T> entities) {
 		return getRepository().saveAll(entities);
 	}
 
 	@NonNull
 	@Transactional
-	default <S extends T> Publisher<S> update(@NonNull S entity) {
+	default Publisher<T> update(@NonNull T entity) {
 		return getRepository().update(entity);
 	}
 
 	@NonNull
 	@Transactional
-	default <S extends T> Publisher<S> updateAll(@NonNull Iterable<S> entities) {
+	default Publisher<T> updateAll(@NonNull Iterable<T> entities) {
 		return getRepository().updateAll(entities);
 	}
 
@@ -82,12 +82,13 @@ public interface CrudDatabaseService<T> {
 		return getRepository().count();
 	}
 
-	@NonNull
-	@SingleResult
-	@Transactional
-	default Publisher<Long> deleteById(@NonNull UUID id) {
-		return getRepository().deleteById(id);
-	}
+	// Let's try to avoid having to do side effects in two places...
+//	@NonNull
+//	@SingleResult
+//	@Transactional
+//	default Publisher<Long> deleteById(@NonNull UUID id) {
+//		return getRepository().deleteById(id);
+//	}
 
 	@SingleResult
 	@NonNull

@@ -5,6 +5,7 @@ import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
 import com.k_int.pushKb.interactions.folio.model.FolioTenant;
 import com.k_int.pushKb.interactions.folio.services.FolioTenantDatabaseService;
 
+import com.k_int.pushKb.test.ServiceIntegrationTest;
 import com.k_int.pushKb.vault.VaultProvider;
 import com.k_int.pushKb.vault.VaultSecret;
 import io.micronaut.context.env.Environment;
@@ -21,11 +22,7 @@ import reactor.test.StepVerifier;
 import java.util.UUID;
 
 @Slf4j
-@MicronautTest(application = Application.class, environments = Environment.TEST, startApplication = false,transactional = false, rollback = true)
-public class FolioTenantDatabaseServiceTest {
-
-	@Inject
-	VaultProvider vaultProvider;
+public class FolioTenantDatabaseServiceTest extends ServiceIntegrationTest {
 
 	@Inject
 	FolioTenantDatabaseService folioTenantDatabaseService;
