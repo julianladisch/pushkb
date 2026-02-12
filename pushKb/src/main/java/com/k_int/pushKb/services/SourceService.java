@@ -97,12 +97,12 @@ public class SourceService {
 	@NonNull
 	@SingleResult
 	@Transactional
-	public Publisher<Long> deleteById( Class<? extends Source> type, UUID id ) {
+	public <S extends Source> Publisher<Long> delete( Class<S> type, S entity ) {
 		// We need to deregister any DutyCycleTasks associated with this source
-		return Flux.from(reactiveDutyCycleTaskRepository.findAllByReference(id.toString()))
+		return Flux.from(reactiveDutyCycleTaskRepository.findAllByReference(entity.getId().toString()))
 			.flatMap(dct -> Mono.from(reactiveDutyCycleTaskRunner.removeTask(dct))) // Remove the tasks if they exist
 			.switchIfEmpty(Flux.just(0L)) // If no task to remove, just return 0L so we can still remove Source
-			.then(Mono.from(getSourceDatabaseServiceForSourceType(type).deleteById(id)));
+			.then(Mono.from(getSourceDatabaseServiceForSourceType(type).delete(entity)));
 	}
 
   @NonNull

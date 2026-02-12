@@ -4,7 +4,6 @@ import static com.k_int.pushKb.Constants.UUIDs.NAMESPACE_PUSHKB;
 
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.k_int.pushKb.crud.HasId;
 
 import com.k_int.pushKb.model.VaultEntity;
@@ -17,6 +16,7 @@ import io.micronaut.data.annotation.TypeDef;
 import io.micronaut.data.model.DataType;
 import io.micronaut.serde.annotation.Serdeable;
 
+import io.micronaut.serde.config.annotation.SerdeConfig;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -45,7 +45,6 @@ public class FolioTenant implements HasId, VaultEntity {
 		description = "The unique identifier, automatically generated from the tenant and baseUrl.",
 		accessMode = Schema.AccessMode.READ_ONLY // This hides it from the "Request Body" in Swagger
 	)
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY) // This prevents the JSON parser from accepting it on input
 	private UUID id;
 
   @NotNull
@@ -83,7 +82,14 @@ public class FolioTenant implements HasId, VaultEntity {
 	@Transient
 	@Override
 	public String getKey(){
-		return "folioTenant/" + id.toString();
+
+		// If we have an id already, use it, else generate one
+		// (since it won't change after persist)
+		if (id != null) {
+			return "folioTenant/" + id.toString();
+		}
+
+		return "folioTenant/" + generateUUIDFromFolioTenant(this).toString();
 	}
 
   private static final String UUID5_PREFIX = "folio_tenant";

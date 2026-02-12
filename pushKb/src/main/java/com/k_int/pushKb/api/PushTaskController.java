@@ -6,13 +6,11 @@ import io.micronaut.context.annotation.Parameter;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
-import io.swagger.v3.oas.annotations.Hidden;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
 import com.k_int.pushKb.model.PushTask;
 
-import io.micronaut.http.MediaType;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -71,6 +69,8 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 	public Publisher<Long> delete(
 		@Parameter UUID id
 	) {
-		return pushableService.deleteById(PushTask.class, id);
+		return Mono.from(pushableService.findById(PushTask.class, id))
+			.switchIfEmpty(Mono.error(new IllegalStateException("PushTask not found with ID: " + id)))
+			.flatMap(pt -> Mono.from(pushableService.delete(PushTask.class, (PushTask) pt)));
 	}
 }

@@ -1,12 +1,18 @@
 # Developer information
 
 ## Cloning
-At the moment, this module relies on an as-yet unreleased module "taskscheduler". This is included as a git submodule, and so the options are _either_ to clone with submodules `git clone <this repo> --recurse-submodules` or after running `git clone` to also run `git submodule init` followed by `git submodule update`.
+
+At the moment, this module relies on an as-yet unreleased module "taskscheduler". This is included as a git submodule,
+and so the options are _either_ to clone with submodules `git clone <this repo> --recurse-submodules` or after running
+`git clone` to also run `git submodule init` followed by `git submodule update`.
 
 ## Bootstrapping
-As a temporary measure, Sources, Destinations and PushTasks must be bootstrapped into the module by way of `micronaut.config.files` (Or running with a custom profile yml)
+
+As a temporary measure, Sources, Destinations and PushTasks must be bootstrapped into the module by way of
+`micronaut.config.files` (Or running with a custom profile yml)
 
 The `.yml` file should take the form
+
 ```
 ### SOURCES ###
 ## GOKB ##
@@ -62,124 +68,160 @@ pushables:
 ```
 
 ## Running
-To run the module as a developer, first navigate to `/infrastructure` and run `docker compose up`. This will configure a testing DB with a postgres and a keycloak (WIP, kKC is not in use right now... to be worked on).
+
+To run the module as a developer, first navigate to `/infrastructure` and run `docker compose up`. This will configure a
+testing DB with a postgres and a keycloak (WIP, kKC is not in use right now... to be worked on).
 
 Postgres should start on port `6543` to avoid clashes with any local postgres instances for FOLIO or such.
 
 Then use `./gradlew run` to start the module.
 
 ### Vault
-The docker compose image includes a hashicorp vault. After a fresh docker compose up, the vault should be initialised running in developer mode (ie unsealed and ready-to-use).
 
-The vault by default should also be configured with a root access token, a KV(V1) secret engine and a user with a developer policy attached, which should mirror the config present in the application-development.yml
+The docker compose image includes a hashicorp vault. After a fresh docker compose up, the vault should be initialised
+running in developer mode (ie unsealed and ready-to-use).
 
-When running tests, micronaut automatically spins up containers required for tests through the test-resources plugin, these are configured within the application.yml under the hashicorp-vault property. Importantly, in order for micronaut to know that a vault container is required, either the vault.client.uri/token need to be injected into the YAML.
+The vault by default should also be configured with a root access token, a KV(V1) secret engine and a user with a
+developer policy attached, which should mirror the config present in the application-development.yml
+
+When running tests, micronaut automatically spins up containers required for tests through the test-resources plugin,
+these are configured within the application.yml under the hashicorp-vault property. Importantly, in order for micronaut
+to know that a vault container is required, either the vault.client.uri/token need to be injected into the YAML.
 
 ## Migrations
+
 Migrations in PushKB are handled by Flyway.
+
 ### Naming
-Migration files are usually named in the following way `V(migration_number)__name_for_migration_file` as per Flyway migration versioning, see https://documentation.red-gate.com/fd/migrations-184127470.html
+
+Migration files are usually named in the following way `V(migration_number)__name_for_migration_file` as per Flyway
+migration versioning, see https://documentation.red-gate.com/fd/migrations-184127470.html
 
 ### Strategy
-The aim is to keep migration files relatively minimal. Flyway will handle the running in increasing order, we should aim to keep migration files small so that they are easily parseable by a dev scanning through them, and easy to see what each file is doing. Also allows easier use of "undo" migrations should they become necessary.
+
+The aim is to keep migration files relatively minimal. Flyway will handle the running in increasing order, we should aim
+to keep migration files small so that they are easily parseable by a dev scanning through them, and easy to see what
+each file is doing. Also allows easier use of "undo" migrations should they become necessary.
 
 # Implementor Information
 
 ## Infrastructure
+
 - Resources
-  - A single instance of PushKB requires roughly 
-    - 150mb * (number of concurrent jobs) + 250mb to be safe
-    - 2 threads * (number of concurrentjobs) + 2 threads
-    - (Numbers subject to change, difficult to test atm)
+	- A single instance of PushKB requires roughly
+		- 150mb * (number of concurrent jobs) + 250mb to be safe
+		- 2 threads * (number of concurrentjobs) + 2 threads
+		- (Numbers subject to change, difficult to test atm)
 - Scaling
-  - A single pushKB can handle multiple pushes (not in Alpha 3)
-  - Multiple pushKBs can also be run to allow horizontal scaling (not in Alpha 3)
-  - NOTE - Alpha 3 version is NOT scalable vertically or horizontally
+	- A single pushKB can handle multiple pushes (not in Alpha 3)
+	- Multiple pushKBs can also be run to allow horizontal scaling (not in Alpha 3)
+	- NOTE - Alpha 3 version is NOT scalable vertically or horizontally
 - It also is currently ONLY compatible fully with Ramsons or beyond versions of mod-agreements.
-  - Q may work but with significant bugs/degraded performance
+	- Q may work but with significant bugs/degraded performance
 - mod-agreements instances will need env var `INGRESS_TYPE=PushKB` configured
-  - There should be a significantly lower strain placed on mod-agreements now it is not running the harvest.
-  - Locally it has been observed running 30 tenants and accepting pushes to 15 of those in just under 1.5GB RAM.
-  - With some investigation, it should be possible to cut the number of mod-agreements instances needed for large numbers of tenants DRAMATICALLY (without increasing RAM per instance) and save a considerable amount of resources.
-    - 200 tenants using mod-agreements ingest with 5 tenants per instance and 4GB per instance would use 160GB
-    - With PushKB one could deploy 20 instances running 10 pushes each and run 5 mod-agreements tenants each taking on 40 tenants, each using 4GB for a total of (1.75x20) + (4x5) = 55GB
-    - Numbers are very rough there, could do with more testing and accurate feedback
+	- There should be a significantly lower strain placed on mod-agreements now it is not running the harvest.
+	- Locally it has been observed running 30 tenants and accepting pushes to 15 of those in just under 1.5GB RAM.
+	- With some investigation, it should be possible to cut the number of mod-agreements instances needed for large
+		numbers of tenants DRAMATICALLY (without increasing RAM per instance) and save a considerable amount of resources.
+		- 200 tenants using mod-agreements ingest with 5 tenants per instance and 4GB per instance would use 160GB
+		- With PushKB one could deploy 20 instances running 10 pushes each and run 5 mod-agreements tenants each taking on
+			40 tenants, each using 4GB for a total of (1.75x20) + (4x5) = 55GB
+		- Numbers are very rough there, could do with more testing and accurate feedback
 - Keycloak
 	- PushKB assumes a Keycloak realm has been configured for it.
-  - It will then use `client-credentials` authentication to authenticate ANY user in that realm for non-public API calls
-  - Suggested realm PushKB with client pushKB, but these can be configured below
+	- It will then use `client-credentials` authentication to authenticate ANY user in that realm for non-public API calls
+	- Suggested realm PushKB with client pushKB, but these can be configured below
 - Vault
-  - PushKB assumes by default that a vault has been configured for it
-  - Then using the `vault` config will access the vault to both read and write passwords to the supplied secret engine using any supported auth method
-  - If the `VAULT_INSECURE_MODE` env var has been set to true, then PushKB can be run without a vault needing to be configured, in this case passwords will instead be stored within the database
+	- PushKB assumes by default that a vault has been configured for it
+	- Then using the `vault` config will access the vault to both read and write passwords to the supplied secret engine
+		using any supported auth method
+	- If the `VAULT_INSECURE_MODE` env var has been set to true, then PushKB can be run without a vault needing to be
+		configured, in this case passwords will instead be stored within the database
 
 ## Config
-In order to get data into PushKB there will eventually be a protected API (INFORMATION TO FOLLOW HERE) In early alpha versions however there instead must be a mounted `yml` file containing the GOKB(s), folio tenants etc as above, and pointed at with env var `MICRONAUT_CONFIG_FILES`.
+
+In order to get data into PushKB there will eventually be a protected API (INFORMATION TO FOLLOW HERE) In early alpha
+versions however there instead must be a mounted `yml` file containing the GOKB(s), folio tenants etc as above, and
+pointed at with env var `MICRONAUT_CONFIG_FILES`.
 
 ### Understanding the yml file
+
 The `yml` file listed above can be understood as follows.
 
 - Sources (For V1 this will only be gokbSources)
-  - `gokbs`
-  	- These are the GOKB servers themselves.
-    - They should have a `name` and a `url`
-    	- `url` MUST be the root url of the gokb, ie https://gokb.org NOT https://gokb.org/gokb/oai/index)
-    	- `name` given will be important below, it is the name stored in PushKBs DB for identification
-  - `gokbsources`
-  	- These define the "sources" which will be ingested from
-    - PushKB uses the scroll API, and so we treat TIPPs and Packages as separate source streams
-    - These comprise of a `name`, a `gokb` and a `type`
-    	- `name` is a unique name for this source, say "GOKB_PKG".
-  			- This will be used to link up sources and destinations below in the pushables section
-      	- Purely for organisational reasons
-    	- `gokb` must match the	`name` of a GOKB defined above
-    	- `type` must be either "PACKAGE" or "TIPP" (You will likely want one of each)
+	- `gokbs`
+		- These are the GOKB servers themselves.
+		- They should have a `name` and a `url`
+			- `url` MUST be the root url of the gokb, ie https://gokb.org NOT https://gokb.org/gokb/oai/index)
+			- `name` given will be important below, it is the name stored in PushKBs DB for identification
+	- `gokbsources`
+		- These define the "sources" which will be ingested from
+		- PushKB uses the scroll API, and so we treat TIPPs and Packages as separate source streams
+		- These comprise of a `name`, a `gokb` and a `type`
+			- `name` is a unique name for this source, say "GOKB_PKG".
+				- This will be used to link up sources and destinations below in the pushables section
+				- Purely for organisational reasons
+			- `gokb` must match the  `name` of a GOKB defined above
+			- `type` must be either "PACKAGE" or "TIPP" (You will likely want one of each)
 - Destinations (For V1 wthis will only be foliodestinations)
 	- `foliotenants`
 		- These define individual tenants for a folio system, ie each login which requires data to be pushed to it
-    - They comprise of a `name`, `authtype`, `tenant`, `baseurl`, `username` and `password`
-    	- `name` is the name for this tenant in the PushKB DB, will be important later
-    	- `authtype` must be either "OKAPI" or "NONE". For Eureka I believe authtype "OKAPI" should still suffice as logins are "backwards compatible"
-   		- `tenant` is the configured tenant name in FOLIO. For folio-snapshot this would be "diku"
-    	- `baseurl` is the access url for external API calls of this folio.
-    		- Eventually the structure may split out folio server and folio tenant
-      	- That will likely be after this method of bootstrapping is deprecated
-    	- `username` and `password` are the login credentials for this folio tenant
+	- They comprise of a `name`, `authtype`, `tenant`, `baseurl`, `username` and `password`
+		- `name` is the name for this tenant in the PushKB DB, will be important later
+		- `authtype` must be either "OKAPI" or "NONE". For Eureka I believe authtype "OKAPI" should still suffice as logins
+			are "backwards compatible"
+		- `tenant` is the configured tenant name in FOLIO. For folio-snapshot this would be "diku"
+		- `baseurl` is the access url for external API calls of this folio.
+			- Eventually the structure may split out folio server and folio tenant
+			- That will likely be after this method of bootstrapping is deprecated
+		- `username` and `password` are the login credentials for this folio tenant
 	- `foliodestinations`
-  	- These are the individual "push sites" for a tenant, you will need one for pushing PCIs and one for pushing Packages
-    - These comprise of a `name`, a `foliotenant` and a `destinationtype`
-    	- `name` is used for linking sources and destinations in the pushable section
-      - `foliotenant` must be the `name` of a `foliotetenant` defined in the previous section
-      - `destinationtype` must be "PACKAGE" or "PCI"
+		- These are the individual "push sites" for a tenant, you will need one for pushing PCIs and one for pushing
+			Packages
+	- These comprise of a `name`, a `foliotenant` and a `destinationtype`
+		- `name` is used for linking sources and destinations in the pushable section
+		- `foliotenant` must be the `name` of a `foliotetenant` defined in the previous section
+		- `destinationtype` must be "PACKAGE" or "PCI"
 - Pushables (PushTasks and TemporaryPushTasks, but the latter are not bootstrappable)
 	- `pushtasks`
 		- These are the link between a source and a destination, allowing pushKB to push the queue of records.
-    - Comprised of `transform`, `source` and `destination`
-			- `transform` is for defining the JSON schema used to transform source data into destination data
-    		- Uses "proteus", a CIIM team tool
-      	- As of Alpha 7, this string is irrelevant in bootstrapping, as the transforms are currently hardcoded.
-    	- `source` is a named source from the above section
-      	- Must align with `source.name`
-      - `destination` is a named destination from the above section
-				- Must align with `destination.name`
+	- Comprised of `transform`, `source` and `destination`
+		- `transform` is for defining the JSON schema used to transform source data into destination data
+		- Uses "proteus", a CIIM team tool
+		- As of Alpha 7, this string is irrelevant in bootstrapping, as the transforms are currently hardcoded.
+		- `source` is a named source from the above section
+			- Must align with `source.name`
+		- `destination` is a named destination from the above section
+			- Must align with `destination.name`
 - Vault
 	- `insecure` defines whether a vault integration should be used for tenant password storage
-  - `hashicorp` is the vault provider type, currently only hashicorp/vault is supported
-    - `url` is the base url through which vault can be accessed
-    - `secret-engine-path` defines the path to the secret engine configured within vault
-    - `authtype` is the authtype through which the vault can be accessed, currently token, userpass and kubernetes are supported
-    	- Depending on what authype has been selected, the credentials for that should also be supplied
-      - username and password for userpass, token for token and role, mount-path and service-account-token-path for kubernetes
+	- `hashicorp` is the vault provider type, currently only hashicorp/vault is supported
+		- `url` is the base url through which vault can be accessed
+		- `secret-engine-path` defines the path to the secret engine configured within vault
+		- `authtype` is the authtype through which the vault can be accessed, currently token, userpass and kubernetes are
+			supported
+			- Depending on what authype has been selected, the credentials for that should also be supplied
+			- username and password for userpass, token for token and role, mount-path and service-account-token-path for
+				kubernetes
 
 ## Vault Configuration
-After a vault has been configured to be used alongside PushKB, additional configurations should be made to ensure authentication and secret storage works correctly, this can either be done through the CLI or UI found at the vault address.
-- A secret engine of type KV version 1 should be created, which should be used for the storage of credentials. Further documentation: https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v1
-- A policy will need to be written that allows both create and read permissions to the previously created secret engine: Further documentation: https://developer.hashicorp.com/vault/docs/concepts/policies
-- An authentication method needs to be created (userpass or kubernetes) with which has the policy that was created. Further documentation: https://developer.hashicorp.com/vault/docs/auth
 
-- The details for the vault address, secret engine path and authentication credentials should then be supplied to pushKb either through the yml or env vars.
+After a vault has been configured to be used alongside PushKB, additional configurations should be made to ensure
+authentication and secret storage works correctly, this can either be done through the CLI or UI found at the vault
+address.
+
+- A secret engine of type KV version 1 should be created, which should be used for the storage of credentials. Further
+	documentation: https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v1
+- A policy will need to be written that allows both create and read permissions to the previously created secret engine:
+	Further documentation: https://developer.hashicorp.com/vault/docs/concepts/policies
+- An authentication method needs to be created (userpass or kubernetes) with which has the policy that was created.
+	Further documentation: https://developer.hashicorp.com/vault/docs/auth
+
+- The details for the vault address, secret engine path and authentication credentials should then be supplied to pushKb
+	either through the yml or env vars.
 
 ## Env Vars
+
 PushKB accepts multiple env vars
 
 | environment variable               | accepts                                                                                                                        | description                                                                                                                                                                         | default                                                                                                                             | notes                                                                                                                                                                                                                              |
@@ -189,12 +231,18 @@ PushKB accepts multiple env vars
 | TASKSCHEDULER_REACTIVE_CONCURRENCY | An integer                                                                                                                     | Configures the number of tasks the singular instance can carry out simultaneously                                                                                                   | 1                                                                                                                                   | <ul><li>As of newest SNAPSHOT image this is mandatory, defaulting not behaving as expected</li><li>Not available in Alpha 3<li>RAM and thread resources need to increase with this setting</li></ul>                               |                                                                                                               |
 | ACCESSIBLE_URL                     | URI String                                                                                                                     | This is to allow the pushes from pushKB to contain information about where to send http requests. May be required for now if externally accessible URL is behind a proxy etc.       | Return from [EmbeddedServer.getUrl()](https://docs.micronaut.io/4.1.4/api/io/micronaut/runtime/server/EmbeddedServer.html#getURL()) | <ul><li>Not available in Alpha 3</li><li>Not mandatory but needed for V1 package sync work</li></ul>                                                                                                                               |
 | OAUTH_CLIENT_SECRET                | A keycloak client secret                                                                                                       | This is the client secret for the Realm set up for PushKB                                                                                                                           | `secret`                                                                                                                            | For now PushKB needs a Keycloak realm to itself and a user in that realm. There are no roles etc for the time being. This will need to be set up in a prod system, but developers will get a dev one by running the infrastructure |
-| OUTH_CLIENT_ID                     | A keycloak client name                                                                                                         | This is a client _name_ for the Realm set up for PushKB                                                                                                                             | `pushKB`                                                                                                                            | For now PushKB needs a Keycloak realm to itself and a user in that realm. There are no roles etc for the time being. This will need to be set up in a prod system, but developers will get a dev one by running the infrastructure |
+| OAUTH_CLIENT_ID                    | A keycloak client name                                                                                                         | This is a client _name_ for the Realm set up for PushKB                                                                                                                             | `pushKB`                                                                                                                            | For now PushKB needs a Keycloak realm to itself and a user in that realm. There are no roles etc for the time being. This will need to be set up in a prod system, but developers will get a dev one by running the infrastructure |
 | OIDC_ISSUER_DOMAIN                 | The issuer domain for a keycloak instance                                                                                      | This is the base URL for a running keycloak system                                                                                                                                  | `http://localhost:8088`                                                                                                             | For now PushKB needs a Keycloak realm to itself and a user in that realm. There are no roles etc for the time being. This will need to be set up in a prod system, but developers will get a dev one by running the infrastructure |
 | KEYCLOAK_REALM                     | The name of a Keycloak Realm                                                                                                   | This is the name of a Realm set up for PushKB.                                                                                                                                      | `PushKB`                                                                                                                            | For now PushKB needs a Keycloak realm to itself and a user in that realm. There are no roles etc for the time being. This will need to be set up in a prod system, but developers will get a dev one by running the infrastructure |
 
 ## Docker images
+
 "Alpha 3" as referenced above can be found at `docker.libsdev.k-int.com/knowledgeintegration/pushkb:1.0-alpha.3`
 "SNAPSHOT" version is found at `docker.libsdev.k-int.com/knowledgeintegration/pushkb:next`
+
 ## Choosing Alpha
- For initial testing, Alpha 3 is preferred as it is known stable, the ability to get the module up and running and pointing at a Gokb/FOLIO is the first thing to test. From there Alpha 5 introduces scaling and initial API work, but the features are still under heavy construction. As of right this second Alpha 3 is the last tagged alpha released, but SNAPSHOT versions are releasing as expected. These will obviously be less stable than a tagged release.
+
+For initial testing, Alpha 3 is preferred as it is known stable, the ability to get the module up and running and
+pointing at a Gokb/FOLIO is the first thing to test. From there Alpha 5 introduces scaling and initial API work, but the
+features are still under heavy construction. As of right this second Alpha 3 is the last tagged alpha released, but
+SNAPSHOT versions are releasing as expected. These will obviously be less stable than a tagged release.

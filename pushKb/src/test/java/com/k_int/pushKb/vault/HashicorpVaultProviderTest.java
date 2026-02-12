@@ -2,7 +2,6 @@ package com.k_int.pushKb.vault;
 
 import com.k_int.pushKb.Application;
 
-import io.micronaut.context.annotation.Value;
 import io.micronaut.context.env.Environment;
 import io.micronaut.serde.ObjectMapper;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
@@ -13,7 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
-import java.util.UUID;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 
@@ -25,6 +24,8 @@ import static org.mockito.ArgumentMatchers.any;
 	Allow for handling if password isn't present
 	Check interaction with incorrect login credentials
  */
+// This doesn't use ServiceIntegrationTest interface because we need to FORCE a
+// hashicorp vault to test hashicorp vault
 @Slf4j
 @MicronautTest(application = Application.class, environments = Environment.TEST, startApplication = false,transactional = false, rollback = true)
 public class HashicorpVaultProviderTest {
@@ -32,29 +33,81 @@ public class HashicorpVaultProviderTest {
 	@Inject
 	ObjectMapper objectmapper;
 
-	@Value("${vault.hashicorp.url:}")
-	String baseUrl;
-	@Value("${vault.hashicorp.authtype:}")
-	String authType;
-	@Value("${vault.hashicorp.secret-engine-path:}")
-	String secretEnginePath;
-	@Value("${vault.hashicorp.token:}")
-	String token;
+	@Inject
+	VaultConfig vaultConfig;
 
-private	HashicorpVaultProvider hashicorpVaultProvider;
+	private	HashicorpVaultProvider hashicorpVaultProvider;
 
 	@BeforeEach
 	void setup()  {
-		hashicorpVaultProvider = new HashicorpVaultProvider(objectmapper,
-			baseUrl,
-			authType,
-			secretEnginePath,
-			token,
-			"",
-			"",
-			"",
-			"",
-			""
+
+		// Cheat a HashicorpVaultConfig
+		VaultConfig theConfig = new VaultConfig() {
+			@Override
+			public boolean getInsecure() {
+				return false;
+			}
+
+			@Override
+			public HashicorpConfig getHashicorpConfig() {
+
+				return new HashicorpConfig() {
+					@Override
+					public String getUrl() {
+						return vaultConfig.getHashicorpConfig().getUrl();
+					}
+
+					@Override
+					public String getAuthtype() {
+						return vaultConfig.getHashicorpConfig().getAuthtype();
+					}
+
+					@Override
+					public String getSecretEnginePath() {
+						return vaultConfig.getHashicorpConfig().getSecretEnginePath();
+					}
+
+					@Override
+					public Optional<String> getToken() {
+						return vaultConfig.getHashicorpConfig().getToken();
+					}
+
+					@Override
+					public Optional<String> getUsername() {
+						return Optional.empty();
+					}
+
+					@Override
+					public Optional<String> getPassword() {
+						return Optional.empty();
+					}
+
+					@Override
+					public HashicorpConfig.KubernetesConfig getKubernetesConfig() {
+						return new HashicorpConfig.KubernetesConfig() {
+							@Override
+							public Optional<String> getRole() {
+								return Optional.empty();
+							}
+
+							@Override
+							public Optional<String> getMountPath() {
+								return Optional.empty();
+							}
+
+							@Override
+							public Optional<String> getServiceAccountTokenPath() {
+								return Optional.empty();
+							}
+						};
+					}
+				};
+			}
+		};
+
+		hashicorpVaultProvider = new HashicorpVaultProvider(
+			objectmapper,
+			theConfig
 		);
 	}
 
