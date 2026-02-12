@@ -41,7 +41,7 @@ public class HashicorpVaultProviderTest {
 	@BeforeEach
 	void setup()  {
 
-		// Cheat a HashicorpVaultConfig
+		// Cheat a VaultConfig
 		VaultConfig theConfig = new VaultConfig() {
 			@Override
 			public boolean getInsecure() {

@@ -9,6 +9,11 @@ import java.util.Map;
 public interface VaultProvider {
 
 	/**
+	 * Ensure that the VaultProvider is capable of surfacing the config that led to its creation.
+	 * @return vaultConfig
+	 */
+	VaultConfig getVaultConfig();
+	/**
 	 * Reads a secret at the given path.
 	 *
 	 * @param path path within the vault (e.g. "secret/data/my-service")

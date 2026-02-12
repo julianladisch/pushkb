@@ -1,7 +1,7 @@
 package com.k_int.pushKb.test;
 
 import com.k_int.pushKb.vault.VaultProvider;
-import io.micronaut.context.annotation.Property;
+import io.micronaut.json.JsonMapper;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.annotation.Client;
@@ -26,13 +26,13 @@ public abstract class ServiceIntegrationTest {
 	@Client("/")
 	protected HttpClient httpClient;
 
+	@Inject
+	protected JsonMapper jsonMapper;
+
 	@BeforeEach
 	void setupAndVerifyEnvironment() {
-		// 1. Ensure DI worked
 		assertNotNull(vaultProvider, "VaultProvider not injected.");
 
-		// 2. Ensure the real Vault Testcontainer is actually ready
-		// This stops the test immediately if the container failed to start/unseal
 		assertTrue(vaultProvider.getVaultHealth(),
 				"Vault Testcontainer is unhealthy. Check Docker or Test Resources logs.");
 	}

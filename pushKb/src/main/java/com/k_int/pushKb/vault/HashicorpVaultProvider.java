@@ -39,6 +39,8 @@ public class HashicorpVaultProvider implements VaultProvider {
 	private final Path kubernetesTokenPath;
 	private final AtomicReference<String> cachedToken = new AtomicReference<>();
 
+	private final VaultConfig vaultConfig;
+
 	public HashicorpVaultProvider(
 		ObjectMapper objectMapper,
 		VaultConfig vaultConfig
@@ -64,10 +66,17 @@ public class HashicorpVaultProvider implements VaultProvider {
 		this.httpClient = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
 			.build();
+
+		this.vaultConfig = vaultConfig;
 	}
 
 	@Override
-	public boolean getVaultHealth(){
+	public VaultConfig getVaultConfig() {
+		return vaultConfig;
+	}
+
+	@Override
+	public boolean getVaultHealth() throws VaultClientException {
 		String path = "sys/health";
 		String uri = baseUrl + "/v1/" + path;
 		log.info("Checking vault health : {}/v1/{}", baseUrl, path);
@@ -118,10 +127,15 @@ public class HashicorpVaultProvider implements VaultProvider {
 				throw new VaultClientException(HttpStatus.NOT_FOUND, "Vault path not found: " + path);
 			}
 			return false;
-		} catch (IOException | InterruptedException e) {
-			Thread.currentThread().interrupt();
+		} catch (IOException e) {
 			log.error("Vault request failed for {}/v1/{}", baseUrl, path, e);
-			throw new VaultClientException(HttpStatus.INTERNAL_SERVER_ERROR, "Vault request failed", e);
+			throw new VaultClientException(HttpStatus.INTERNAL_SERVER_ERROR, "Vault IO Failure", e);
+		} catch (InterruptedException e) {
+				log.error("Vault request interrupted for {}/v1/{}", baseUrl, path, e);
+			throw new VaultClientException(HttpStatus.INTERNAL_SERVER_ERROR, "Vault request interrupted", e);
+		} catch (Exception e) {
+			log.error("Unexpected Vault error in request for {}/v1/{}", baseUrl, path, e);
+			throw new VaultClientException(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected Vault failure", e);
 		}
 	}
 
