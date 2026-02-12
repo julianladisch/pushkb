@@ -7,6 +7,9 @@ micronaut:
     # Use @Property(name="micronaut.security.enabled", value = "true")
     # to override
     enabled: false
+  serde:
+    jackson:
+      pretty-print: true # Pretty print JSON for tests
 # Micronaut Test Resources will see 'db-type' and start a Postgres container.
 datasources:
   default:
@@ -47,46 +50,7 @@ vault:
     username: username
     password: password
 
-# Bootstrapping removed for testing.
-#sources:
-#  gokbs:
-#    -
-#      name: GOKB
-#      url: https://gokbt.gbv.de
-#  gokbsources:
-#    -
-#      name: GOKB_PKG
-#      gokb: GOKB
-#      type: PACKAGE
-#    -
-#      name: GOKB_TIPP
-#      gokb: GOKB
-#      type: TIPP
+endpoints:
+  health:
+    details-visible: ANONYMOUS # This is ONLY true in test, details about vault are NOT visible in prod for an unauthenticated user
 
-#destinations:
-#  foliotenants:
-#    -
-#      name: DOCKER_COMPOSE_LOCAL_TENANT
-#      authtype: NONE
-#      tenant: test1
-#      baseurl: http://localhost:8080
-#  foliodestinations:
-#    -
-#      name: FOLIO_PACKAGE
-#      foliotenant: DOCKER_COMPOSE_LOCAL_TENANT
-#      destinationtype: PACKAGE
-#    -
-#      name: FOLIO_PCI
-#      foliotenant: DOCKER_COMPOSE_LOCAL_TENANT
-#      destinationtype: PCI
-
-#pushables:
-#  pushtasks:
-#    -
-#      transform: example_transform
-#      source: GOKB_PKG
-#      destination: FOLIO_PACKAGE
-#    -
-#      transform: example_transform
-#      source: GOKB_TIPP
-#      destination: FOLIO_PCI

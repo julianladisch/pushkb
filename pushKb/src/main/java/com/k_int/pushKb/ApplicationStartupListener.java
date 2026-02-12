@@ -8,8 +8,9 @@ import com.k_int.pushKb.transform.model.ProteusSpecSource;
 import com.k_int.pushKb.transform.model.ProteusTransform;
 import com.k_int.pushKb.transform.model.Transform;
 import com.k_int.pushKb.transform.services.TransformService;
+import com.k_int.pushKb.vault.VaultClientException;
+import com.k_int.pushKb.vault.VaultProvider;
 import io.micronaut.json.tree.JsonNode;
-// import io.micronaut.serde.ObjectMapper;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.model.Destination;
@@ -26,8 +27,6 @@ import com.k_int.pushKb.bootstrap.ConfigBootstrapDestinations.ConfigBootstrapFol
 
 import com.k_int.pushKb.model.Source;
 import com.k_int.pushKb.services.SourceService;
-/*import com.k_int.taskscheduler.model.DutyCycleTask;
-import com.k_int.taskscheduler.services.ReactiveDutyCycleTaskRunner;*/
 import com.k_int.pushKb.interactions.gokb.model.Gokb;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.interactions.gokb.model.GokbSourceType;
@@ -63,6 +62,7 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 	private final ConfigBootstrapSources configBootstrapSources;
 	private final ConfigBootstrapDestinations configBootstrapDestinations;
 	private final ConfigBootstrapPushables configBootstrapPushables;
+	private final VaultProvider vaultProvider;
 
 
 	// We're bootstrapping these two in for now... I'm not thrilled about this pattern but it will do?
@@ -85,7 +85,8 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		ConfigBootstrapSources configBootstrapSources,
 		ConfigBootstrapDestinations configBootstrapDestinations,
 		ConfigBootstrapPushables configBootstrapPushables,
-		FileLoaderService fileLoaderService
+		FileLoaderService fileLoaderService,
+		VaultProvider vaultProvider
  	) {
 		// this.reactiveDutyCycleTaskRunner = reactiveDutyCycleTaskRunner;
 		// this.objectMapper = objectMapper;
@@ -98,10 +99,21 @@ public class ApplicationStartupListener implements ApplicationEventListener<Star
 		this.configBootstrapDestinations = configBootstrapDestinations;
 		this.configBootstrapPushables = configBootstrapPushables;
 		this.fileLoaderService = fileLoaderService;
+		this.vaultProvider = vaultProvider;
 	}
 
 	@Override
 	public void onApplicationEvent(StartupEvent event) {
+		try {
+			boolean vaultStatus = vaultProvider.getVaultHealth();
+
+			if (!vaultStatus && !vaultProvider.getVaultConfig().getInsecure()) {
+				log.error("Vault is required to be configured when PushKB is in secure mode");
+			}
+		} catch (VaultClientException vce) {
+			log.error("Error connecting to vault", vce);
+		}
+
 		// FIXME consider whether we really want bootstrapping at all
 		log.info("Bootstrapping PushKB - onApplicationEvent");
 			Flux.from(bootstrapSources())
