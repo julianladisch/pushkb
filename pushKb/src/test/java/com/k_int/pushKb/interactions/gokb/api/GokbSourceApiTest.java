@@ -46,7 +46,7 @@ class GokbSourceApiTest extends ServiceIntegrationTest {
 			GokbSource.class
 		);
 
-		assertEquals(HttpStatus.OK, postResponse.getStatus());
+		assertEquals(HttpStatus.CREATED, postResponse.getStatus());
 		GokbSource saved = postResponse.body();
 		assertNotNull(saved);
 		assertNotNull(saved.getId(), "Source ID should be generated");
@@ -69,14 +69,14 @@ class GokbSourceApiTest extends ServiceIntegrationTest {
 
 		// This triggers SourceService::delete -> reactiveDutyCycleTaskRunner.removeTask
 		log.info("Testing DELETE /sources/gokbsource/{}", saved.getId());
-		HttpResponse<Long> deleteResponse = httpClient.toBlocking().exchange(
+		HttpResponse<Void> deleteResponse = httpClient.toBlocking().exchange(
 			HttpRequest.DELETE("/sources/gokbsource/" + saved.getId()),
-			Long.class
+			Void.class
 		);
 
-		assertEquals(HttpStatus.OK, deleteResponse.getStatus());
+		assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
 		// body() on a Long return usually yields an Optional<Long>
-		assertEquals(1L, deleteResponse.body(), "Should confirm 1 row deleted");
+		assertNull(deleteResponse.body(), "delete body should be empty");
 
 		// VERIFY SIDE EFFECT: DutyCycleTask is gone
 		Boolean taskStillExists = Mono.from(dutyCycleTaskRepository.existsByReference(saved.getId().toString()))

@@ -3,14 +3,10 @@ package com.k_int.pushKb.api;
 import com.k_int.taskscheduler.model.DutyCycleTask;
 import com.k_int.taskscheduler.services.ReactiveDutyCycleTaskRunner;
 import com.k_int.taskscheduler.storage.ReactiveDutyCycleTaskRepository;
-import io.micronaut.http.MediaType;
+import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.Post;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -46,7 +42,8 @@ public class DutyCycleTaskController implements DutyCycleTaskApi {
 	 * is actually running for that DutyCycleTask (DCT) on any node. This can result
 	 * in duplicate execution or data corruption.
 	 */
-	public Publisher<Map<String,String>> resetTask(@NonNull UUID id) {
+	@SingleResult
+	public Mono<Map<String,String>> resetTask(@NonNull UUID id) {
 		log.info("Request to manually reset DutyCycleTask: {}", id);
 
 		return Mono.from(runner.manualReset(id)).thenReturn(Map.of(

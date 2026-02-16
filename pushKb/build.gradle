@@ -129,9 +129,6 @@ dependencies {
 	testAnnotationProcessor("io.micronaut.data:micronaut-data-processor")
 
 	testImplementation("io.micronaut.test:micronaut-test-junit5")
-//	testImplementation('org.mock-server:mockserver-junit-jupiter')
-	testImplementation('org.hamcrest:hamcrest')
-	testImplementation('org.awaitility:awaitility')
 	testImplementation("org.junit.jupiter:junit-jupiter-params")
 	testImplementation('io.projectreactor:reactor-test')
 	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
@@ -139,16 +136,8 @@ dependencies {
 	testImplementation("org.mockito:mockito-core")
 
 	// Don't need ES (yet?)
-	// I don't believe we should actually need explicit test containers dependencies, since it should be handled by the micronaut.test-resources plugin
-	/* testImplementation("org.testcontainers:elasticsearch")
-	testImplementation("io.micronaut.testresources:micronaut-test-resources-elasticsearch") */
 	implementation 'com.k_int:taskscheduler-reactive'
 }
-
-//rewrite {
-//	activeRecipe("org.openrewrite.java.micronaut.Micronaut3to4Migration")
-//}
-
 
 application {
 	mainClass.set("com.k_int.pushKb.Application")

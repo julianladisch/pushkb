@@ -48,12 +48,13 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> impleme
 	// We need to use sourceService here to make sure that side effects happen as expected
 	// Such as DutyCycleTask removal etc.
 	@Override
-	public Mono<Long> delete(
+	public Mono<Void> delete(
 		@Parameter UUID id
 	) {
 		return Mono.from(sourceService.findById(GokbSource.class, id))
 			.switchIfEmpty(Mono.error(new IllegalStateException("PushTask not found with ID: " + id)))
-			.flatMap(gkbs -> Mono.from(sourceService.delete(GokbSource.class, (GokbSource) gkbs)));
+			.flatMap(gkbs -> Mono.from(sourceService.delete(GokbSource.class, (GokbSource) gkbs)))
+			.then();
 	}
 
 	// Reset pointer endpoint

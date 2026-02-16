@@ -46,7 +46,7 @@ class FolioDestinationApiTest extends ServiceIntegrationTest {
 			FolioDestination.class
 		);
 
-		assertEquals(HttpStatus.OK, postResponse.getStatus());
+		assertEquals(HttpStatus.CREATED, postResponse.getStatus());
 		FolioDestination saved = postResponse.body();
 		assertNotNull(saved);
 		assertNotNull(saved.getId(), "Destination ID should be generated");
@@ -62,13 +62,13 @@ class FolioDestinationApiTest extends ServiceIntegrationTest {
 
 		// 3. DELETE - Cleanup
 		log.info("Testing DELETE /destinations/foliodestination/{}", saved.getId());
-		HttpResponse<Long> deleteResponse = httpClient.toBlocking().exchange(
+		HttpResponse<Void> deleteResponse = httpClient.toBlocking().exchange(
 			HttpRequest.DELETE("/destinations/foliodestination/" + saved.getId()),
-			Long.class
+			Void.class
 		);
 
-		assertEquals(HttpStatus.OK, deleteResponse.getStatus());
-		assertEquals(1L, deleteResponse.body());
+		assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+		assertNull(deleteResponse.body());
 	}
 
 	@Test

@@ -10,6 +10,8 @@ import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
@@ -32,7 +34,7 @@ class FolioTenantApiTest extends ServiceIntegrationTest {
 		);
 
 		// Assertions on the API Response
-		assertEquals(HttpStatus.OK, response.getStatus());
+		assertEquals(HttpStatus.CREATED, response.getStatus());
 		FolioTenant saved = response.body();
 
 		//log.debug("SAVED: {}", saved);
@@ -78,12 +80,12 @@ class FolioTenantApiTest extends ServiceIntegrationTest {
 		HttpResponse<FolioTenant> response = createInitialTenant("delete-test", "to-be-deleted");
 		FolioTenant tenant = response.body();
 
-		HttpResponse<Long> deleteResponse = httpClient.toBlocking().exchange(
+		HttpResponse<Void> deleteResponse = httpClient.toBlocking().exchange(
 			HttpRequest.DELETE("/destinations/foliodestination/tenant/" + tenant.getId()),
-			Long.class
+			Void.class
 		);
-		assertEquals(HttpStatus.OK, deleteResponse.getStatus());
-		assertEquals(1L, deleteResponse.getBody().orElse(null));
+		assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+		assertEquals(Optional.empty(), deleteResponse.getBody());
 
 		VaultSecret secret = vaultProvider.readSecret(tenant.getKey());
 		assertTrue(secret.data().isEmpty(), "Vault secret should be removed after tenant deletion");

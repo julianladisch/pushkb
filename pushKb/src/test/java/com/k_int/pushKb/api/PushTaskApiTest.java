@@ -1,7 +1,6 @@
 package com.k_int.pushKb.api;
 
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
-import com.k_int.pushKb.interactions.folio.model.FolioTenant;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.test.ServiceIntegrationTest;
@@ -40,7 +39,7 @@ class PushTaskApiTest extends ServiceIntegrationTest {
 			PushTask.class
 		);
 
-		assertEquals(HttpStatus.OK, postResponse.getStatus());
+		assertEquals(HttpStatus.CREATED, postResponse.getStatus());
 		PushTask saved = postResponse.body();
 		assertNotNull(saved);
 		assertNotNull(saved.getId(), "Deterministic UUID5 should be generated");
@@ -59,11 +58,11 @@ class PushTaskApiTest extends ServiceIntegrationTest {
 		assertEquals(HttpStatus.OK, resetResponse.getStatus());
 		assertEquals(Instant.EPOCH, resetResponse.body().getLastSentPointer());
 
-		HttpResponse<Long> deleteResponse = httpClient.toBlocking().exchange(
+		HttpResponse<Void> deleteResponse = httpClient.toBlocking().exchange(
 			HttpRequest.DELETE("/pushtasks/" + saved.getId()),
-			Long.class
+			Void.class
 		);
-		assertEquals(HttpStatus.OK, deleteResponse.getStatus());
-		assertEquals(1L, deleteResponse.body());
+		assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatus());
+		assertNull(deleteResponse.body());
 	}
 }
