@@ -1,6 +1,6 @@
 package com.k_int.pushKb.api;
 
-import com.k_int.pushKb.model.DestinationImplementersDTO;
+import com.k_int.pushKb.model.responses.DestinationImplementersDTO;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import reactor.core.publisher.Flux;
@@ -10,8 +10,6 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Map;
 
 import com.k_int.pushKb.services.DestinationService;
 

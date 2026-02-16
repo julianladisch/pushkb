@@ -1,6 +1,6 @@
 package com.k_int.pushKb.api;
 
-import com.k_int.pushKb.model.DestinationImplementersDTO;
+import com.k_int.pushKb.model.responses.DestinationImplementersDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -1,18 +1,14 @@
 package com.k_int.pushKb.api;
 
+import com.k_int.pushKb.model.responses.TaskResetDTO;
 import com.k_int.taskscheduler.model.DutyCycleTask;
-import io.micronaut.http.MediaType;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.Post;
+import io.micronaut.core.async.annotation.SingleResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.NonNull;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-import java.util.Map;
 import java.util.UUID;
 
 @Tag(name="DutyCycleTasks", description="Endpoints for managing DutyCycleTasks in the Taskscheduler. " +
@@ -27,7 +23,6 @@ public interface DutyCycleTaskApi {
 			"These objects represent the scheduled tasks that are run to perform operations such as pulling from Sources " +
 			"and pushing to Destinations based on the configuration defined in PushTasks."
 	)
-	@Get(produces = MediaType.APPLICATION_JSON)
 	Publisher<DutyCycleTask> getDutyCycleTasks();
 
 	/**
@@ -36,7 +31,6 @@ public interface DutyCycleTaskApi {
 	 * is actually running for that DutyCycleTask (DCT) on any node. This can result
 	 * in duplicate execution or data corruption.
 	 */
-	@Post(value = "/{id}/reset", produces = MediaType.APPLICATION_JSON)
 	@Operation(
 		summary = "Manually reset a task to IDLE",
 		description = "DANGER: Resets a 'stuck' task to IDLE and clears local runner references. " +
@@ -45,5 +39,6 @@ public interface DutyCycleTaskApi {
 	)
 	@ApiResponse(responseCode = "200", description = "Task was successfully reset.")
 	@ApiResponse(responseCode = "404", description = "Task ID not found.")
-	Publisher<Map<String,String>> resetTask(@NonNull UUID id);
+	@SingleResult
+	Publisher<TaskResetDTO> resetTask(@NonNull UUID id);
 }

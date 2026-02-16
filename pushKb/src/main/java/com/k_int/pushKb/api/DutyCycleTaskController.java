@@ -1,10 +1,13 @@
 package com.k_int.pushKb.api;
 
+import com.k_int.pushKb.model.responses.TaskResetDTO;
 import com.k_int.taskscheduler.model.DutyCycleTask;
 import com.k_int.taskscheduler.services.ReactiveDutyCycleTaskRunner;
 import com.k_int.taskscheduler.storage.ReactiveDutyCycleTaskRepository;
-import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Post;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.NonNull;
@@ -14,8 +17,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
-import java.util.Map;
 
+/**
+ * REST Controller for managing {@link DutyCycleTask} instances.
+ * <p>
+ * Provides endpoints for listing tasks and performing administrative actions
+ * like manually resetting task statuses within the scheduler.
+ */
 // TODO this perhaps ought to be an offering from the taskscheduler library itself
 @Controller("/dutycycletasks")
 @Slf4j
@@ -24,6 +32,12 @@ public class DutyCycleTaskController implements DutyCycleTaskApi {
 	private final ReactiveDutyCycleTaskRepository dutyCycleTaskRepository;
 	private final ReactiveDutyCycleTaskRunner runner;
 
+	/**
+	 * Constructs the controller with necessary scheduler services.
+	 *
+	 * @param dutyCycleTaskRepository The repository for DCT persistence.
+	 * @param runner The runner service responsible for task lifecycle and execution.
+	 */
 	public DutyCycleTaskController(
 		ReactiveDutyCycleTaskRepository dutyCycleTaskRepository,
 		ReactiveDutyCycleTaskRunner runner
@@ -32,24 +46,39 @@ public class DutyCycleTaskController implements DutyCycleTaskApi {
 		this.runner = runner;
 	}
 
+	/**
+	 * Retrieves all Duty Cycle Tasks currently registered in the system.
+	 *
+	 * @return A {@link Publisher} emitting a stream of {@link DutyCycleTask} objects.
+	 */
+	@Get(produces = MediaType.APPLICATION_JSON)
 	public Publisher<DutyCycleTask> getDutyCycleTasks() {
 		return Flux.from(dutyCycleTaskRepository.findAll());
 	}
 
 	/**
 	 * Resets a task status to IDLE.
-	 * WARNING: Manually resetting a task status can cause significant issues if a task
+	 * <p>
+	 * <b>WARNING:</b> Manually resetting a task status can cause significant issues if a task
 	 * is actually running for that DutyCycleTask (DCT) on any node. This can result
-	 * in duplicate execution or data corruption.
+	 * in duplicate execution, race conditions, or data corruption. Use this only
+	 * to recover "stuck" tasks that are confirmed to be inactive.
+	 *
+	 * @param id The UUID of the Duty Cycle Task to reset.
+	 * @return A {@link Mono} emitting a {@link TaskResetDTO} confirming the reset.
 	 */
-	@SingleResult
-	public Mono<Map<String,String>> resetTask(@NonNull UUID id) {
+	@Post(value = "/{id}/reset", produces = MediaType.APPLICATION_JSON)
+	public Mono<TaskResetDTO> resetTask(@NonNull UUID id) {
 		log.info("Request to manually reset DutyCycleTask: {}", id);
 
-		return Mono.from(runner.manualReset(id)).thenReturn(Map.of(
-			"status", "success",
-			"id", id.toString(),
-			"message", "Task status has been reset to IDLE"
-		));
+		return Mono.from(runner.manualReset(id))
+			.thenReturn(
+				TaskResetDTO
+					.builder()
+					.status("success")
+					.id(id)
+					.message("Task status has been reset to IDLE")
+					.build()
+				);
 	}
 }

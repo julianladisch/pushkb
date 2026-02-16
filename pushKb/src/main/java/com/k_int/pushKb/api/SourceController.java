@@ -1,5 +1,6 @@
 package com.k_int.pushKb.api;
 
+import com.k_int.pushKb.model.responses.SourceImplementersDTO;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import reactor.core.publisher.Flux;
@@ -10,8 +11,6 @@ import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
-
 import com.k_int.pushKb.services.SourceService;
 
 @Controller("/sources")
@@ -19,11 +18,11 @@ import com.k_int.pushKb.services.SourceService;
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class SourceController implements SourceApi {
   @Get(uri = "/implementers", produces = MediaType.APPLICATION_JSON)
-  public Mono<Map<String, Object>> getImplementors() {
+  public Mono<SourceImplementersDTO> getImplementers() {
     return Flux.fromIterable(SourceService.sourceImplementers)
       .map(Class::toString)
       .collectList()
-      .map(implementingArray -> Map.of("implementers", implementingArray));
+      .map(implementingArray -> SourceImplementersDTO.builder().implementers(implementingArray).build());
   }
 
   // Sources themselves will be managed via "interactions/<interaction>/api/<interaction>Controller"

@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 
 import io.micronaut.context.annotation.Parameter;
@@ -74,6 +73,7 @@ public interface CrudController<T extends HasId> {
 		summary = "Count entries",
 		description = "Returns the total number of records available for this resource type."
 	)
+	@ApiResponse(responseCode = "200", description = "The number of records in the database as a Long", content = @Content(schema = @Schema(implementation = Long.class)))
 	@SingleResult
 	Publisher<Long> count();
 }
