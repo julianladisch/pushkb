@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 @Controller("/destinations/foliodestination")
@@ -26,7 +25,7 @@ public class FolioDestinationController extends CrudControllerImpl<FolioDestinat
 	// We need to use ensureSource here to make sure that side effects happen as expected
 	// Such as DutyCycleTask creation etc.
 	@Override
-	public Publisher<FolioDestination> post(
+	public Mono<FolioDestination> post(
 		@Valid @Body FolioDestination dest
 	) {
 		return Mono.from(databaseService.ensureDestination(dest));

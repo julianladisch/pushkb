@@ -1,17 +1,21 @@
 package com.k_int.pushKb.api;
 
+import com.k_int.pushKb.model.responses.DestinationImplementersDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import reactor.core.publisher.Mono;
-
-import java.util.Map;
 
 @Tag(name="Destinations", description="\"Destinations\" represent the push side of PushKB, places to which data from \"Sources\" can be sent.")
 public interface DestinationApi {
 	@Operation(
 		method="GET",
-		summary = "Get Destination Implementors",
+		summary = "Get Destination Implementers",
 		description = "Returns a list of all classes that implement the Destination interface."
 	)
-	Mono<Map<String, Object>> getImplementors();
+	@ApiResponse(
+		responseCode = "200",
+		description = "Successfully returned all classes implementing the Destination interface"
+	)
+	Mono<DestinationImplementersDTO> getImplementers();
 }

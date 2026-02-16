@@ -3,9 +3,13 @@ package com.k_int.pushKb.api;
 import com.k_int.pushKb.services.PushTaskDatabaseService;
 import com.k_int.pushKb.services.PushableService;
 import io.micronaut.context.annotation.Parameter;
+import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
@@ -34,7 +38,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
   }
 
   @Override
-  public Publisher<PushTask> post(
+  public Mono<PushTask> post(
 		@Valid @Body PushTask pt
 	) {
 		pt.setId(databaseService.generateUUIDFromObject(pt));
@@ -43,15 +47,20 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 	}
 
 	@Override
-	public Publisher<PushTask> put(
+	@Hidden
+	public Mono<PushTask> put(
 		@Parameter UUID id,
 		@Valid @Body PushTask pt
 	) {
-		return Mono.error(new RuntimeException("PUT is not supported on PushTasks - POST/DELETE are supported, as well as resetting the pointers"));
+		return Mono.error(new HttpStatusException(
+			HttpStatus.METHOD_NOT_ALLOWED,
+			"PUT is not supported on PushTasks - POST/DELETE are supported, as well as resetting the pointers"
+		));
 	}
 
+	@SingleResult
   // Reset pointer endpoint
-	public Publisher<PushTask> resetPointers(
+	public Mono<PushTask> resetPointers(
 		@Parameter UUID id
 	) {
 
@@ -60,17 +69,24 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 				pt.resetPointer();
 				return Mono.from(databaseService.update(pt));
 			})
-			.switchIfEmpty(Mono.error(new RuntimeException("No PushTask found with id: " + id)));
+			.switchIfEmpty(Mono.error(new HttpStatusException(
+				HttpStatus.NOT_FOUND,
+				"No PushTask found with id: " + id
+			)));
 	}
 
 	// We need to use pushableService here to make sure that side effects happen as expected
 	// Such as DutyCycleTask removal etc.
 	@Override
-	public Publisher<Long> delete(
+	public Mono<Void> delete(
 		@Parameter UUID id
 	) {
 		return Mono.from(pushableService.findById(PushTask.class, id))
-			.switchIfEmpty(Mono.error(new IllegalStateException("PushTask not found with ID: " + id)))
-			.flatMap(pt -> Mono.from(pushableService.delete(PushTask.class, (PushTask) pt)));
+			.switchIfEmpty(Mono.error(new HttpStatusException(
+				HttpStatus.NOT_FOUND,
+				"PushTask not found with ID: " + id
+			)))
+			.flatMap(pt -> Mono.from(pushableService.delete(PushTask.class, (PushTask) pt)))
+			.then();
 	}
 }

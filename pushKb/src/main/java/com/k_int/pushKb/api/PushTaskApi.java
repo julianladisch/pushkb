@@ -2,13 +2,12 @@ package com.k_int.pushKb.api;
 
 import com.k_int.pushKb.model.PushTask;
 import io.micronaut.context.annotation.Parameter;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
-import io.micronaut.http.annotation.Body;
-import io.micronaut.http.annotation.Delete;
-import io.micronaut.http.annotation.Post;
-import io.micronaut.http.annotation.Put;
+import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.reactivestreams.Publisher;
@@ -28,6 +27,7 @@ public interface PushTaskApi {
 			"is set up to manage scheduling of the tasks"
 	)
 	@Post(produces = MediaType.APPLICATION_JSON)
+	@Status(HttpStatus.CREATED)
 	Publisher<PushTask> post(
 		@Valid @Body PushTask pt
 	);
@@ -39,7 +39,10 @@ public interface PushTaskApi {
 			"DutyCycleTask that was managing the scheduling of pushes for this PushTask."
 	)
 	@Delete(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
-	public Publisher<Long> delete(
+	@Status(HttpStatus.NO_CONTENT)
+	@ApiResponse(responseCode = "204")
+	@ApiResponse(responseCode = "404", description = "Cold not find a PushTask with that id.")
+	public Publisher<Void> delete(
 		@Parameter UUID id
 	);
 

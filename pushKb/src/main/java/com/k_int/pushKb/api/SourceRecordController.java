@@ -3,17 +3,15 @@ package com.k_int.pushKb.api;
 import java.util.UUID;
 
 import com.k_int.pushKb.services.SourceRecordDatabaseService;
-import io.micronaut.http.annotation.Delete;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
-import org.reactivestreams.Publisher;
 
-import io.micronaut.http.annotation.Controller;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.MediaType;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.QueryValue;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Controller("/sourcerecords")
 @Slf4j
@@ -28,15 +26,18 @@ public class SourceRecordController implements SourceRecordApi {
   }
 
   // Count total records
-  public Publisher<Long> count(
+	@Get(uri = "/count", produces = MediaType.APPLICATION_JSON)
+	public Mono<Long> count(
     @Nullable @QueryValue UUID sourceId,
     @Nullable @QueryValue String filterContext
   ) {
-		return sourceRecordDatabaseService.countFeed(sourceId, filterContext);
+		return Mono.from(sourceRecordDatabaseService.countFeed(sourceId, filterContext));
   }
 
-	public Publisher<Long> clearRecords() {
-		return sourceRecordDatabaseService.deleteAll();
+	@Delete(uri = "/clearRecords", produces = MediaType.APPLICATION_JSON)
+	@Status(HttpStatus.NO_CONTENT)
+	public Mono<Void> clearRecords() {
+		return Mono.from(sourceRecordDatabaseService.deleteAll()).then();
 		// TODO should this reset the pointers as a side effect?
 	}
 }
