@@ -66,7 +66,7 @@ pushkb-test-job:
     # It handles returning package-by-package instruction coverage, as well as total instruction coverage.
     # The method, branch, line and class numbers can be found in the coverage report HTML
     - |
-      REPORT="build/reports/jacoco/test/jacocoTestReport.xml"
+      REPORT="pushKb/build/reports/jacoco/test/jacocoTestReport.xml"
       if [ -f "$REPORT" ]; then
         echo "--- Jacoco Coverage Breakdown ---"
 
