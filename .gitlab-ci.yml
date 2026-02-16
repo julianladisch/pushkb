@@ -17,6 +17,7 @@ stages:
   - test
   - build
   - deploy
+  - post-deploy
 
 default:
   services:
@@ -60,10 +61,86 @@ pushkb-test-job:
     - ki-onprem
   script:
     - ./gradlew test -i
+    # This bash script parses the Jacoco XML to calculate total instruction coverage,
+    # and importantly prints it to the console for gitlab's coverage parser to grab
+    # It handles returning package-by-package instruction coverage, as well as total instruction coverage.
+    # The method, branch, line and class numbers can be found in the coverage report HTML
+    - |
+      REPORT="build/reports/jacoco/test/jacocoTestReport.xml"
+      if [ -f "$REPORT" ]; then
+        echo "--- Jacoco Coverage Breakdown ---"
 
-before_script:
-  - GRADLE_USER_HOME="$(pwd)/.gradle"
-  - export GRADLE_USER_HOME
+        awk '
+          BEGIN {
+            RS=">"
+            ORS=""
+          }
+
+          # Package start
+          /<package name="/ {
+            pkg = $0
+            sub(/.*<package name="/, "", pkg)
+            sub(/".*/, "", pkg)
+            pm = 0
+            pc = 0
+            in_pkg = 1
+          }
+
+          # Instruction counters (streaming!)
+          /<counter type="INSTRUCTION"/ {
+            missed = $0
+            covered = $0
+
+            sub(/.*missed="/, "", missed)
+            sub(/".*/, "", missed)
+
+            sub(/.*covered="/, "", covered)
+            sub(/".*/, "", covered)
+
+            # Package-level: keep overwriting until </package>
+              if (in_pkg) {
+              pm = missed + 0
+              pc = covered + 0
+            }
+
+            # Global-level: always overwrite
+              gm = missed + 0
+              gc = covered + 0
+            }
+
+            # Package end → print LAST counter seen in that package
+            /<\/package/ && in_pkg {
+              total = pm + pc
+              pct = (total > 0) ? (pc / total) * 100 : 0
+              printf "Package [%s]: %.2f%%\n", pkg, pct
+              in_pkg = 0
+            }
+
+            END {
+              grand_total = gm + gc
+              print "---------------------------------\n"
+              print "Instructions Covered: " gc "\n"
+              print "Total Instructions: " grand_total "\n"
+              if (grand_total > 0) {
+              printf "Total Coverage: %d%%\n", (gc * 100) / grand_total
+            }
+          }
+        ' "$REPORT"
+      else
+        echo "Error: Jacoco XML report not found at $REPORT"
+        exit 1
+      fi
+  before_script:
+    - GRADLE_USER_HOME="$(pwd)/.gradle"
+    - export GRADLE_USER_HOME
+  artifacts:
+    paths:
+      - pushKb/build/reports/jacoco/test/html
+    reports:
+      coverage_report:
+        coverage_format: jacoco
+        path: pushKb/build/reports/jacoco/test/jacocoTestReport.xml
+  coverage: '/Total Coverage: \d+%/'
 
 build:
   stage: build
@@ -122,3 +199,18 @@ build-native-image:
       - pushKb/build
       - .gradle
 
+
+pushkb-publish-pages:
+  stage: post-deploy
+  tags:
+    - ki-onprem
+  only:
+    - main
+  script:
+    - mkdir public
+    - mkdir -p public/coverage
+    # Copy Coverage HTML
+    - cp -r pushKb/build/reports/jacoco/test/html/* public/coverage/
+  pages:
+    publish:
+      public

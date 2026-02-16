@@ -267,7 +267,7 @@ tasks {
 		dependsOn test
 
 		reports {
-			xml.required = false
+			xml.required = true
 			csv.required = false
 			html.required = true
 		}
@@ -293,6 +293,10 @@ tasks {
 				}
 			}
 		}
+	}
+
+	test {
+		finalizedBy jacocoTestReport
 	}
 }
 
