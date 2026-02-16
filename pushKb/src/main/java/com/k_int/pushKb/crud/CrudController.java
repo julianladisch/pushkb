@@ -1,8 +1,8 @@
 package com.k_int.pushKb.crud;
 
-import java.util.List;
 import java.util.UUID;
 
+import io.micronaut.data.model.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import org.reactivestreams.Publisher;
 
@@ -26,7 +26,7 @@ public interface CrudController<T extends HasId> {
 	  summary = "List entries",
 		description = "Returns a paginated list of records from the system."
 	)
-  Publisher<List<T>> list(@Valid Pageable pageable);
+  Publisher<Page<T>> list(@Valid Pageable pageable);
 
 	@Operation(
 		method="GET",

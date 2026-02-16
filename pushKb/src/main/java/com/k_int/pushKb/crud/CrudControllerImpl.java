@@ -1,11 +1,9 @@
 package com.k_int.pushKb.crud;
 
-import java.util.List;
 import java.util.UUID;
 
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.http.exceptions.HttpStatusException;
-import org.reactivestreams.Publisher;
 
 import io.micronaut.context.annotation.Parameter;
 import io.micronaut.data.model.Page;
@@ -18,7 +16,6 @@ import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Put;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -32,30 +29,30 @@ public abstract class CrudControllerImpl<T extends HasId> implements CrudControl
   @Override
 	@SingleResult
   @Post(uri = "/", produces = MediaType.APPLICATION_JSON)
-  public Publisher<T> post(
+  public Mono<T> post(
     @Valid @Body T t
   ) {
 		t.setId(service.generateUUIDFromObject(t));
-		return service.save(t);
+		return Mono.from(service.save(t));
   }
 
+	@SingleResult // A Page is a single result
   @Get(uri = "/", produces = MediaType.APPLICATION_JSON)
-  public Publisher<List<T>> list(@Valid Pageable pageable) {
-
-    return Flux.from(service.findAll(pageable)).map(Page::getContent);
+  public Mono<Page<T>> list(@Valid Pageable pageable) {
+    return Mono.from(service.findAll(pageable));
   }
 
 	@SingleResult
   @Get(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
-  public Publisher<T> get(
+  public Mono<T> get(
     @Parameter UUID id
   ) {
-    return service.findById(id);
+    return Mono.from(service.findById(id));
   }
 
 	@SingleResult
   @Put(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
-  public Publisher<T> put(
+  public Mono<T> put(
     @Parameter UUID id,
     @Valid @Body T t
   ) {
@@ -70,13 +67,13 @@ public abstract class CrudControllerImpl<T extends HasId> implements CrudControl
 			);
 		}
 
-    return service.update(t);
+    return Mono.from(service.update(t));
   }
 
   // I'm not sure about having this return just a Long
   @Delete(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
   @SingleResult
-	public Publisher<Long> delete(
+	public Mono<Long> delete(
     @Parameter UUID id
   ) {
 		return Mono.from(service.findById(id))
@@ -86,7 +83,7 @@ public abstract class CrudControllerImpl<T extends HasId> implements CrudControl
 
   @Get(uri = "/count", produces = MediaType.APPLICATION_JSON)
 	@SingleResult
-	public Publisher<Long> count() {
-  return service.count();
+	public Mono<Long> count() {
+  return Mono.from(service.count());
   }
 }

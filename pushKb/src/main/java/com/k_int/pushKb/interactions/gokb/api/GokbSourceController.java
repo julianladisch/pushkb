@@ -1,10 +1,9 @@
 package com.k_int.pushKb.interactions.gokb.api;
 
 import com.k_int.pushKb.interactions.gokb.services.GokbSourceDatabaseService;
-import com.k_int.pushKb.model.PushTask;
 import com.k_int.pushKb.services.SourceService;
 import io.micronaut.context.annotation.Parameter;
-import io.micronaut.http.MediaType;
+import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -13,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
@@ -41,7 +39,7 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> impleme
 	// We need to use ensureSource here to make sure that side effects happen as expected
 	// Such as DutyCycleTask creation etc.
 	@Override
-	public Publisher<GokbSource> post(
+	public Mono<GokbSource> post(
 		@Valid @Body GokbSource src
 	) {
 		return Mono.from(sourceService.ensureSource(src)).map(GokbSource::castFromSource);
@@ -50,7 +48,7 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> impleme
 	// We need to use sourceService here to make sure that side effects happen as expected
 	// Such as DutyCycleTask removal etc.
 	@Override
-	public Publisher<Long> delete(
+	public Mono<Long> delete(
 		@Parameter UUID id
 	) {
 		return Mono.from(sourceService.findById(GokbSource.class, id))
@@ -59,7 +57,8 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> impleme
 	}
 
 	// Reset pointer endpoint
-	public Publisher<GokbSource> resetPointer(
+	@SingleResult
+	public Mono<GokbSource> resetPointer(
 		@Parameter UUID id
 	) {
 

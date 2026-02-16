@@ -34,7 +34,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
   }
 
   @Override
-  public Publisher<PushTask> post(
+  public Mono<PushTask> post(
 		@Valid @Body PushTask pt
 	) {
 		pt.setId(databaseService.generateUUIDFromObject(pt));
@@ -43,7 +43,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 	}
 
 	@Override
-	public Publisher<PushTask> put(
+	public Mono<PushTask> put(
 		@Parameter UUID id,
 		@Valid @Body PushTask pt
 	) {
@@ -66,7 +66,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 	// We need to use pushableService here to make sure that side effects happen as expected
 	// Such as DutyCycleTask removal etc.
 	@Override
-	public Publisher<Long> delete(
+	public Mono<Long> delete(
 		@Parameter UUID id
 	) {
 		return Mono.from(pushableService.findById(PushTask.class, id))
