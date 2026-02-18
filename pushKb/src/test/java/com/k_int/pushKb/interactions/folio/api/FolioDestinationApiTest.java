@@ -5,6 +5,7 @@ import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import com.k_int.pushKb.interactions.folio.model.FolioDestinationType;
 import com.k_int.pushKb.interactions.folio.model.FolioTenant;
 import com.k_int.pushKb.test.ServiceIntegrationTest;
+import com.k_int.pushKb.vault.VaultSecret;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -123,5 +124,36 @@ class FolioDestinationApiTest extends ServiceIntegrationTest {
 			assertTrue(e.getStatus().getCode() >= 400);
 			log.info("Caught expected error on ID mismatch: {}", e.getMessage());
 		}
+	}
+
+	@Test
+	void testTenantCreationWithNoAuth() {
+		String name = "no-auth-test";
+		FolioTenant noAuthTenant = FolioTenant.builder()
+			.tenant(name + "Tenant")
+			.baseUrl("http://" + name + ".org")
+			.name(name)
+			.loginUser("dev-user")
+			// Explicitly no password
+			.authType(FolioAuthType.NONE)
+			.build();
+
+		log.info("Testing POST /destinations/foliodestination/tenant with AuthType.NONE");
+
+		HttpResponse<FolioTenant> response = httpClient.toBlocking().exchange(
+			HttpRequest.POST("/destinations/foliodestination/tenant", noAuthTenant),
+			FolioTenant.class
+		);
+
+		assertEquals(HttpStatus.CREATED, response.getStatus());
+		FolioTenant saved = response.body();
+		assertNotNull(saved);
+		assertNotNull(saved.getId());
+		assertEquals(FolioAuthType.NONE, saved.getAuthType());
+
+		// Depending on your VaultProvider implementation, it might create an empty secret or nothing at all
+		VaultSecret secret = vaultProvider.readSecret(saved.getKey());
+		Object vaultPassword = secret.data().get("password");
+		assertNull(vaultPassword, "There should be no password in the vault for AuthType NONE");
 	}
 }

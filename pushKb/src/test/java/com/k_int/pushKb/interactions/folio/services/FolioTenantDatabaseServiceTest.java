@@ -1,15 +1,10 @@
-package com.k_int.pushKb.services;
+package com.k_int.pushKb.interactions.folio.services;
 
-import com.k_int.pushKb.Application;
 import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
 import com.k_int.pushKb.interactions.folio.model.FolioTenant;
-import com.k_int.pushKb.interactions.folio.services.FolioTenantDatabaseService;
 
 import com.k_int.pushKb.test.ServiceIntegrationTest;
-import com.k_int.pushKb.vault.VaultProvider;
 import com.k_int.pushKb.vault.VaultSecret;
-import io.micronaut.context.env.Environment;
-import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
