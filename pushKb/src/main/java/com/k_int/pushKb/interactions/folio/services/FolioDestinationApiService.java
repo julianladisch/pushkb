@@ -57,8 +57,16 @@ public class FolioDestinationApiService implements DestinationApiService<FolioDe
 		if(isVaultConfigured){
 			String key = destination.getFolioTenant().getKey();
 			VaultSecret password = vaultProvider.readSecret(key);
-			String parsedPassword = password.data().get("password").toString();
-			tenant = FolioTenant.unsanitiseFolioTenant(destination.getFolioTenant(), parsedPassword);
+
+			Object parsedPasswordObject = password.data().get("password");
+
+			if (parsedPasswordObject != null) {
+				String parsedPassword = parsedPasswordObject.toString();
+				tenant = FolioTenant.unsanitiseFolioTenant(destination.getFolioTenant(), parsedPassword);
+			} else {
+				// We have no stored password. This will either be ok or it won't...
+				tenant = destination.getFolioTenant();
+			}
 		} else {
 			tenant = destination.getFolioTenant();
 		}
