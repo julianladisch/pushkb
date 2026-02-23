@@ -56,8 +56,8 @@ services:
       - command: >
           sh -c "vault secrets enable -path=pushKb -version=1 kv && 
             vault auth enable userpass &&
-            vault policy write dev ./vault/config/dev_policy.json &&
-            vault write auth/userpass/users/username password=password policies=dev"
+            vault policy write pushkb-policy ./vault/config/pushkb_policy.json &&
+            vault write auth/userpass/users/username password=password policies=pushkb-policy"
         user: root
     cap_add:
       - IPC_LOCK
