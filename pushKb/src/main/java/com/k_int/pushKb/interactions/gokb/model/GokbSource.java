@@ -49,10 +49,7 @@ public class GokbSource implements Source, HasId {
   @NotNull
   @NonNull
   @Valid // Needs @Introspected
-	@Schema(
-		name = "Gokb", // Explicitly names the sub-object
-		description = "The GOKb instance this source will pull from."
-	)
+	@Schema(description = "The GOKb instance this source will pull from.")
   Gokb gokb;
 
   @NotNull

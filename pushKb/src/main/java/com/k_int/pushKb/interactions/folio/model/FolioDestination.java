@@ -42,10 +42,7 @@ public class FolioDestination implements Destination, HasId {
 
   @NotNull
   @NonNull
-	@Schema(
-		name = "FolioTenant", // Explicitly names the sub-object
-		description = "The tenant configuration this destination will push to."
-	)
+	@Schema(description = "The tenant configuration this destination will push to.")
   FolioTenant folioTenant;
 
   @NotNull
