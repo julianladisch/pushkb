@@ -1,11 +1,17 @@
 package com.k_int.pushKb.api;
 
+import com.k_int.pushKb.api.errors.PushkbAPIError;
 import com.k_int.pushKb.model.responses.TaskResetDTO;
 import com.k_int.taskscheduler.model.DutyCycleTask;
 import io.micronaut.core.async.annotation.SingleResult;
+import io.micronaut.data.model.Page;
+import io.micronaut.data.model.Pageable;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.NonNull;
 import org.reactivestreams.Publisher;
 
@@ -23,7 +29,7 @@ public interface DutyCycleTaskApi {
 			"These objects represent the scheduled tasks that are run to perform operations such as pulling from Sources " +
 			"and pushing to Destinations based on the configuration defined in PushTasks."
 	)
-	Publisher<DutyCycleTask> getDutyCycleTasks();
+	Publisher<Page<DutyCycleTask>> getDutyCycleTasks(@Valid Pageable pageable);
 
 	/**
 	 * Resets a task status to IDLE.
@@ -38,7 +44,7 @@ public interface DutyCycleTaskApi {
 			"Use only when a task is confirmed to be stalled due to a node crash."
 	)
 	@ApiResponse(responseCode = "200", description = "Task was successfully reset.")
-	@ApiResponse(responseCode = "404", description = "Task ID not found.")
+	@ApiResponse(responseCode = "404", description = "Task ID not found.", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
 	@SingleResult
 	Publisher<TaskResetDTO> resetTask(@NonNull UUID id);
 }

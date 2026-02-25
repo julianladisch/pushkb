@@ -1,19 +1,16 @@
 package com.k_int.pushKb.api.publicApi;
 
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import reactor.core.publisher.Mono;
 import io.micronaut.core.annotation.Nullable;
 
-import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Post;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.MutableHttpResponse;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
 import java.util.UUID;
 
 import com.k_int.pushKb.model.PushTask;
@@ -35,30 +32,31 @@ public class PublicTemporaryPushTaskController implements PublicTemporaryPushTas
 		this.pushableService = pushableService;
 	}
 
-	public Mono<MutableHttpResponse<Map<String, Object>>> temporaryPushTask(
+	public Mono<TemporaryPushTask> temporaryPushTask(
 		String pushTaskId,
 		@Nullable String filterContext
 	) {
 		// FIXME If we don't find the push task by id we will return 404 right now, which isn't super helpful
 		return Mono.from(pushableService.findById(PushTask.class, UUID.fromString(pushTaskId)))
+			.switchIfEmpty(Mono.error(
+				new HttpStatusException(
+					HttpStatus.NOT_FOUND,
+					"No PushTask found with id: " + pushTaskId
+				)
+			))
 			.map(PushTask.class::cast)
-			.switchIfEmpty(Mono.error(new RuntimeException(String.format("Could not find PushTask with ID: %s", pushTaskId))))
-			// FIXME we should be passing Mono error here not mono empty ??
 			.flatMap(pushTask -> Mono.from(pushableService.ensurePushable(
 				TemporaryPushTask.builder()
 					.pushTask(pushTask)
 					.filterContext(filterContext)
 					.build()
 			)))
-			.map(TemporaryPushTask.class::cast)
-			.switchIfEmpty(Mono.error(new RuntimeException(String.format("Could not create TemporaryPushTask(pushTask: %s, filterContext: %s), one already exists", pushTaskId, filterContext))))
-			// TODO return something more useful than what was sent down.
-			.map(temporaryPushTask -> {
-				return HttpResponse.created(Map.of(
-					"pushTaskId", pushTaskId,
-					"filterContext", (filterContext != null ? filterContext : "No filter context provided"),
-					"temporaryPushTaskId", temporaryPushTask.getId().toString()
-				));
-			});
+			.switchIfEmpty(Mono.error(
+				new HttpStatusException(
+					HttpStatus.CONFLICT,
+					String.format("Could not create TemporaryPushTask(pushTask: %s, filterContext: %s), one already exists", pushTaskId, filterContext)
+				)
+			))
+			.map(TemporaryPushTask.class::cast);
 	}
 }

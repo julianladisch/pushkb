@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
@@ -35,16 +37,35 @@ class GokbSourceApiTest extends ServiceIntegrationTest {
 			.build();
 	}
 
+	private HttpResponse<GokbSource> ensureTestGokbSource(GokbSource source) {
+		try {
+			// Try to create
+			return httpClient.toBlocking().exchange(
+				HttpRequest.POST("/sources/gokbsource", source),
+				GokbSource.class
+			);
+		} catch (io.micronaut.http.client.exceptions.HttpClientResponseException e) {
+			// If it already exists (409), just fetch the existing one
+			if (e.getStatus() == HttpStatus.CONFLICT) {
+				UUID id = GokbSource.generateUUIDFromSource(source);
+				return httpClient.toBlocking().exchange(
+					HttpRequest.GET("/sources/gokbsource/" + id),
+					GokbSource.class
+				);
+			}
+			throw e; // Rethrow if it's a real error (400, 500, etc.)
+		}
+	}
+
 	@Test
 	void testGokbSourceLifecycle() {
 		GokbSource source = setupTestGokbSource();
 
 		// This triggers SourceService::ensureSource -> registerIngestTask
 		log.info("Testing POST /sources/gokbsource");
-		HttpResponse<GokbSource> postResponse = httpClient.toBlocking().exchange(
-			HttpRequest.POST("/sources/gokbsource", source),
-			GokbSource.class
-		);
+
+		// This should be the first one, so we know it's created not fetched... bit flaky
+		HttpResponse<GokbSource> postResponse = ensureTestGokbSource(source);
 
 		assertEquals(HttpStatus.CREATED, postResponse.getStatus());
 		GokbSource saved = postResponse.body();
@@ -90,10 +111,8 @@ class GokbSourceApiTest extends ServiceIntegrationTest {
 	void testResetPointer() {
 		GokbSource source = setupTestGokbSource();
 
-		GokbSource saved = httpClient.toBlocking().retrieve(
-			HttpRequest.POST("/sources/gokbsource", source),
-			GokbSource.class
-		);
+		HttpResponse<GokbSource> ensureResponse = ensureTestGokbSource(source);
+		GokbSource saved = ensureResponse.body();
 
 		// Call the resetPointer endpoint
 		HttpResponse<GokbSource> resetResponse = httpClient.toBlocking().exchange(
@@ -109,10 +128,8 @@ class GokbSourceApiTest extends ServiceIntegrationTest {
 	void testUpdateDoesNotChangeNestedGokb() {
 		// 1. Setup and save initial
 		GokbSource source = setupTestGokbSource();
-		GokbSource saved = httpClient.toBlocking().retrieve(
-			HttpRequest.POST("/sources/gokbsource", source),
-			GokbSource.class
-		);
+		HttpResponse<GokbSource> ensureResponse = ensureTestGokbSource(source);
+		GokbSource saved = ensureResponse.body();
 		String originalGokbName = saved.getGokb().getName();
 
 		// 2. Attempt to change the nested Gokb baseUrl via a PUT on GokbSource
@@ -140,10 +157,8 @@ class GokbSourceApiTest extends ServiceIntegrationTest {
 	@Test
 	void testChangingSourceTypeFails() {
 		GokbSource source = setupTestGokbSource(); // This is GokbSourceType.PACKAGE
-		GokbSource saved = httpClient.toBlocking().retrieve(
-			HttpRequest.POST("/sources/gokbsource", source),
-			GokbSource.class
-		);
+		HttpResponse<GokbSource> ensureResponse = ensureTestGokbSource(source);
+		GokbSource saved = ensureResponse.body();
 
 		GokbSource updateRequest = saved.toBuilder()
 			.gokbSourceType(GokbSourceType.TIPP)

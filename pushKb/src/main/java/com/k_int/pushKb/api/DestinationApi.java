@@ -1,9 +1,11 @@
 package com.k_int.pushKb.api;
 
-import com.k_int.pushKb.model.responses.DestinationImplementersDTO;
+import io.micronaut.data.model.Page;
+import io.micronaut.data.model.Pageable;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import reactor.core.publisher.Mono;
 
 @Tag(name="Destinations", description="\"Destinations\" represent the push side of PushKB, places to which data from \"Sources\" can be sent.")
@@ -17,5 +19,5 @@ public interface DestinationApi {
 		responseCode = "200",
 		description = "Successfully returned all classes implementing the Destination interface"
 	)
-	Mono<DestinationImplementersDTO> getImplementers();
+	Mono<Page<String>> getImplementers(@Valid Pageable pageable);
 }

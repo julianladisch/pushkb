@@ -10,7 +10,6 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.swagger.v3.oas.annotations.Hidden;
-import org.reactivestreams.Publisher;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
 import com.k_int.pushKb.model.PushTask;
@@ -37,13 +36,24 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 		this.pushableService = pushableService;
   }
 
-  @Override
-  public Mono<PushTask> post(
-		@Valid @Body PushTask pt
-	) {
-		pt.setId(databaseService.generateUUIDFromObject(pt));
 
-		return Mono.from(pushableService.ensurePushable(pt)).map(PushTask::castFromPushable);
+	@Override
+	public Mono<PushTask> post(@Valid @Body PushTask pt) {
+		UUID generatedId = databaseService.generateUUIDFromObject(pt);
+		pt.setId(generatedId);
+
+		return Mono.from(databaseService.existsById(generatedId))
+			.flatMap(exists -> {
+				if (exists) {
+					return Mono.error(new HttpStatusException(
+						HttpStatus.CONFLICT,
+						"A PushTask with this identity already exists. " +
+							"If you need to change parameters, DELETE the existing task or use a different context."
+					));
+				}
+				return Mono.from(pushableService.ensurePushable(pt))
+					.map(PushTask::castFromPushable);
+			});
 	}
 
 	@Override

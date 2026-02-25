@@ -4,12 +4,15 @@ import com.k_int.pushKb.model.responses.TaskResetDTO;
 import com.k_int.taskscheduler.model.DutyCycleTask;
 import com.k_int.taskscheduler.services.ReactiveDutyCycleTaskRunner;
 import com.k_int.taskscheduler.storage.ReactiveDutyCycleTaskRepository;
+import io.micronaut.data.model.Page;
+import io.micronaut.data.model.Pageable;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import jakarta.validation.Valid;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -52,8 +55,8 @@ public class DutyCycleTaskController implements DutyCycleTaskApi {
 	 * @return A {@link Publisher} emitting a stream of {@link DutyCycleTask} objects.
 	 */
 	@Get(produces = MediaType.APPLICATION_JSON)
-	public Publisher<DutyCycleTask> getDutyCycleTasks() {
-		return Flux.from(dutyCycleTaskRepository.findAll());
+	public Publisher<Page<DutyCycleTask>> getDutyCycleTasks(@Valid Pageable pageable) {
+		return Flux.from(dutyCycleTaskRepository.findAll(pageable));
 	}
 
 	/**

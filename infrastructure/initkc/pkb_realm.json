@@ -722,11 +722,12 @@
 			"clientAuthenticatorType": "client-secret",
 			"secret": "84WWKbVMpQzVHsYCmduDRDH3978nMOwb",
 			"redirectUris": [
-        "http://localhost:8060/oauth/callback/keycloak",
+				"http://localhost:8060/swagger-ui/oauth2-redirect.html",
+				"http://localhost:8060/oauth/callback/keycloak",
         "https://oauth.pstman.io/v1/callback"
 			],
 			"webOrigins": [
-        ""
+				"http://localhost:8060"
 			],
 			"notBefore": 0,
 			"bearerOnly": false,

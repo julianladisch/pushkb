@@ -1,8 +1,10 @@
 package com.k_int.pushKb.api;
 
-import com.k_int.pushKb.model.responses.SourceImplementersDTO;
+import io.micronaut.data.model.Page;
+import io.micronaut.data.model.Pageable;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import jakarta.validation.Valid;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -13,16 +15,29 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.k_int.pushKb.services.SourceService;
 
+import java.util.List;
+
 @Controller("/sources")
 @Slf4j
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class SourceController implements SourceApi {
   @Get(uri = "/implementers", produces = MediaType.APPLICATION_JSON)
-  public Mono<SourceImplementersDTO> getImplementers() {
-    return Flux.fromIterable(SourceService.sourceImplementers)
-      .map(Class::toString)
-      .collectList()
-      .map(implementingArray -> SourceImplementersDTO.builder().implementers(implementingArray).build());
+  public Mono<Page<String>> getImplementers(@Valid Pageable pageable) {
+
+		return Flux.fromIterable(SourceService.sourceImplementers)
+			.map(Class::toString)
+			.collectList()// Get the full list... this should only ever be relatively small anyway
+			.map(implementorList -> {
+
+				int start = (int) pageable.getOffset();
+				int end = Math.min(start + pageable.getSize(), implementorList.size());
+
+				List<String> subList = (start >= implementorList.size())
+					? List.of()
+					: implementorList.subList(start, end);
+
+				return Page.of(subList, pageable, (long) implementorList.size());
+			});
   }
 
   // Sources themselves will be managed via "interactions/<interaction>/api/<interaction>Controller"
