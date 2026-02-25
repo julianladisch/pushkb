@@ -5,6 +5,8 @@ import java.util.UUID;
 import com.k_int.pushKb.api.errors.PushkbAPIError;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.data.model.Page;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.annotation.Status;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,13 +23,16 @@ public interface CrudController<T extends HasId> {
 	@Operation(
 		method="POST",
 		summary = "Create entry",
-		description = "Creates a new record in the system."
+		description = "Creates a new record in the system. Because this resource uses deterministic IDs, " +
+			"if a record with the same identity properties already exists, a 409 Conflict will be returned. " +
+			"To modify an existing record, use the PUT endpoint."
 	)
-	@ApiResponse(responseCode = "201", description = "Created")
+	@Status(HttpStatus.CREATED)
+	@ApiResponse(responseCode = "201", description = "Record created")
+	@ApiResponse(responseCode = "409", description = "Conflict - Record already exists", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
 	@ApiResponse(responseCode = "400", description = "Bad Request", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
 	@SingleResult
 	Publisher<T> post(@Valid @Body T obj);
-
 
 	@Operation(
 		method="GET",
@@ -54,7 +59,7 @@ public interface CrudController<T extends HasId> {
 	)
 	@ApiResponse(responseCode = "200", description = "Updated")
 	@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
-	@ApiResponse(responseCode = "400", description = "Immutable ID Violation", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
+	@ApiResponse(responseCode = "400", description = "Bad request -- Immutable identifier changed, fields missing or incorrect JSON.", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
 	@SingleResult
   Publisher<T> put(@Parameter UUID id, @Valid @Body T obj);
 

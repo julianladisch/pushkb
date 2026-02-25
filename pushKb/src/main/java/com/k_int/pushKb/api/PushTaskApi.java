@@ -1,5 +1,6 @@
 package com.k_int.pushKb.api;
 
+import com.k_int.pushKb.api.errors.PushkbAPIError;
 import com.k_int.pushKb.model.PushTask;
 import io.micronaut.context.annotation.Parameter;
 import io.micronaut.http.HttpStatus;
@@ -7,6 +8,8 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -41,7 +44,7 @@ public interface PushTaskApi {
 	@Delete(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
 	@Status(HttpStatus.NO_CONTENT)
 	@ApiResponse(responseCode = "204")
-	@ApiResponse(responseCode = "404", description = "Cold not find a PushTask with that id.")
+	@ApiResponse(responseCode = "404", description = "Could not find a PushTask with that id.", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
 	public Publisher<Void> delete(
 		@Parameter UUID id
 	);
@@ -52,6 +55,8 @@ public interface PushTaskApi {
 		description = "Resets the pointers for the PushTask with the given id. This causes the PushTask to reprocess " +
 			"all data from its Source the next time it is run."
 	)
+	@ApiResponse(responseCode = "404", description = "Could not find a PushTask with that id.", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
+	@ApiResponse(responseCode = "200", description = "Successfully reset pointers for PushTask")
 	@Put(uri = "/{id}/resetPointers", produces = MediaType.APPLICATION_JSON)
 	public Publisher<PushTask> resetPointers(
 		@Parameter UUID id

@@ -67,11 +67,26 @@ public class PushTask implements Pushable, HasId {
    * (and pointer from head of source_record stack) in order to keep track of the "gap"
    * that forms while sending records in chunks.
    */
-  @Builder.Default
+	@Builder.Default
+	@Schema(
+		description = "System-managed field. Tracks the 'head' from the destination's point of view. " +
+			"Manually setting this on POST is permitted, but not recommended",
+		requiredMode = Schema.RequiredMode.NOT_REQUIRED
+	)
   Instant destinationHeadPointer = Instant.EPOCH; // Tracks the "head" from the destination's point of view
-  @Builder.Default
+	@Builder.Default
+	@Schema(
+		description = "System-managed field. Tracks the last successfully sent record instant. " +
+			"Manually setting this on POST is permitted, but not recommended",
+		requiredMode = Schema.RequiredMode.NOT_REQUIRED
+	)
   Instant lastSentPointer = Instant.EPOCH; // Tracks the last successfully sent instant
-  @Builder.Default
+	@Builder.Default
+	@Schema(
+		description = "System-managed field. Tracks the point beyond which ALL records have been sent. " +
+			"Manually setting this on POST is permitted, but not recommended",
+		requiredMode = Schema.RequiredMode.NOT_REQUIRED
+	)
   Instant footPointer = Instant.EPOCH; // Tracks the point beyond which ALL records have been sent
 
 	@Transient

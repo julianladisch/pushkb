@@ -24,28 +24,24 @@ import reactor.core.publisher.Mono;
 @Singleton
 @R2dbcRepository(dialect = Dialect.POSTGRES)
 public interface GokbSourceRepository extends SourceRepository<GokbSource> {
-  // Specific Gokb ensureSource (Needs generateUUID cos we've decided to use UUID5)
-  @NonNull
-  @SingleResult
-  @Transactional
+	/**
+	 * Orchestrates a "Get or Create" operation for a GokbSource.
+	 * <p>
+	 * This method uses deterministic UUID generation. If the ID exists, it returns
+	 * the record currently in the database, ignoring any field changes in the input object.
+	 * </p>
+	 */
+	@NonNull
+	@SingleResult
+	@Transactional
 	@Join("gokb")
-  default Publisher<GokbSource> ensureSource( GokbSource src ) {
-    UUID gen_id = GokbSource.generateUUID(
-      src.getGokb(),
-      src.getGokbSourceType()
-    );
+	default Publisher<GokbSource> ensureSource( GokbSource src ) {
+		UUID gen_id = GokbSource.generateUUID(src.getGokb(), src.getGokbSourceType());
+		src.setId(gen_id);
 
-    src.setId(gen_id);
-
-    return Mono.from(existsById(gen_id))
-        .flatMap(doesItExist -> {
-          if (doesItExist) {
-            return Mono.from(findById(gen_id));
-          }
-
-          return Mono.from(save(src));
-        });
-  }
+		return Mono.from(existsById(gen_id))
+			.flatMap(doesItExist -> doesItExist ? Mono.from(findById(gen_id)) : Mono.from(save(src)));
+	}
 
   // Unique up to baseUrl
   @Override

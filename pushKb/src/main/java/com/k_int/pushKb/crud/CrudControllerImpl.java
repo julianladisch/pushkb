@@ -28,15 +28,24 @@ public abstract class CrudControllerImpl<T extends HasId> implements CrudControl
 		this.service = service;
   }
 
-  @Override
-  @Post(uri = "/", produces = MediaType.APPLICATION_JSON)
-	@Status(HttpStatus.CREATED)
-  public Mono<T> post(
-    @Valid @Body T t
-  ) {
-		t.setId(service.generateUUIDFromObject(t));
-		return Mono.from(service.save(t));
-  }
+	@Override
+	@Post(uri = "/", produces = MediaType.APPLICATION_JSON)
+	public Mono<T> post(@Valid @Body T t) {
+		UUID generatedId = service.generateUUIDFromObject(t);
+		t.setId(generatedId);
+
+		return Mono.from(service.existsById(generatedId))
+			.flatMap(exists -> {
+				if (exists) {
+					// Return a clean Conflict instead of a 500 or a fake 200
+					return Mono.error(new HttpStatusException(
+						HttpStatus.CONFLICT,
+						"Resource with ID " + generatedId + " already exists. Use PUT to update."
+					));
+				}
+				return Mono.from(service.save(t));
+			});
+	}
 
 	@SingleResult // A Page is a single result
   @Get(uri = "/", produces = MediaType.APPLICATION_JSON)
