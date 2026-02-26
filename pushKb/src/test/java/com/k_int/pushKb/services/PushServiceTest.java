@@ -19,25 +19,27 @@ import com.k_int.pushKb.transform.model.Transform;
 import com.k_int.pushKb.transform.services.TransformService;
 import com.k_int.taskscheduler.model.DutyCycleTask;
 import com.k_int.taskscheduler.services.ReactiveDutyCycleTaskRunner;
-import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.env.Environment;
 import io.micronaut.data.r2dbc.operations.R2dbcOperations;
 import io.micronaut.json.tree.JsonNode;
 import io.micronaut.test.annotation.MockBean;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.micronaut.test.support.server.TestEmbeddedServer;
+import io.r2dbc.spi.Result;
+import io.r2dbc.spi.Statement;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.util.function.Tuples;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -80,9 +82,6 @@ public class PushServiceTest {
 
 	@Inject
 	TransformService transformService;
-
-	@Inject
-	ApplicationContext appContext;
 
 	private final static String PKG_TRANSFORM_NAME = "GOKb_Package_to_Pkg_V1";
 
@@ -169,6 +168,38 @@ public class PushServiceTest {
 	PushService pushService;
 	PushService pushServiceSpy;
 
+	// A helper method which can SAVE a bunch of records in the database AND THEN perform a manual DB update to ensure that the created/updated is manually set as desired from the input list.
+	private Mono<Void> seedRecords(List<SourceRecord> records) {
+		return Flux.fromIterable(records)
+			.flatMap(rec -> {
+				// Capture original timestamps before Micronaut overwrites them on save
+				Instant updated = rec.getUpdated();
+				Instant created = rec.getCreated();
+				UUID id = rec.getId();
+
+				return Mono.from(sourceRecordDatabaseService.saveOrUpdateRecord(rec))
+					.thenReturn(Tuples.of(id, updated, created));
+			}, 64)
+			.collectList()
+			.flatMap(tupleList -> Mono.from(r2dbcOperations.withConnection(connection -> {
+				Statement statement = connection.createStatement(
+					"UPDATE source_record SET updated = $1, created = $2 WHERE id = $3"
+				);
+
+				for (int i = 0; i < tupleList.size(); i++) {
+					var t = tupleList.get(i);
+					statement.bind("$1", java.sql.Timestamp.from(t.getT2()))
+						.bind("$2", java.sql.Timestamp.from(t.getT3()))
+						.bind("$3", t.getT1());
+					if (i < tupleList.size() - 1) statement.add();
+				}
+
+				return Flux.from(statement.execute())
+					.flatMap(Result::getRowsUpdated)
+					.then();
+			})));
+	}
+
 	@BeforeEach
 	void setupMocks() {
 		destinationService = mock(DestinationService.class);
@@ -221,6 +252,7 @@ public class PushServiceTest {
 					.sourceUUID("remote-record-" + i)
 					.sourceId(sourceId)
 					.sourceType(GokbSource.class)
+					.created(startTime.plusSeconds(i))
 					.updated(startTime.plusSeconds(i))
 					.lastUpdatedAtSource(startTime.plusSeconds(i))
 					.jsonRecord(JsonNode.createObjectNode(Map.of(
@@ -229,31 +261,15 @@ public class PushServiceTest {
 					)))
 					.build()
 			)
-			.collect(Collectors.toList());
+			.toList();
 
-		mockRecords.forEach(record -> {
-			Instant currentUpdated = record.getUpdated();
-			Mono.from(sourceRecordDatabaseService.saveOrUpdateRecord(record)).cache().block();
-
-			// R2DBC workaround to Set the "updated" timestamps on the source records
-			Mono.from(r2dbcOperations.withConnection(connection ->
-				Mono.from(connection.createStatement("UPDATE source_record SET updated = $1 WHERE id = $2")
-						.bind("$1", java.sql.Timestamp.from(currentUpdated))
-						.bind("$2", record.getId())
-						.execute())
-					.flatMap(result -> Mono.from(result.getRowsUpdated()))
-			)).block();
-		});
-
-		// Act: Call the runPushable method() to run runPushableRecursive()
-		Mono<Pushable> testPipeline = pushService.runPushable(initialPushable);
+		Mono<Pushable> testPipeline = seedRecords(mockRecords)
+			.then(pushServiceSpy.runPushable(initialPushable));
 
 		// Assert:
 		// Has the foot pointer moved up to the "latest seen" record updated time in our block of 1500 records?
 		StepVerifier.create(testPipeline)
-			.assertNext(finalPushable -> {
-				Assertions.assertEquals(Instant.parse("2023-10-27T10:25:00Z"), finalPushable.getFootPointer());
-			})
+			.assertNext(finalPushable -> Assertions.assertEquals(Instant.parse("2023-10-27T10:25:00Z"), finalPushable.getFootPointer()))
 			.verifyComplete();
 
 		// With 1500 records, we should push to the destination twice (if processing 1000 records each time).
@@ -265,44 +281,33 @@ public class PushServiceTest {
 	void testRunPushableWithCatchup() {
 		// Create and save mock records: The records should span the updated times 2023-10-27T10:00:01Z - 2023-10-27T11:15:00Z
 		List<SourceRecord> mockRecords = IntStream.rangeClosed(1, 4500)
-			.mapToObj(i ->
-				SourceRecord.builder()
-					.id(UUID.randomUUID())
-					.sourceUUID("remote-record-" + i)
-					.sourceId(sourceId)
-					.sourceType(GokbSource.class)
-					.updated(i > 3495 && i < 3505 ? startTime.plusSeconds(3496) : startTime.plusSeconds(i)) // Make it so that the first six records have the same updated time.
-					.lastUpdatedAtSource(startTime.plusSeconds(i))
-					.jsonRecord(JsonNode.createObjectNode(Map.of(
-						"record_number", JsonNode.createNumberNode(i),
-						"status", JsonNode.createStringNode("new")
-					)))
-					.build()
+			.mapToObj(i -> {
+					SourceRecord rec = SourceRecord.builder()
+						.sourceUUID("remote-record-" + i)
+						.sourceId(sourceId)
+						.sourceType(GokbSource.class)
+						.created(startTime.plusSeconds(i))
+						.updated(i > 3495 && i < 3505 ? startTime.plusSeconds(3496) : startTime.plusSeconds(i))  // Make it so that the first six records have the same updated time.
+						.lastUpdatedAtSource(startTime.plusSeconds(i))
+						.jsonRecord(JsonNode.createObjectNode(Map.of(
+							"record_number", JsonNode.createNumberNode(i),
+							"status", JsonNode.createStringNode("new")
+						)))
+						.build();
+
+					// Ensure ID comes from UUIDv5
+					rec.setId(SourceRecord.generateUUIDFromSourceRecord(rec));
+					return rec;
+				}
 			)
-			.collect(Collectors.toList());
+			.toList();
 
-		mockRecords.forEach(record -> {
-			Instant currentUpdated = record.getUpdated();
-			Mono.from(sourceRecordDatabaseService.saveOrUpdateRecord(record)).cache().block();
-
-			// R2DBC workaround to Set the "updated" timestamps on the source records
-			Mono.from(r2dbcOperations.withConnection(connection ->
-				Mono.from(connection.createStatement("UPDATE source_record SET updated = $1 WHERE id = $2")
-						.bind("$1", java.sql.Timestamp.from(currentUpdated))
-						.bind("$2", record.getId())
-						.execute())
-					.flatMap(result -> Mono.from(result.getRowsUpdated()))
-			)).block();
-		});
-
-		// Act: Call the runPushable method() to run runPushableRecursive()
-		Mono<Pushable> testPipeline = pushServiceSpy.runPushable(initialPushable);
+		Mono<Pushable> testPipeline = seedRecords(mockRecords)
+			.then(pushServiceSpy.runPushable(initialPushable));
 
 		// Assert: Has the foot pointer moved up to the "latest seen" record updated time in our block of 1000 records?
 		StepVerifier.create(testPipeline)
-			.assertNext(finalPushable -> {
-				Assertions.assertEquals(Instant.parse("2023-10-27T11:15:00Z"), finalPushable.getFootPointer());
-			})
+			.assertNext(finalPushable -> Assertions.assertEquals(Instant.parse("2023-10-27T11:15:00Z"), finalPushable.getFootPointer()))
 			.verifyComplete();
 
 		// Should be 6 pushes inc. catchup: (1) 4500 -> 3501, (2) catch-up, (3) 3495 -> 2496, (4) 2495 -> 1496, (5) 1495 -> 496, (6) 495 -> 0
