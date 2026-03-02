@@ -1,10 +1,13 @@
 package com.k_int.pushKb.interactions.folio.api;
 
+import com.k_int.pushKb.api.errors.PushkbAPIError;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Status;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,6 +29,7 @@ public interface FolioDestinationApi {
 	)
 	@Status(HttpStatus.CREATED)
 	@ApiResponse(responseCode = "201", description = "FolioDestination created successfully")
+	@ApiResponse(responseCode = "409", description = "Conflict - FolioDestination already exists", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
 	Publisher<FolioDestination> post(
 		@Valid @Body FolioDestination dest
 	);

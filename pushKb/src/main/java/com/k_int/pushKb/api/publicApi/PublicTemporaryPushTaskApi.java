@@ -3,9 +3,7 @@ package com.k_int.pushKb.api.publicApi;
 import com.k_int.pushKb.api.errors.PushkbAPIError;
 import com.k_int.pushKb.model.TemporaryPushTask;
 import io.micronaut.core.annotation.Nullable;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
-import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Post;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,7 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import reactor.core.publisher.Mono;
 
-import java.util.Map;
+import java.util.UUID;
 
 @Tag(name="PushTasks: Public", description="APIs for managing PushTasks that are exposed publicly and are NOT " +
 	"authenticated."
@@ -35,7 +33,7 @@ public interface PublicTemporaryPushTaskApi {
 	@ApiResponse(responseCode = "404", description = "Unable to create TemporaryPushTask as PushTask doesn't exist with that id", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
 
 	public Mono<TemporaryPushTask> temporaryPushTask(
-		String pushTaskId,
+	UUID pushTaskId,
 		@Nullable String filterContext
 	);
 }

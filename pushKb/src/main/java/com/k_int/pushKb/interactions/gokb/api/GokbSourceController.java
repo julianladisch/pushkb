@@ -3,7 +3,6 @@ package com.k_int.pushKb.interactions.gokb.api;
 import com.k_int.pushKb.interactions.gokb.services.GokbSourceDatabaseService;
 import com.k_int.pushKb.services.SourceService;
 import io.micronaut.context.annotation.Parameter;
-import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
@@ -79,19 +78,22 @@ public class GokbSourceController extends CrudControllerImpl<GokbSource> impleme
 	}
 
 	// Reset pointer endpoint
-	@SingleResult
 	@Put(uri = "/{id}/resetPointer", produces = MediaType.APPLICATION_JSON)
 	public Mono<GokbSource> resetPointer(
 		@Parameter UUID id
 	) {
-
 		return Mono.from(sourceService.findById(GokbSource.class, id))
+			.switchIfEmpty(Mono.error(
+				new HttpStatusException(
+					HttpStatus.NOT_FOUND,
+					"GokbSource not found: " + id
+				)
+			))
 			.map(GokbSource::castFromSource)
 			.flatMap(src -> {
 				src.setPointer(null);
 
 				return Mono.from(sourceService.update(src)).map(GokbSource::castFromSource);
-			})
-			.switchIfEmpty(Mono.error(new RuntimeException("No GokbSource found with id: " + id)));
+			});
 	}
 }
