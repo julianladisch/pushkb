@@ -16,7 +16,7 @@ import java.util.UUID;
 public class TransformService {
 	private final BeanContext beanContext;
 
-	public static final Set<Class<? extends Transform>> transformImplementors = Set.of(ProteusTransform.class);
+	public static final Set<Class<? extends Transform>> transformImplementers = Set.of(ProteusTransform.class);
 
 	public TransformService (
 		BeanContext beanContext
@@ -25,8 +25,8 @@ public class TransformService {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected <T extends Transform> TransformImplementationService<Transform> getTransformImplementationServiceForTransformType(Class<T> type) {
-		return (TransformImplementationService<Transform>) beanContext.getBean( Argument.of(TransformImplementationService.class, type) ); // Use argument specify core type plus any generic...
+	protected <T extends Transform> TransformDatabaseService<Transform> getTransformImplementationServiceForTransformType(Class<T> type) {
+		return (TransformDatabaseService<Transform>) beanContext.getBean( Argument.of(TransformDatabaseService.class, type) ); // Use argument specify core type plus any generic...
 	}
 
 	// Specifically handle getting JSON_TO_JSON type transforms

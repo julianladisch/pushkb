@@ -1,5 +1,6 @@
 package com.k_int.pushKb.transform.services;
 
+import com.k_int.pushKb.crud.CrudDatabaseService;
 import com.k_int.pushKb.transform.model.Transform;
 import io.micronaut.core.annotation.NonNull;
 import io.micronaut.core.async.annotation.SingleResult;
@@ -8,7 +9,7 @@ import org.reactivestreams.Publisher;
 
 import java.util.UUID;
 
-public interface TransformImplementationService<T extends Transform> {
+public interface TransformDatabaseService<T extends Transform> extends CrudDatabaseService<T> {
   @NonNull
   @SingleResult
   @Transactional

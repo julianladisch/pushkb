@@ -6,7 +6,6 @@ import io.micronaut.context.annotation.Parameter;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
-import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -77,7 +76,6 @@ public interface PushTaskApi {
 		@Parameter UUID id
 	);
 
-	@Hidden // This isn't supported so hide it from the docs
 	@Operation(
 		method="PUT",
 		summary = "Update PushTask",

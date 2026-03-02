@@ -13,6 +13,7 @@ import io.micronaut.security.rules.SecurityRule;
 import com.k_int.pushKb.crud.CrudControllerImpl;
 import com.k_int.pushKb.model.PushTask;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -56,6 +57,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 			});
 	}
 
+	@Hidden // This isn't supported so hide it from the docs. Hidden cannot be on the interface as this overrides
 	@Override
 	@Put(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
 	public Mono<PushTask> put(
