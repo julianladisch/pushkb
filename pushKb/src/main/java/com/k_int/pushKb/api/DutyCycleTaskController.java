@@ -9,7 +9,7 @@ import io.micronaut.data.model.Pageable;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.Put;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import jakarta.validation.Valid;
@@ -68,11 +68,15 @@ public class DutyCycleTaskController implements DutyCycleTaskApi {
 	 * @param id The UUID of the Duty Cycle Task to reset.
 	 * @return A {@link Mono} emitting a {@link TaskResetDTO} confirming the reset.
 	 */
-	@Post(value = "/{id}/reset", produces = MediaType.APPLICATION_JSON)
+	@Put(value = "/{id}/reset", produces = MediaType.APPLICATION_JSON) // Changed to PUT for consistency
 	public Mono<TaskResetDTO> resetTask(@NonNull UUID id) {
 		log.info("Request to manually reset DutyCycleTask: {}", id);
 
 		return Mono.from(runner.manualReset(id))
+			.switchIfEmpty(Mono.error(new io.micronaut.http.exceptions.HttpStatusException(
+				io.micronaut.http.HttpStatus.NOT_FOUND,
+				"DutyCycleTask not found with ID: " + id
+			)))
 			.thenReturn(
 				TaskResetDTO
 					.builder()
@@ -80,6 +84,6 @@ public class DutyCycleTaskController implements DutyCycleTaskApi {
 					.id(id)
 					.message("Task status has been reset to IDLE")
 					.build()
-				);
+			);
 	}
 }

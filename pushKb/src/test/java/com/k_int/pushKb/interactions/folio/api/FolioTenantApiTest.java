@@ -1,12 +1,15 @@
 package com.k_int.pushKb.interactions.folio.api;
 
+import com.k_int.pushKb.api.errors.PushkbAPIError;
 import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
 import com.k_int.pushKb.test.ServiceIntegrationTest;
 import com.k_int.pushKb.interactions.folio.model.FolioTenant;
 import com.k_int.pushKb.vault.VaultSecret;
+import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -90,4 +93,50 @@ class FolioTenantApiTest extends ServiceIntegrationTest {
 		VaultSecret secret = vaultProvider.readSecret(tenant.getKey());
 		assertTrue(secret.data().isEmpty(), "Vault secret should be removed after tenant deletion");
 	}
+
+	@Test
+	void testCreateTenantWithMissingRequiredFieldsFails() {
+		// Missing baseUrl and tenant name
+		FolioTenant invalidTenant = FolioTenant.builder()
+			.authType(FolioAuthType.OKAPI)
+			.build();
+
+		try {
+			httpClient.toBlocking().exchange(
+				HttpRequest.POST("/destinations/foliodestination/tenant", invalidTenant),
+				Argument.of(FolioTenant.class),
+				Argument.of(PushkbAPIError.class)
+			);
+			fail("Should have failed validation");
+		} catch (HttpClientResponseException e) {
+			assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+
+			Optional<PushkbAPIError> errorBody = e.getResponse().getBody(PushkbAPIError.class);
+			assertTrue(errorBody.isPresent());
+			PushkbAPIError error = errorBody.get();
+
+			assertFalse(error.getErrors().isEmpty());
+		}
+	}
+
+	@Test
+	void testDeleteTenantCleansUpVaultEvenIfAlreadyEmpty() {
+		// Create a tenant with NONE auth (no vault password)
+		FolioTenant t = FolioTenant.builder()
+			.tenant("cleanupTenant")
+			.baseUrl("http://cleanup.org")
+			.name("Cleanup Test")
+			.authType(FolioAuthType.NONE)
+			.build();
+
+		FolioTenant saved = httpClient.toBlocking().retrieve(
+			HttpRequest.POST("/destinations/foliodestination/tenant", t), FolioTenant.class);
+
+		// Deleting should still succeed (204) even if there was no password to remove
+		HttpResponse<Void> response = httpClient.toBlocking().exchange(
+			HttpRequest.DELETE("/destinations/foliodestination/tenant/" + saved.getId())
+		);
+		assertEquals(HttpStatus.NO_CONTENT, response.getStatus());
+	}
+
 }

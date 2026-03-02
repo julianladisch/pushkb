@@ -1,17 +1,21 @@
 package com.k_int.pushKb.interactions.folio.api;
 
+import com.k_int.pushKb.api.errors.PushkbAPIError;
 import com.k_int.pushKb.interactions.folio.model.FolioAuthType;
 import com.k_int.pushKb.interactions.folio.model.FolioDestination;
 import com.k_int.pushKb.interactions.folio.model.FolioDestinationType;
 import com.k_int.pushKb.interactions.folio.model.FolioTenant;
 import com.k_int.pushKb.test.ServiceIntegrationTest;
 import com.k_int.pushKb.vault.VaultSecret;
+import io.micronaut.core.type.Argument;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -155,5 +159,45 @@ class FolioDestinationApiTest extends ServiceIntegrationTest {
 		VaultSecret secret = vaultProvider.readSecret(saved.getKey());
 		Object vaultPassword = secret.data().get("password");
 		assertNull(vaultPassword, "There should be no password in the vault for AuthType NONE");
+	}
+
+	@Test
+	void testCreateDuplicateFolioDestinationFails() {
+		FolioDestination dest = setupTestDestination("duplicate-dest-test");
+		// Ensure first creation
+		httpClient.toBlocking().exchange(HttpRequest.POST("/destinations/foliodestination", dest));
+
+		// Second POST - Should return 409 Conflict
+		try {
+			httpClient.toBlocking().exchange(
+				HttpRequest.POST("/destinations/foliodestination", dest),
+				Argument.of(FolioDestination.class),
+				Argument.of(PushkbAPIError.class)
+			);
+			fail("Should have thrown 409 Conflict");
+		} catch (HttpClientResponseException e) {
+			assertEquals(HttpStatus.CONFLICT, e.getStatus());
+			Optional<PushkbAPIError> errorBody = e.getResponse().getBody(PushkbAPIError.class);
+			assertTrue(errorBody.isPresent());
+			PushkbAPIError error = errorBody.get();
+
+			assertNotNull(error.getTimestamp());
+			assertFalse(error.getErrors().isEmpty());
+		}
+	}
+
+	@Test
+	void testGetNonExistentFolioDestinationFails() {
+		UUID randomId = UUID.randomUUID();
+		try {
+			httpClient.toBlocking().exchange(
+				HttpRequest.GET("/destinations/foliodestination/" + randomId),
+				Argument.of(FolioDestination.class),
+				Argument.of(PushkbAPIError.class)
+			);
+			fail("Should have thrown 404");
+		} catch (HttpClientResponseException e) {
+			assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+		}
 	}
 }
