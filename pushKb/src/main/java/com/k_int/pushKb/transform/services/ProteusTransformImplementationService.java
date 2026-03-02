@@ -30,6 +30,10 @@ public class ProteusTransformImplementationService implements JsonToJsonTransfor
 		this.proteusService = proteusService;
 	}
 
+	public ProteusTransformRepository getRepository() {
+		return proteusTransformRepository;
+	}
+
 	@NonNull
 	@SingleResult
 	@Transactional
