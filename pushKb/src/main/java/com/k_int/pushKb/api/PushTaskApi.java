@@ -3,8 +3,8 @@ package com.k_int.pushKb.api;
 import com.k_int.pushKb.api.errors.PushkbAPIError;
 import com.k_int.pushKb.model.PushTask;
 import io.micronaut.context.annotation.Parameter;
+import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,12 +25,20 @@ public interface PushTaskApi {
 	@Operation(
 		method="POST",
 		summary="Create a new PushTask",
-		description="Creates a new PushTask in the system. If a PushTask with the same unique constraints already exists, " +
-			"it will be returned instead of creating a duplicate. This ensures the PushTask is created, and a DutyCycleTask " +
-			"is set up to manage scheduling of the tasks"
+		description="Creates a new PushTask in the system. This ensures the PushTask is created, and a DutyCycleTask " +
+			"is set up to manage scheduling of the tasks. If a PushTask with the same unique constraints already exists, " +
+			"a CONFLICT error is returned instead"
 	)
-	@Post(produces = MediaType.APPLICATION_JSON)
 	@Status(HttpStatus.CREATED)
+	@ApiResponse(
+		responseCode = "201", description = "A PushTask was successfully created, " +
+			"and relevant DutyCycleTasks were successfully created."
+	)
+	@ApiResponse(
+		responseCode = "409",
+		description = "A PushTask could not be created with those details " +
+			"as it conflicts with one already in the system."
+	)
 	Publisher<PushTask> post(
 		@Valid @Body PushTask pt
 	);
@@ -41,11 +49,18 @@ public interface PushTaskApi {
 		description = "Deletes the PushTask with the given id from the system. This also removes the associated " +
 			"DutyCycleTask that was managing the scheduling of pushes for this PushTask."
 	)
-	@Delete(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
 	@Status(HttpStatus.NO_CONTENT)
-	@ApiResponse(responseCode = "204")
-	@ApiResponse(responseCode = "404", description = "Could not find a PushTask with that id.", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
-	public Publisher<Void> delete(
+	@ApiResponse(responseCode = "204", description = "The PushTask was successfully deleted and DutyCycleTask cleaned up.")
+	@ApiResponse(
+		responseCode = "404",
+		description = "Could not find a PushTask with that id.",
+		content = @Content(
+			schema = @Schema(
+				implementation = PushkbAPIError.class
+			)
+		)
+	)
+	Publisher<Void> delete(
 		@Parameter UUID id
 	);
 
@@ -57,12 +72,11 @@ public interface PushTaskApi {
 	)
 	@ApiResponse(responseCode = "404", description = "Could not find a PushTask with that id.", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
 	@ApiResponse(responseCode = "200", description = "Successfully reset pointers for PushTask")
-	@Put(uri = "/{id}/resetPointers", produces = MediaType.APPLICATION_JSON)
-	public Publisher<PushTask> resetPointers(
+	@SingleResult
+	Publisher<PushTask> resetPointers(
 		@Parameter UUID id
 	);
 
-	@Put(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
 	@Hidden // This isn't supported so hide it from the docs
 	@Operation(
 		method="PUT",
@@ -70,7 +84,8 @@ public interface PushTaskApi {
 		description = "Updates the PushTask with the given id in the system. PUT is not supported on PushTasks - " +
 			"POST/DELETE are supported, as well as resetting the pointers."
 	)
-	public Publisher<PushTask> put(
+	@ApiResponse(responseCode = "405", description = "PUT is not allowed for PushTasks")
+	Publisher<PushTask> put(
 		@Parameter UUID id,
 		@Valid @Body PushTask pt
 	);

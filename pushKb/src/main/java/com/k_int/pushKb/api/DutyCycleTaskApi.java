@@ -29,6 +29,8 @@ public interface DutyCycleTaskApi {
 			"These objects represent the scheduled tasks that are run to perform operations such as pulling from Sources " +
 			"and pushing to Destinations based on the configuration defined in PushTasks."
 	)
+	@ApiResponse(responseCode = "200", description = "A page of DutyCycleTask resources")
+	@SingleResult
 	Publisher<Page<DutyCycleTask>> getDutyCycleTasks(@Valid Pageable pageable);
 
 	/**

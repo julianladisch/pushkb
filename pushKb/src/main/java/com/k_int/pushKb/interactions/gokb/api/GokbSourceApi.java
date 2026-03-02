@@ -1,11 +1,15 @@
 package com.k_int.pushKb.interactions.gokb.api;
 
+import com.k_int.pushKb.api.errors.PushkbAPIError;
 import com.k_int.pushKb.interactions.gokb.model.GokbSource;
 import io.micronaut.context.annotation.Parameter;
+import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Status;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,7 +33,7 @@ public interface GokbSourceApi {
 	)
 	@Status(HttpStatus.CREATED)
 	@ApiResponse(responseCode = "201", description = "Created")
-	@ApiResponse(responseCode = "409", description = "Conflict - Identity already exists")
+	@ApiResponse(responseCode = "409", description = "Conflict - GokbSource already exists", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
 	Publisher<GokbSource> post(@Valid @Body GokbSource src);
 
 	@Operation(
@@ -38,6 +42,9 @@ public interface GokbSourceApi {
 		description="Resets the internal pointer for the GokbSource with the given id." +
 			"This will cause the next data pull to start from the beginning."
 	)
+	@ApiResponse(responseCode = "200", description = "The pointer for the GokbSource has been successfully reset")
+	@ApiResponse(responseCode = "404", description = "Could not find a GokbSource with that id.", content = @Content(schema = @Schema(implementation = PushkbAPIError.class)))
+	@SingleResult
 	Publisher<GokbSource> resetPointer(
 		@Parameter UUID id
 	);

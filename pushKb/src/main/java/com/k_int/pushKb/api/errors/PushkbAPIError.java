@@ -35,7 +35,11 @@ public class PushkbAPIError {
 	/**
 	 * The full URI of the request that triggered the error.
 	 */
-	@Schema(description = "The requested URI", example = "/pushtasks/123")
+	@Schema(
+		description = "The requested URI",
+		example = "/pushtasks/123",
+		format = "uri-reference" // The returned URI is often a relative path, so allow for that in the schema
+	)
 	URI uri;
 
 	/**

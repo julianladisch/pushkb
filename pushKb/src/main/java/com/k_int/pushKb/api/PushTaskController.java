@@ -3,13 +3,12 @@ package com.k_int.pushKb.api;
 import com.k_int.pushKb.services.PushTaskDatabaseService;
 import com.k_int.pushKb.services.PushableService;
 import io.micronaut.context.annotation.Parameter;
-import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
-import io.swagger.v3.oas.annotations.Hidden;
 
 import com.k_int.pushKb.crud.CrudControllerImpl;
 import com.k_int.pushKb.model.PushTask;
@@ -38,6 +37,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 
 
 	@Override
+	@Post(produces = MediaType.APPLICATION_JSON)
 	public Mono<PushTask> post(@Valid @Body PushTask pt) {
 		UUID generatedId = databaseService.generateUUIDFromObject(pt);
 		pt.setId(generatedId);
@@ -48,7 +48,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 					return Mono.error(new HttpStatusException(
 						HttpStatus.CONFLICT,
 						"A PushTask with this identity already exists. " +
-							"If you need to change parameters, DELETE the existing task or use a different context."
+							"If you need to change parameters, DELETE the existing task and recreate."
 					));
 				}
 				return Mono.from(pushableService.ensurePushable(pt))
@@ -57,7 +57,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 	}
 
 	@Override
-	@Hidden
+	@Put(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
 	public Mono<PushTask> put(
 		@Parameter UUID id,
 		@Valid @Body PushTask pt
@@ -68,8 +68,8 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 		));
 	}
 
-	@SingleResult
-  // Reset pointer endpoint
+	// Reset pointer endpoint
+	@Put(uri = "/{id}/resetPointers", produces = MediaType.APPLICATION_JSON)
 	public Mono<PushTask> resetPointers(
 		@Parameter UUID id
 	) {
@@ -88,6 +88,7 @@ public class PushTaskController extends CrudControllerImpl<PushTask> implements 
 	// We need to use pushableService here to make sure that side effects happen as expected
 	// Such as DutyCycleTask removal etc.
 	@Override
+	@Delete(uri = "/{id}", produces = MediaType.APPLICATION_JSON)
 	public Mono<Void> delete(
 		@Parameter UUID id
 	) {

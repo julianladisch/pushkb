@@ -33,11 +33,11 @@ public class PublicTemporaryPushTaskController implements PublicTemporaryPushTas
 	}
 
 	public Mono<TemporaryPushTask> temporaryPushTask(
-		String pushTaskId,
+		UUID pushTaskId,
 		@Nullable String filterContext
 	) {
 		// FIXME If we don't find the push task by id we will return 404 right now, which isn't super helpful
-		return Mono.from(pushableService.findById(PushTask.class, UUID.fromString(pushTaskId)))
+		return Mono.from(pushableService.findById(PushTask.class, pushTaskId))
 			.switchIfEmpty(Mono.error(
 				new HttpStatusException(
 					HttpStatus.NOT_FOUND,
