@@ -397,7 +397,7 @@ and so the options are _either_ to clone with submodules `git clone <this repo> 
 
 ## Bootstrapping
 
-As a temporary measure, Sources, Destinations and PushTasks must be bootstrapped into the module by way of
+As a temporary measure, Sources, Destinations and PushTasks can be bootstrapped into the module by way of
 `micronaut.config.files` (Or running with a custom profile yml)
 
 The `.yml` file should take the form
@@ -497,3 +497,35 @@ The aim is to keep migration files relatively minimal. Flyway will handle the ru
 to keep migration files small so that they are easily parseable by a dev scanning through them, and easy to see what
 each file is doing. Also allows easier use of "undo" migrations should they become necessary.
 
+## Issues
+
+### Stuck tasks
+
+As PushKB is a significantly smaller external-to-folio module, with lower overheads and issues around longer running
+tasks, there should be far fewer instances of the module completely dying. If the module shuts down gracefully, it will
+release all DutyCycleTasks back into the pool for other instances of PushKB to pick up. However, there is a chance that
+a task can get "stuck" if the module running it crashes suddenly. Currently this requires a manual reset of the
+DutyCycleTask with a POST to `/dutycycletasks/<taskId>/reset`. WARNING: The recommendation is that all PushKB instances
+are gracefully shut down, then restarted, and any that _remain_ `IN-PROCESS` having not run for a long time are the ones
+that are safe then to perform this on. Performing a reset on a task which is legitimately in use can have strange
+consequences.
+
+This is equivalent to the "zombie jobs" issue in ERM, and
+a [proper solution is on the roadmap](https://gitlab.com/knowledge-integration/platform/patterns/taskscheduler/-/issues/3),
+but unlikely to make it into V1. This _shouldn't_ be too impactful, as again the theory is that these should crash far
+less often than mod-agreements (or indeed any FOLIO module).
+
+### Failing tasks
+
+Sometimes a task can fail for reasons _outside_ of PushKB, such as GOKB API changes, or FOLIO being down etc. The task
+scheduler inside PushKB will attempt a failing task 3 times, then set a "lastAttempted" field on the DutyCycleTask.
+This will in turn prevent that task from being picked up by the scheduler for 10 minutes. These two values are not
+currently configurable,
+but [will be in a future update](https://gitlab.com/knowledge-integration/platform/patterns/taskscheduler/-/work_items/2).
+
+This does mean that the `lastAttempted` only gets set currently after 3 failed attempts in a row. In addition there is a
+`lastRun` which is set on successful completetion of a task. This behaviour is intended for logging purposes ONLY right
+now, and is subject to change down the
+line. well-thought-out metadata is
+an [issue](https://gitlab.com/knowledge-integration/platform/patterns/taskscheduler/-/work_items/1) on the future
+roadmap, but this will not be in place for V1.
