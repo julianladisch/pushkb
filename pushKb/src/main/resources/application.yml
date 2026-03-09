@@ -59,7 +59,7 @@ flyway:
   datasources:
     default:
       enabled: true
-      out-of-order: true
+      out-of-order: true # NECESSARY for our Flyway pattern
       locations:
         - classpath:db/migration
         - classpath:db/taskscheduler-core

@@ -29,6 +29,7 @@ flyway:
   datasources:
     default:
       enabled: true
+      out-of-order: true # NECESSARY for our Flyway pattern
       locations:
         - "classpath:db/migration"
         - classpath:db/taskscheduler-core # This creates the duty_cycle_task table
