@@ -397,6 +397,7 @@ An upgrade from V1 to V1.1 can therefore be handled as such:
 
 - Backup DB
 	- This is just to allow for backing out of an upgrade if something goes catastrophically wrong, shouldn't be needed
+	- A full DB backup shouldn't cause any issues, there should be no need to clear specific fields etc before restoring
 - Pull latest image
 - Spin up a new instance on that image
 	- This will RUN migrations for the schema on the DB
