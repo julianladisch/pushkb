@@ -9,7 +9,7 @@ public class HttpClientRequestResponseException extends HttpClientResponseExcept
   MutableHttpRequest<?> request;
 
   public HttpClientRequestResponseException(HttpClientResponseException superException, MutableHttpRequest<?> request) {
-    super(superException.getMessage(), superException.getResponse());
-    this.request = request;
+		super(superException.getMessage(), superException, superException.getResponse());
+		this.request = request;
   }
 }
