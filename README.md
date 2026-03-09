@@ -414,6 +414,7 @@ The _safest_ migration path is to:
 	- IMPORTANT: This should be done "gracefully" as a good external citizen, otherwise tasks can get stuck in "
 		IN-PROCESS", see issues section for more
 - Restart first instance and wait for migrations to run (see section below about flyway logs)
+- Restart all other instances
 
 ### Logs
 
@@ -432,6 +433,16 @@ Below is an example of some of the logs you might expect to see on a PushKB star
 15:56:02.995 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "812.1.5 - push tasks"
 15:56:03.010 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "812.1.6 - sessions and chunks"
 15:56:03.022 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Successfully applied 7 migrations to schema "public", now at version v812.1.6 (execution time 00:00.046s)
+```
+
+In this case it can be seen that the schemas didn't exist yet, so this is a first run.
+
+In the case where an instance starts and no migrations are necessary the logs will look something like this
+
+```
+16:00:44.406 [Test worker] INFO  o.f.core.internal.command.DbValidate - Successfully validated 7 migrations (execution time 00:00.006s)
+16:00:44.416 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Current version of schema "public": 812.1.6
+16:00:44.417 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Schema "public" is up to date. No migration necessary.
 ```
 
 ## Issues
@@ -571,6 +582,10 @@ Migrations in PushKB are handled by Flyway.
 
 Migration files are usually named in the following way `V(migration_number)__name_for_migration_file` as per Flyway
 migration versioning, see https://documentation.red-gate.com/fd/migrations-184127470.html
+
+Knowledge integration has a pattern for prefixing DB migration schemas to allow external libraries to produce their own
+migrations, [see this document.](https://docs.google.com/document/d/1aVd7hVurqHxLXiD-2C79KFnaGVo6Bp2gRa3H0Wu8R4w/edit?tab=t.0)
+PushKB migrations are prefixed with V812. This pattern RELIES on `out-of-order: true` for flyway.
 
 ### Strategy
 
