@@ -32,7 +32,6 @@ flyway:
       locations:
         - "classpath:db/migration"
         - classpath:db/taskscheduler-core # This creates the duty_cycle_task table
-      outOfOrder: true
 
 test-resources:
   containers:
