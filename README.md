@@ -387,6 +387,86 @@ Specific workflow documentation:
 
 - [GOKB -> FOLIO](./docs/gokb_to_folio_workflow.md)
 
+## Backups and upgrading
+
+PushKB uses the [Flyway-Micronaut integration](https://micronaut-projects.github.io/micronaut-flyway/latest/guide/) to
+handle database schema migrations. This means that if an instance is brought online with a newer version and migraitons
+to run, they will be run automatically.
+
+An upgrade from V1 to V1.1 can therefore be handled as such:
+
+- Backup DB
+	- This is just to allow for backing out of an upgrade if something goes catastrophically wrong, shouldn't be needed
+- Pull latest image
+- Spin up a new instance on that image
+	- This will RUN migrations for the schema on the DB
+	- Existing running instances WILL be running now against the "wrong" (too advanced) schema
+		- This means that there is a chance that running in this "no downtime" way can cause a problem with earlier versions
+			during the handover.
+		- The design decisions (See developer migration section) SHOULD prevent this version to version, but be aware and
+			take
+			backups
+
+Luckily PushKB shouldn't need to be a "zero downtime" application anyway
+The _safest_ migration path is to:
+
+- Shut down all instances
+	- IMPORTANT: This should be done "gracefully" as a good external citizen, otherwise tasks can get stuck in "
+		IN-PROCESS", see issues section for more
+- Restart first instance and wait for migrations to run (see section below about flyway logs)
+
+### Logs
+
+Below is an example of some of the logs you might expect to see on a PushKB start relating to Flyway migrations
+
+```
+15:56:02.891 [Test worker] INFO  o.f.c.i.s.JdbcTableSchemaHistory - Schema history table "public"."flyway_schema_history" does not exist yet
+15:56:02.894 [Test worker] INFO  o.f.core.internal.command.DbValidate - Successfully validated 7 migrations (execution time 00:00.017s)
+15:56:02.908 [Test worker] INFO  o.f.c.i.s.JdbcTableSchemaHistory - Creating Schema History table "public"."flyway_schema_history" ...
+15:56:02.929 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Current version of schema "public": << Empty Schema >>
+15:56:02.935 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "219.1.1 - tasckscheduler core Initial schema"
+15:56:02.949 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "812.1.1 - source records"
+15:56:02.960 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "812.1.2 - gokb"
+15:56:02.969 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "812.1.3 - folio"
+15:56:02.983 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "812.1.4 - proteus transforms"
+15:56:02.995 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "812.1.5 - push tasks"
+15:56:03.010 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "812.1.6 - sessions and chunks"
+15:56:03.022 [Test worker] INFO  o.f.core.internal.command.DbMigrate - Successfully applied 7 migrations to schema "public", now at version v812.1.6 (execution time 00:00.046s)
+```
+
+## Issues
+
+### Stuck tasks
+
+As PushKB is a significantly smaller external-to-folio module, with lower overheads and issues around longer running
+tasks, there should be far fewer instances of the module completely dying. If the module shuts down gracefully, it will
+release all DutyCycleTasks back into the pool for other instances of PushKB to pick up. However, there is a chance that
+a task can get "stuck" if the module running it crashes suddenly. Currently this requires a manual reset of the
+DutyCycleTask with a POST to `/dutycycletasks/<taskId>/reset`. WARNING: The recommendation is that all PushKB instances
+are gracefully shut down, then restarted, and any that _remain_ `IN-PROCESS` having not run for a long time are the ones
+that are safe then to perform this on. Performing a reset on a task which is legitimately in use can have strange
+consequences.
+
+This is equivalent to the "zombie jobs" issue in ERM, and
+a [proper solution is on the roadmap](https://gitlab.com/knowledge-integration/platform/patterns/taskscheduler/-/issues/3),
+but unlikely to make it into V1. This _shouldn't_ be too impactful, as again the theory is that these should crash far
+less often than mod-agreements (or indeed any FOLIO module).
+
+### Failing tasks
+
+Sometimes a task can fail for reasons _outside_ of PushKB, such as GOKB API changes, or FOLIO being down etc. The task
+scheduler inside PushKB will attempt a failing task 3 times, then set a "lastAttempted" field on the DutyCycleTask.
+This will in turn prevent that task from being picked up by the scheduler for 10 minutes. These two values are not
+currently configurable,
+but [will be in a future update](https://gitlab.com/knowledge-integration/platform/patterns/taskscheduler/-/work_items/2).
+
+This does mean that the `lastAttempted` only gets set currently after 3 failed attempts in a row. In addition there is a
+`lastRun` which is set on successful completetion of a task. This behaviour is intended for logging purposes ONLY right
+now, and is subject to change down the
+line. well-thought-out metadata is
+an [issue](https://gitlab.com/knowledge-integration/platform/patterns/taskscheduler/-/work_items/1) on the future
+roadmap, but this will not be in place for V1.
+
 # Developer information
 
 ## Cloning
@@ -398,7 +478,8 @@ and so the options are _either_ to clone with submodules `git clone <this repo> 
 ## Bootstrapping
 
 As a temporary measure, Sources, Destinations and PushTasks can be bootstrapped into the module by way of
-`micronaut.config.files` (Or running with a custom profile yml)
+`micronaut.config.files` (Or running with a custom profile yml). This is often the most expedient for a developer but is
+NOT the recommended method and removal of this functionality in future may not result in a major change bump.
 
 The `.yml` file should take the form
 
@@ -496,36 +577,3 @@ migration versioning, see https://documentation.red-gate.com/fd/migrations-18412
 The aim is to keep migration files relatively minimal. Flyway will handle the running in increasing order, we should aim
 to keep migration files small so that they are easily parseable by a dev scanning through them, and easy to see what
 each file is doing. Also allows easier use of "undo" migrations should they become necessary.
-
-## Issues
-
-### Stuck tasks
-
-As PushKB is a significantly smaller external-to-folio module, with lower overheads and issues around longer running
-tasks, there should be far fewer instances of the module completely dying. If the module shuts down gracefully, it will
-release all DutyCycleTasks back into the pool for other instances of PushKB to pick up. However, there is a chance that
-a task can get "stuck" if the module running it crashes suddenly. Currently this requires a manual reset of the
-DutyCycleTask with a POST to `/dutycycletasks/<taskId>/reset`. WARNING: The recommendation is that all PushKB instances
-are gracefully shut down, then restarted, and any that _remain_ `IN-PROCESS` having not run for a long time are the ones
-that are safe then to perform this on. Performing a reset on a task which is legitimately in use can have strange
-consequences.
-
-This is equivalent to the "zombie jobs" issue in ERM, and
-a [proper solution is on the roadmap](https://gitlab.com/knowledge-integration/platform/patterns/taskscheduler/-/issues/3),
-but unlikely to make it into V1. This _shouldn't_ be too impactful, as again the theory is that these should crash far
-less often than mod-agreements (or indeed any FOLIO module).
-
-### Failing tasks
-
-Sometimes a task can fail for reasons _outside_ of PushKB, such as GOKB API changes, or FOLIO being down etc. The task
-scheduler inside PushKB will attempt a failing task 3 times, then set a "lastAttempted" field on the DutyCycleTask.
-This will in turn prevent that task from being picked up by the scheduler for 10 minutes. These two values are not
-currently configurable,
-but [will be in a future update](https://gitlab.com/knowledge-integration/platform/patterns/taskscheduler/-/work_items/2).
-
-This does mean that the `lastAttempted` only gets set currently after 3 failed attempts in a row. In addition there is a
-`lastRun` which is set on successful completetion of a task. This behaviour is intended for logging purposes ONLY right
-now, and is subject to change down the
-line. well-thought-out metadata is
-an [issue](https://gitlab.com/knowledge-integration/platform/patterns/taskscheduler/-/work_items/1) on the future
-roadmap, but this will not be in place for V1.
