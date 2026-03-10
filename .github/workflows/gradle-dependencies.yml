@@ -1,0 +1,16 @@
+name: gradle-dependencies
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: 17
+    - uses: gradle/actions/setup-gradle@v5
+    - run: ./gradlew dependencies
