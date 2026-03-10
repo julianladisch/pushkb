@@ -13,7 +13,4 @@ jobs:
         distribution: 'temurin'
         java-version: 17
     - uses: gradle/actions/setup-gradle@v5
-    - run: |
-        ls -al
-        cd pushkb
-        ./gradlew dependencies
+    - run: cd pushKb; ./gradlew dependencies
